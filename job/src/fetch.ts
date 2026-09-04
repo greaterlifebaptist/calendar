@@ -12,67 +12,14 @@
 
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { JWT } from 'google-auth-library';
+import { googleRequest } from './google.ts';
 import type { Config, Ministry, RawEvent } from './types.ts';
 import { JOB_DIR, calendarIdFor, USE_FIXTURES } from './config.ts';
 
 const API = 'https://www.googleapis.com/calendar/v3';
 
-export const SCOPES = [
-  'https://www.googleapis.com/auth/calendar',
-  'https://www.googleapis.com/auth/spreadsheets',
-];
-
-let clientPromise: Promise<JWT> | null = null;
-
-/** Service-account client. Credentials come from Actions secrets, never the repo. */
-export function googleClient(): Promise<JWT> {
-  if (clientPromise) return clientPromise;
-  clientPromise = (async () => {
-    const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON?.trim();
-    if (!raw) throw new Error('Missing GOOGLE_SERVICE_ACCOUNT_JSON');
-    let creds: { client_email: string; private_key: string };
-    try {
-      // Accept both raw JSON and base64, since Actions secrets get pasted both ways.
-      const text = raw.startsWith('{') ? raw : Buffer.from(raw, 'base64').toString('utf8');
-      creds = JSON.parse(text);
-    } catch (err) {
-      throw new Error(`GOOGLE_SERVICE_ACCOUNT_JSON is not valid JSON: ${(err as Error).message}`);
-    }
-    const jwt = new JWT({
-      email: creds.client_email,
-      key: creds.private_key.replace(/\n/g, '\n'),
-      scopes: SCOPES,
-    });
-    await jwt.authorize();
-    return jwt;
-  })();
-  return clientPromise;
-}
-
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
 async function apiGet(path: string, params: Record<string, string>): Promise<any> {
-  const client = await googleClient();
-  const url = `${API}${path}?${new URLSearchParams(params)}`;
-
-  let lastErr: Error | null = null;
-  for (let attempt = 0; attempt < 4; attempt++) {
-    if (attempt > 0) await sleep(500 * 2 ** attempt);
-    const token = await client.getAccessToken();
-    const res = await fetch(url, {
-      headers: { authorization: `Bearer ${token.token}`, accept: 'application/json' },
-    });
-    if (res.ok) return res.json();
-
-    const body = await res.text();
-    lastErr = new Error(`Calendar API ${res.status} on ${path}: ${body.slice(0, 400)}`);
-    // 403 here is usually "calendar not shared with the service account" —
-    // retrying will not fix it, so fail fast with a message that says so.
-    if (res.status === 404 || res.status === 401) throw lastErr;
-    if (res.status === 403 && !/rateLimit|userRateLimit|quota/i.test(body)) throw lastErr;
-  }
-  throw lastErr ?? new Error(`Calendar API failed: ${path}`);
+  return googleRequest(API + path + '?' + new URLSearchParams(params), { label: 'Calendar' });
 }
 
 async function listEvents(

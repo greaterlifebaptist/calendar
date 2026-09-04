@@ -12,16 +12,20 @@ This file covers only how to run what exists.
 
 ## Status
 
-Phase 1, step 1 of section 8 is built: **job core** — fetch, classify, and
-publish `events.json` plus the bundle feeds.
+The job, the website, the hourly deploy, backups and personal feeds are live.
+The remaining work is the pages people interact with, then reminders.
 
 | Step | State |
 |---|---|
 | 1. Job core | done |
 | 2. Public site page | done — TV mode, add to home screen, cached fallback |
 | 3. Hourly workflow | live |
-| 4. Reminder engine | not started |
-| 5-8. Signup, personal feeds, prefs, admin form | not started |
+| 4. Membership sheet and personal feeds | done |
+| 5. Signup page | next |
+| 6. Preferences page | |
+| 7. Admin form | |
+| 8. TV display for the 85 inch screen | |
+| 9. Reminder engine to GroupMe | |
 
 ## Run it
 
@@ -199,3 +203,51 @@ to an empty calendar. It reappears by itself when somebody schedules something.
 Only the listing is withheld. The `.ics` file is still written every run,
 because anyone already subscribed would otherwise find their feed returning 404
 during a quiet stretch.
+
+## Membership and personal feeds
+
+Membership lives in a Google Sheet called **Calendar Permissions**, on a tab
+named `People`. Columns are matched by their **header name**, never by
+position, so a leader can reorder or insert columns without breaking anything.
+
+| Column | Who fills it |
+|---|---|
+| `name` | the signup page, or `npm run person` |
+| `email` | optional, same |
+| `token` | **generated, never typed** |
+| `created` | generated |
+| one column per ministry id | any non-empty value means member |
+
+`token` is 128 bits of randomness and becomes that person's feed URL. Nobody
+types it and nobody should invent one. The brief sketched an eight character
+token; that is only 32 bits, and since the feeds sit on a public host an
+attacker would not be guessing one person's token, they would be sweeping for
+any valid one. With a few hundred members that is days of scripted requests.
+
+Every run rebuilds every personal feed from the sheet. Clearing a ministry
+column drops that content from the person's next refresh, and deleting their
+row removes the feed entirely. That is the revocation mechanism, and it is why
+nothing genuinely sensitive belongs in any feed.
+
+Personal feeds are the only path by which a private ministry's events leave the
+system.
+
+### Adding somebody before the signup page exists
+
+```bash
+cd job && npm run person -- --list
+```
+
+```bash
+cd job && npm run person -- --add "Jane Doe" --groups church,youth
+```
+
+This is also the permanent mechanism for **private** groups. The signup page
+must never let somebody add themselves to `youth-leaders` or `worship`, so a
+leader does it here. Needs `SHEET_ID` and `GOOGLE_SERVICE_ACCOUNT_JSON` in a
+local `.env`.
+
+A sheet that cannot be read fails the run rather than publishing. That means
+the site keeps serving its previous copy for an hour and an issue is opened,
+which is better than quietly serving stale personal feeds to people who should
+have been removed from them.

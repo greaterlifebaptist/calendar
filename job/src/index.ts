@@ -5,20 +5,54 @@
  * Run it against the real calendars:   npm start
  */
 
-import { loadConfig, loadDotEnv, activeMinistries, pendingMinistries, USE_FIXTURES, ROOT } from './config.ts';
+import {
+  loadConfig, loadDotEnv, activeMinistries, pendingMinistries,
+  USE_FIXTURES, ROOT, outputDir,
+} from './config.ts';
 import { fetchAll } from './fetch.ts';
 import { normalizeAll, dedupe, byStart } from './normalize.ts';
 import { publish } from './publish.ts';
 import { writeBackup } from './backup.ts';
+import { readPeople, duplicateTokens } from './sheet.ts';
+import { writePersonalFeeds } from './personal.ts';
 import { addMonths, startOfMonth } from './time.ts';
 import { join } from 'node:path';
-import type { CalEvent } from './types.ts';
+import type { CalEvent, Config } from './types.ts';
 
 /** How far ahead to read. Deep enough for next summer's trip to be pinned. */
 const HORIZON_MONTHS = 18;
 
 function log(msg: string): void {
   process.stdout.write(msg + '\n');
+}
+
+/**
+ * Build the per-person feeds, or explain why not.
+ *
+ * A missing sheet is not a failure: everything else in the run is still valid
+ * and the church may simply not have set membership up yet.
+ */
+async function publishPersonalFeeds(cfg: Config, masters: CalEvent[]) {
+  if (USE_FIXTURES()) return null;
+  if (!process.env.SHEET_ID?.trim()) {
+    log('  personal     skipped, no SHEET_ID configured');
+    return null;
+  }
+  const sheet = await readPeople(cfg);
+  for (const col of sheet.unknownColumns) {
+    log('  [warn] People tab column "' + col + '" matches no ministry id, ignored');
+  }
+  const dupes = duplicateTokens(sheet.people);
+  if (dupes.length) {
+    throw new Error('Duplicate tokens in the People tab: ' + dupes.join(', ') +
+      '. Two people would share one feed.');
+  }
+  if (!sheet.people.length) {
+    // Not an error on day one, but if it ever happens after people have signed
+    // up, every subscription stops resolving, so it must be loud.
+    log('  [warn] the People tab has no rows with a token, so no personal feeds exist');
+  }
+  return writePersonalFeeds(cfg, sheet.people, masters, outputDir());
 }
 
 export async function run(): Promise<number> {
@@ -78,6 +112,15 @@ export async function run(): Promise<number> {
   log('  events.json  ' + result.publicEventCount + ' public events (' + result.privateEventCount + ' private withheld)');
   log('  by type      ' + [...counts].map(([k, v]) => k + '=' + v).join(' ') + '  pinned=' + pinned);
   log('  feeds        ' + result.feedPaths.length + ' .ics files');
+
+  // Personal feeds last: they are the only place private ministries appear,
+  // and they are rebuilt from the sheet every run so a removed row or a
+  // cleared column takes effect on the next refresh.
+  const personal = await publishPersonalFeeds(cfg, masters);
+  if (personal) {
+    log('  personal     ' + personal.written + ' feeds (' + personal.empty +
+      ' with nothing selected, ' + personal.removed + ' revoked)');
+  }
   log('  backup       ' + backup.events + ' raw events from ' + backup.calendars + ' calendars');
 
   const hardFailures = results.filter((r) => r.error);

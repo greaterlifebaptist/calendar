@@ -87,6 +87,9 @@ export type CalEvent = RawEvent & Classified & {
   isRecurringMaster: boolean;
 };
 
+/** Re-exported so consumers get Person from one place. */
+export type { Person } from './sheet.ts';
+
 /** The shape written to public/events.json and read by the website. */
 export type EventsJson = {
   generated: string;
