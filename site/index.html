@@ -4,6 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Church Calendar — Greater Life Baptist Church</title>
+<meta name="description" content="Services, trips, fundraisers and due dates for Greater Life Baptist Church, Midland, Georgia.">
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="theme-color" content="#1B5E45">
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./icon.svg">
+<meta name="apple-mobile-web-app-title" content="GLBC Calendar">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
@@ -23,6 +30,9 @@
   --mono:"IBM Plex Mono",ui-monospace,monospace;
 }
 *{box-sizing:border-box}
+/* Author `display` declarations beat the browser's [hidden] rule, so anything
+   toggled by the hidden attribute needs this or it renders as an empty box. */
+[hidden]{display:none!important}
 html,body{margin:0;padding:0}
 body{background:var(--ivory);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
 .wrap{max-width:900px;margin:0 auto;padding:0 20px 80px}
@@ -131,6 +141,57 @@ footer .stamp{font-family:var(--mono);font-size:10.5px;letter-spacing:.05em}
   .entry{animation:rise .32s ease both}
   @keyframes rise{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
 }
+
+/* ---------- staleness notice ---------- */
+.notice{display:flex;gap:11px;align-items:flex-start;margin-top:20px;padding:12px 15px;border-radius:9px;font-size:.86rem;background:#FFF6E0;border:1.5px solid #F2DFAE;color:#6B5307}
+.notice.warn{background:#FFF6F2;border-color:#F3D3C6;color:#8C2F10}
+.notice b{display:block;font-family:var(--display);font-size:.98rem;margin-bottom:1px}
+.notice .ico{flex:0 0 auto;font-size:1.05rem;line-height:1.35}
+
+/* ---------- add to home screen ---------- */
+.install{position:fixed;left:12px;right:12px;bottom:12px;z-index:20;display:flex;gap:12px;align-items:center;background:var(--card);border:1.5px solid var(--rule);border-radius:12px;padding:13px 14px;box-shadow:0 8px 28px rgba(36,31,27,.16);max-width:520px;margin:0 auto}
+.install .ico{flex:0 0 34px;height:34px;border-radius:8px;background:var(--pine);color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.05rem}
+.install .txt{flex:1;min-width:0;font-size:.85rem;line-height:1.4;color:var(--ink-soft)}
+.install .txt b{display:block;color:var(--ink);font-family:var(--display);font-size:1rem}
+.install button{flex:0 0 auto;border:none;border-radius:7px;padding:8px 13px;font-family:var(--body);font-size:.83rem;font-weight:700;cursor:pointer;background:var(--sun);color:#3D2A00}
+.install button.dismiss{background:none;color:var(--ink-soft);padding:8px 6px;text-decoration:underline;text-underline-offset:3px}
+
+/* ---------- TV mode ----------
+   Wall-mounted tablets replacing the paper calendar cards. No interaction,
+   no filters, no month grid. Read from across the fellowship hall. */
+body.tv{font-size:24px}
+body.tv .wrap{max-width:1500px;padding:0 40px 40px}
+body.tv .filters,body.tv .views,body.tv .subscribe,body.tv #monthView,body.tv .morebtn,body.tv .install{display:none!important}
+body.tv .masthead{padding:30px 0 14px}
+body.tv .masthead h1{font-size:clamp(2.6rem,5vw,4rem)}
+body.tv .masthead p{display:none}
+body.tv .eyebrow{font-size:16px}
+body.tv .tvclock{font-family:var(--mono);font-size:19px;letter-spacing:.05em;color:var(--ink-soft);position:absolute;right:0;top:44px;text-align:right}
+body.tv .agenda{margin-top:14px}
+body.tv .month-head{font-size:17px;margin:26px 0 14px}
+body.tv .entry{margin-bottom:16px;gap:20px}
+body.tv .datechip{flex-basis:104px;padding:12px 0 13px;border-radius:12px}
+body.tv .datechip .dow{font-size:14px}
+body.tv .datechip .dnum{font-size:2.7rem}
+body.tv .card{padding:18px 22px;border-radius:12px;border-width:2px}
+body.tv .card h3{font-size:1.75rem}
+body.tv .meta{font-size:1.05rem;gap:6px 20px}
+body.tv .card p.note{font-size:1.05rem}
+body.tv .due{font-size:15px}
+body.tv .pinned{padding:20px 22px 10px}
+body.tv .pinned-head h2,body.tv .pinned-head .sub{font-size:16px}
+body.tv .pinrow .body h3{font-size:1.45rem}
+body.tv .pinrow .when{flex-basis:104px;font-size:16px}
+body.tv .pinrow .when b{font-size:1.7rem}
+body.tv .pinrow .body .meta,body.tv .away{font-size:1rem}
+body.tv .notice{font-size:1.1rem}
+body.tv footer{font-size:1rem}
+/* Two columns once the screen is wide enough to want them. */
+@media(min-width:1200px){
+  body.tv .agenda{column-count:2;column-gap:44px}
+  body.tv .entry,body.tv .month-head{break-inside:avoid}
+  body.tv .month-head{column-span:all}
+}
 </style>
 </head>
 <body>
@@ -141,7 +202,10 @@ footer .stamp{font-family:var(--mono);font-size:10.5px;letter-spacing:.05em}
   <p class="eyebrow">Greater Life Baptist Church · Midland, Georgia</p>
   <h1>What's <em>Coming Up</em></h1>
   <p>Services Thursday at 7 PM and Sunday at 11 AM. Everything else — trips, revivals, fundraisers, and due dates — is below.</p>
+  <div class="tvclock" id="tvclock" hidden></div>
 </header>
+
+<div class="notice" id="notice" hidden></div>
 
 <section class="filters">
   <div class="filters-head">
@@ -179,6 +243,7 @@ footer .stamp{font-family:var(--mono);font-size:10.5px;letter-spacing:.05em}
     <a class="btn ghost" href="#" id="btnGoogle">Android &amp; Google</a>
     <a class="btn ghost" href="#" id="btnIcs">Outlook or other</a>
   </div>
+  <p class="fineprint" id="subWhat"></p>
   <p class="fineprint">Subscribed calendars refresh on your phone's own schedule, so they can run a few hours behind. We always announce changes in GroupMe.</p>
 </section>
 
@@ -188,21 +253,29 @@ footer .stamp{font-family:var(--mono);font-size:10.5px;letter-spacing:.05em}
 
 </div>
 
+<div class="install" id="install" hidden>
+  <span class="ico">＋</span>
+  <span class="txt" id="installTxt"></span>
+  <button type="button" id="installGo" hidden>Add</button>
+  <button type="button" class="dismiss" id="installNo">Not now</button>
+</div>
+
 <script>
-/* Sample data — in production the nightly job writes events.json,
-   merging one .ics feed per ministry. */
+/* Last-resort sample, used only when events.json cannot be reached AND no
+   previously fetched copy is cached on this device. Ministry ids match
+   job/config/ministries.json; they are locked and appear in feed URLs. The
+   page marks this data as an example so nobody turns up to an event that was
+   never scheduled. */
 const SAMPLE = {
   generated: "2026-08-24T19:00:00-04:00",
+  sample: true,
   feeds: {
     base: "https://calendars.greaterlifebaptistchurch.com/feeds/",
     all:  "all.ics"
   },
   ministries: [
-    { id:"church", name:"Church-wide", color:"#1B5E45" },
-    { id:"youth",  name:"Youth",       color:"#6B9A12" },
-    { id:"kids",   name:"Kids",        color:"#EE7B21" },
-    { id:"mens",   name:"Men's",       color:"#2C7EA1" },
-    { id:"ladies", name:"Ladies",      color:"#A0447F" }
+    { id:"church", name:"Church-wide",        color:"#1B5E45" },
+    { id:"youth",  name:"Greater Generation", color:"#6B9A12" }
   ],
   events: [
     { uid:"e1", ministry:"youth", type:"deadline", pinned:true,
@@ -217,15 +290,15 @@ const SAMPLE = {
       notes:"Teens sit together up front. Pizza in the fellowship hall afterward." },
     { uid:"e4", ministry:"church", type:"service", title:"Revival — Night 3",
       start:"2026-09-08T19:00:00", end:"2026-09-08T20:30:00", location:"Sanctuary" },
-    { uid:"e5", ministry:"mens", type:"event", title:"Men's breakfast",
+    { uid:"e5", ministry:"church", type:"event", title:"Men's breakfast",
       start:"2026-09-12T07:30:00", end:"2026-09-12T09:00:00", location:"Fellowship hall",
       notes:"Bring a friend. Eggs and grits on the house." },
     { uid:"e6", ministry:"youth", type:"deadline", title:"Raffle money & unsold tickets due",
       start:"2026-09-13", allDay:true,
       notes:"Turn in to Bro. Spencer. Everything comes back, sold or not." },
-    { uid:"e7", ministry:"kids", type:"event", title:"Fall Festival planning meeting",
+    { uid:"e7", ministry:"church", type:"event", title:"Fall Festival planning meeting",
       start:"2026-09-15T18:30:00", end:"2026-09-15T19:30:00", location:"Kids room" },
-    { uid:"e8", ministry:"ladies", type:"event", title:"Ladies' fellowship supper",
+    { uid:"e8", ministry:"church", type:"event", title:"Ladies' fellowship supper",
       start:"2026-09-19T18:00:00", end:"2026-09-19T20:00:00", location:"Fellowship hall",
       notes:"Covered dish — bring a side or dessert." },
     { uid:"e9", ministry:"youth", type:"event", title:"Gun raffle drawing",
@@ -233,7 +306,7 @@ const SAMPLE = {
       notes:"Right after morning service. Winner's choice of the three prizes." },
     { uid:"e10", ministry:"church", type:"event", title:"Fifth Sunday singing & dinner on the grounds",
       start:"2026-09-27T11:00:00", end:"2026-09-27T14:00:00", location:"Pavilion" },
-    { uid:"e11", ministry:"kids", type:"event", title:"Fall Festival",
+    { uid:"e11", ministry:"church", type:"event", title:"Fall Festival",
       start:"2026-10-31T17:00:00", end:"2026-10-31T20:00:00", location:"Church grounds",
       notes:"Trunk-or-treat, cake walk, hayride." },
     { uid:"e12", ministry:"youth", type:"deadline", pinned:true,
@@ -430,11 +503,25 @@ function renderGrid(){
 
 function renderSubscribe(){
   const sel = [...active];
-  const one = sel.length === 1 ? sel[0] + ".ics" : (DATA.feeds?.all || "all.ics");
-  const url = (DATA.feeds?.base || "") + one;
+  const all = DATA.ministries.length;
+  // One bundle feed exists per ministry, plus a combined one. There is no
+  // feed for an arbitrary pair, so any partial selection falls back to
+  // everything and the page says so rather than quietly subscribing you to
+  // more than you asked for.
+  const single = sel.length === 1;
+  const file = single ? sel[0] + ".ics" : (DATA.feeds?.all || "all.ics");
+  const url = (DATA.feeds?.base || "") + file;
   $("btnApple").href  = url.replace(/^https?:/, "webcal:");
   $("btnGoogle").href = "https://calendar.google.com/calendar/r?cid=" + encodeURIComponent(url);
   $("btnIcs").href    = url;
+
+  const names = sel.map(id => min(id).name);
+  let what;
+  if (single) what = "Adds " + names[0] + ".";
+  else if (sel.length === all || !sel.length) what = "Adds everything.";
+  else what = "Adds everything, not just the " + names.length +
+    " you picked. There is one calendar per ministry and one for all of them.";
+  $("subWhat").textContent = what;
 }
 
 function render(){
@@ -458,18 +545,196 @@ $("moreBtn").addEventListener("click", () => { showAll = !showAll; renderAgenda(
 $("prevM").addEventListener("click", () => { cursor.setMonth(cursor.getMonth()-1); renderGrid(); });
 $("nextM").addEventListener("click", () => { cursor.setMonth(cursor.getMonth()+1); renderGrid(); });
 
-function init(){
-  const want = new URLSearchParams(location.search).get("ministry");
-  const ids = DATA.ministries.map(m => m.id);
-  active = want ? new Set(want.split(",").filter(id => ids.includes(id))) : new Set(ids);
-  if (!active.size) active = new Set(ids);
-  $("stamp").textContent = "Last updated " + parse(DATA.generated)
-    .toLocaleString("en-US",{weekday:"long",month:"long",day:"numeric",hour:"numeric",minute:"2-digit"});
-  buildRibbon(); buildPills(); render();
+/* ---------------------------------------------------------------------------
+   Data loading.
+
+   The page must never go blank, but it must also never present made-up events
+   as real. Someone turning up to a revival that was never scheduled is worse
+   than an error message. So: live data if we can get it, otherwise the last
+   copy this device successfully fetched, clearly labelled and dated, and only
+   as a last resort the built-in example, labelled as an example.
+--------------------------------------------------------------------------- */
+const PARAMS = new URLSearchParams(location.search);
+const TV = (PARAMS.get("display") || "").toLowerCase() === "tv";
+const CACHE_KEY = "glbc.events.v1";
+const DISMISS_KEY = "glbc.install.dismissed";
+const REFRESH_MS = 15 * 60 * 1000;
+/* Feeds are rebuilt hourly. Past this, something is wrong upstream and the
+   reader deserves to know rather than trusting a stale page. */
+const STALE_MS = 12 * 60 * 60 * 1000;
+
+let SOURCE = "sample";
+
+function readCache(){
+  try { const raw = localStorage.getItem(CACHE_KEY); return raw ? JSON.parse(raw) : null; }
+  catch { return null; }
+}
+function writeCache(json){
+  try { localStorage.setItem(CACHE_KEY, JSON.stringify(json)); } catch {}
 }
 
-fetch("./events.json").then(r => r.ok ? r.json() : Promise.reject())
-  .then(j => { DATA = j; }).catch(() => {}).finally(init);
+function looksValid(j){
+  return j && Array.isArray(j.events) && Array.isArray(j.ministries) && j.ministries.length > 0;
+}
+
+const longWhen = d => d.toLocaleString("en-US",
+  { weekday:"long", month:"long", day:"numeric", hour:"numeric", minute:"2-digit" });
+
+function renderNotice(){
+  const el = $("notice");
+  const generated = DATA.generated ? parse(DATA.generated) : null;
+  const age = generated ? Date.now() - generated.getTime() : Infinity;
+
+  let cls = null, head = "", body = "";
+  if (SOURCE === "sample") {
+    cls = "notice warn";
+    head = "Example schedule";
+    body = "The live calendar could not be loaded and this device has no saved copy, " +
+           "so what follows is an example rather than the real schedule. " +
+           "Please check GroupMe or call the church office.";
+  } else if (SOURCE === "cache") {
+    cls = "notice";
+    head = "Showing a saved copy";
+    body = "We could not reach the church calendar just now. This is the schedule as it " +
+           "stood on " + longWhen(generated) + ". Refresh once you have a signal.";
+  } else if (age > STALE_MS) {
+    cls = "notice";
+    head = "This may be out of date";
+    body = "The calendar normally refreshes every hour, but it has not since " +
+           longWhen(generated) + ". Check GroupMe before relying on a date here.";
+  }
+
+  if (!cls) { el.hidden = true; return; }
+  el.hidden = false;
+  el.className = cls;
+  el.innerHTML = '<span class="ico">!</span><span><b>' + esc(head) + '</b>' + esc(body) + '</span>';
+}
+
+function applyData(json, source){
+  DATA = json;
+  SOURCE = source;
+
+  const ids = DATA.ministries.map(m => m.id);
+  const want = PARAMS.get("ministry");
+  const picked = want
+    ? new Set(want.split(",").map(s => s.trim()).filter(id => ids.includes(id)))
+    : new Set(ids);
+  active = picked.size ? picked : new Set(ids);
+
+  $("stamp").textContent = DATA.generated
+    ? "Last updated " + longWhen(parse(DATA.generated))
+    : "";
+
+  buildRibbon(); buildPills(); render(); renderNotice();
+}
+
+async function fetchEvents(){
+  // Cache-bust so a wall tablet that has been on for a month still sees today.
+  const res = await fetch("./events.json?t=" + Date.now(), { cache: "no-store" });
+  if (!res.ok) throw new Error("HTTP " + res.status);
+  const json = await res.json();
+  if (!looksValid(json)) throw new Error("events.json is not shaped as expected");
+  return json;
+}
+
+async function load(){
+  try {
+    const json = await fetchEvents();
+    writeCache(json);
+    applyData(json, "live");
+  } catch (err) {
+    const cached = readCache();
+    if (looksValid(cached)) applyData(cached, "cache");
+    else applyData(SAMPLE, "sample");
+  }
+}
+
+/* ---------- TV mode: wall tablets replacing the paper calendar cards ------- */
+
+function startTv(){
+  document.body.classList.add("tv");
+  $("tvclock").hidden = false;
+
+  const tick = () => {
+    $("tvclock").textContent = new Date().toLocaleString("en-US",
+      { weekday:"long", month:"long", day:"numeric", hour:"numeric", minute:"2-digit" });
+  };
+  tick();
+  setInterval(tick, 30000);
+
+  // Re-fetch rather than reload: a reload on a cheap tablet risks coming back
+  // to a blank page if the network is down at that moment, and the cache path
+  // above already handles a failed refresh gracefully.
+  setInterval(load, REFRESH_MS);
+
+  // Keep the screen awake, and take the lock again after the tablet is woken
+  // or the app is brought back to the front.
+  let lock = null;
+  const hold = async () => {
+    try { if (document.visibilityState === "visible") lock = await navigator.wakeLock.request("screen"); }
+    catch {}
+  };
+  if ("wakeLock" in navigator) {
+    hold();
+    document.addEventListener("visibilitychange", hold);
+  }
+}
+
+/* ---------- add to home screen ---------- */
+
+function installed(){
+  return matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+}
+
+function setupInstall(){
+  if (TV || installed()) return;
+  try { if (localStorage.getItem(DISMISS_KEY)) return; } catch {}
+
+  const box = $("install");
+  const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  let prompt = null;
+
+  const show = (html, canPrompt) => {
+    $("installTxt").innerHTML = html;
+    $("installGo").hidden = !canPrompt;
+    box.hidden = false;
+  };
+
+  $("installNo").addEventListener("click", () => {
+    box.hidden = true;
+    try { localStorage.setItem(DISMISS_KEY, "1"); } catch {}
+  });
+
+  $("installGo").addEventListener("click", async () => {
+    box.hidden = true;
+    if (!prompt) return;
+    prompt.prompt();
+    await prompt.userChoice;
+    prompt = null;
+  });
+
+  addEventListener("beforeinstallprompt", e => {
+    e.preventDefault();
+    prompt = e;
+    show("<b>Keep this on your phone</b>Add the calendar to your home screen. No app store, nothing to install.", true);
+  });
+
+  // iOS never fires that event, so it gets the manual instructions instead,
+  // and only after the reader has had a moment with the page.
+  if (isIos) {
+    setTimeout(() => {
+      if (box.hidden) show("<b>Keep this on your phone</b>Tap Share at the bottom of Safari, then <b style=\"display:inline\">Add to Home Screen</b>.", false);
+    }, 4000);
+  }
+}
+
+/* ---------- go ---------- */
+
+if (TV) startTv();
+// No optimistic paint with the sample data. A flash of invented events, even
+// for a moment, is exactly what the labelling above exists to prevent.
+load();
+setupInstall();
 </script>
 </body>
 </html>

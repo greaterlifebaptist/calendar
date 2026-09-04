@@ -16,10 +16,10 @@ publish `events.json` plus the bundle feeds.
 | Step | State |
 |---|---|
 | 1. Job core | done |
-| 2. Public site page | starting HTML in `site/index.html`, TV mode still to add |
+| 2. Public site page | done — TV mode, add to home screen, cached fallback |
 | 3. Hourly workflow | written, waiting on the repo and secrets |
 | 4. Reminder engine | not started |
-| 5-9. Signup, personal feeds, prefs, admin, TV mode | not started |
+| 5-8. Signup, personal feeds, prefs, admin form | not started |
 
 ## Run it
 
@@ -146,3 +146,33 @@ node scripts/serve.mjs
 In fixtures mode a recurring event shows only one occurrence, because Google
 does the expanding and fixtures do not. Everything else renders as it will in
 production.
+
+## The website page
+
+`site/index.html` reads `events.json` and needs no build step.
+
+| URL | What it does |
+|---|---|
+| `/` | agenda, pinned rail, month grid, ministry filters |
+| `/?ministry=youth` | opens filtered to one or more ministries, comma separated |
+| `/?display=tv` | TV mode |
+
+**TV mode** is for the wall tablets replacing the paper calendar cards. Large
+type, two columns on a wide screen, no filters or tabs or subscribe panel, a
+running clock, a refresh every fifteen minutes, and a screen wake lock so the
+tablet does not sleep. It re-fetches rather than reloading, because a reload
+during a network blip would leave a blank wall.
+
+**When the data cannot be loaded** the page falls back in this order:
+
+1. The last copy this device fetched successfully, labelled and dated.
+2. The built-in sample, labelled clearly as an example.
+
+The brief asked for a fallback so the page never goes blank. Showing invented
+events as though they were real is worse than blank, so the fallback is real
+data where possible and always says which it is. A response that returns HTTP
+200 but is not shaped like `events.json` is rejected rather than trusted.
+
+The page also warns when live data is more than twelve hours old. Feeds refresh
+hourly, so anything older means the job has stopped and the reader should not
+trust the dates.
