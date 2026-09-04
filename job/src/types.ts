@@ -26,7 +26,13 @@ export type Channel = {
 
 export type Config = {
   timezone: string;
-  site: { feedBase: string; personalFeedBase: string; allFeed: string };
+  site: {
+    feedBase: string;
+    personalFeedBase: string;
+    allFeed: string;
+    /** Deployed Apps Script web app. Blank until it exists. */
+    signupEndpoint?: string;
+  };
   reminderDefaults: Record<EventType, string[]>;
   ministries: Ministry[];
   channels: Record<string, Channel>;
@@ -94,7 +100,9 @@ export type { Person } from './sheet.ts';
 export type EventsJson = {
   generated: string;
   timezone: string;
-  feeds: { base: string; all: string };
+  feeds: { base: string; all: string; personal: string };
+  /** Signup endpoint, so the pages need no separate config file. */
+  signup?: string;
   ministries: { id: string; name: string; color: string }[];
   events: PublicEvent[];
 };

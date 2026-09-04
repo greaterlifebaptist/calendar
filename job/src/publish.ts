@@ -122,7 +122,12 @@ export function publish(input: PublishInput): PublishResult {
   const events: EventsJson = {
     generated: generated.toISOString(),
     timezone: tz,
-    feeds: { base: cfg.site.feedBase, all: cfg.site.allFeed },
+    feeds: {
+      base: cfg.site.feedBase,
+      all: cfg.site.allFeed,
+      personal: cfg.site.personalFeedBase,
+    },
+    signup: cfg.site.signupEndpoint || '',
     // When nothing at all is scheduled, list nothing. Offering every ministry
     // as a filter with no events behind any of them is worse than an honest
     // empty page, which is what the site renders instead.

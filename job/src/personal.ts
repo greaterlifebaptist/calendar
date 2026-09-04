@@ -25,11 +25,14 @@ export type PersonalResult = {
   dir: string;
 };
 
-/** One calendar name, so it is obvious which is which on a crowded phone. */
-function calendarName(person: Person): string {
-  const first = person.name.trim().split(/\s+/)[0];
-  return first ? `GLBC — ${first}` : 'GLBC — My Calendar';
-}
+/**
+ * What this calendar is called on somebody's phone.
+ *
+ * Not their own name. They know who they are; what they need to recognise in a
+ * list of six calendars is the church. An earlier version used the first name
+ * from the sheet, which produced "GLBC — Test" and told the reader nothing.
+ */
+const CALENDAR_NAME = 'Greater Life Baptist Church';
 
 export function writePersonalFeeds(
   cfg: Config,
@@ -52,7 +55,7 @@ export function writePersonalFeeds(
     const mine = masters.filter((e) => groups.has(e.ministry));
 
     const ics = buildIcs(toIcsInputs(mine, cfg.timezone), cfg, {
-      name: calendarName(person),
+      name: CALENDAR_NAME,
       description:
         'Greater Life Baptist Church — ' +
         (groups.size ? [...groups].map((g) => known.get(g)!.name).join(', ') : 'no groups selected'),

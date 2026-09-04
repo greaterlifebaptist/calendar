@@ -4,7 +4,9 @@
   "site": {
     "feedBase": "https://calendars.greaterlifebaptistchurch.com/feeds/",
     "personalFeedBase": "https://calendars.greaterlifebaptistchurch.com/f/",
-    "allFeed": "all.ics"
+    "allFeed": "all.ics",
+    "signupEndpoint": "",
+    "$comment": "signupEndpoint is the deployed Apps Script web app URL (see docs/SIGNUP.md). Blank means the signup page explains it is not ready yet rather than failing."
   },
   "reminderDefaults": {
     "deadline": [

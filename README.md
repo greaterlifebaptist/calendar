@@ -8,6 +8,7 @@ Design decisions and their reasoning live in [CLAUDE.md](CLAUDE.md). Read that
 first. Google, GitHub and DNS setup is in [docs/SETUP.md](docs/SETUP.md), and
 the agreed design for the overflow-room TV is in [docs/TV.md](docs/TV.md).
 Backups and how to restore from one are in [docs/BACKUP.md](docs/BACKUP.md).
+Deploying the signup endpoint is in [docs/SIGNUP.md](docs/SIGNUP.md).
 This file covers only how to run what exists.
 
 ## Status
@@ -21,7 +22,7 @@ The remaining work is the pages people interact with, then reminders.
 | 2. Public site page | done — TV mode, add to home screen, cached fallback |
 | 3. Hourly workflow | live |
 | 4. Membership sheet and personal feeds | done |
-| 5. Signup page | next |
+| 5. Signup page | built, waiting on the Apps Script deployment |
 | 6. Preferences page | |
 | 7. Admin form | |
 | 8. TV display for the 85 inch screen | |
@@ -55,6 +56,8 @@ cd job && npm run check
 
 ```
 site/index.html      calendar page, reads events.json
+site/signup.html     pick your groups, get your personal link and QR
+site/apps-script/    the endpoint that writes to the membership sheet
 job/src/             the hourly job
 job/config/          ministries.json — ids are locked, see CLAUDE.md section 3
 job/fixtures/        sample Google API responses for credential-free runs

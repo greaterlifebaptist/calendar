@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Get your calendar — Greater Life Baptist Church</title>
+<meta name="description" content="Pick the ministries you care about and get one calendar link for your phone.">
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="theme-color" content="#1B5E45">
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ivory:#FFFCF4; --card:#FFFFFF; --ink:#241F1B; --ink-soft:#6B625A;
+  --rule:#EBE3D5; --sun:#F0A202; --clay:#D14E2B; --pine:#1B5E45;
+  --display:"Zilla Slab",Georgia,serif;
+  --body:"Public Sans",system-ui,-apple-system,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;padding:0}
+body{background:var(--ivory);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{max-width:640px;margin:0 auto;padding:0 20px 70px}
+
+.masthead{padding:32px 0 18px}
+.ribbon{display:flex;height:6px;border-radius:100px;overflow:hidden;margin-bottom:20px}
+.ribbon span{flex:1}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--clay);margin:0 0 8px;font-weight:600}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(1.9rem,6.5vw,2.7rem);line-height:1.05;letter-spacing:-.02em;margin:0;color:var(--pine)}
+h1 em{font-style:normal;color:var(--sun)}
+.lede{margin:12px 0 0;color:var(--ink-soft);font-size:.95rem;max-width:46ch}
+
+fieldset{border:none;margin:0;padding:0}
+legend{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-soft);font-weight:600;padding:0;margin-bottom:11px}
+.step{margin-top:30px;padding-top:24px;border-top:1px solid var(--rule)}
+.step:first-of-type{border-top:none}
+
+label.field{display:block;margin-bottom:14px}
+label.field span{display:block;font-size:.85rem;font-weight:600;margin-bottom:5px}
+label.field .hint{font-weight:400;color:var(--ink-soft)}
+input[type=text],input[type=email]{width:100%;font-family:var(--body);font-size:1rem;padding:11px 13px;border:1.5px solid var(--rule);border-radius:8px;background:var(--card);color:var(--ink)}
+input[type=text]:focus,input[type=email]:focus{outline:2px solid var(--sun);outline-offset:1px;border-color:var(--sun)}
+
+.picks{display:flex;flex-direction:column;gap:8px}
+.pick{display:flex;align-items:flex-start;gap:11px;border:1.5px solid var(--rule);background:var(--card);border-radius:10px;padding:12px 14px;cursor:pointer}
+.pick:hover{border-color:var(--sun)}
+.pick input{margin:2px 0 0;width:19px;height:19px;accent-color:var(--pine);flex:0 0 auto}
+.pick .who{font-weight:700}
+.pick .dot{width:10px;height:10px;border-radius:50%;flex:0 0 auto;margin-top:6px}
+.pick.on{border-color:var(--pine);background:#F5FAF7}
+
+.actions{margin-top:24px;display:flex;flex-wrap:wrap;gap:11px;align-items:center}
+button.primary{font-family:var(--body);font-size:.95rem;font-weight:700;border:none;border-radius:9px;padding:13px 22px;background:var(--pine);color:#fff;cursor:pointer}
+button.primary:hover{opacity:.92}
+button.primary[disabled]{opacity:.45;cursor:default}
+.status{font-size:.88rem;color:var(--ink-soft)}
+.status.err{color:var(--clay);font-weight:600}
+
+.result{margin-top:26px;background:var(--pine);border-radius:12px;padding:20px 20px 18px;color:#EAF3EE}
+.result h2{font-family:var(--display);font-size:1.3rem;margin:0 0 6px;color:#fff}
+.result p{margin:0 0 14px;font-size:.88rem;color:#B9D2C6}
+.qr{background:#fff;border-radius:10px;padding:12px;display:inline-block;line-height:0}
+.qr canvas,.qr img{display:block;width:172px;height:172px}
+.linkrow{display:flex;gap:8px;margin-top:14px}
+.linkrow input{flex:1;font-family:var(--mono);font-size:.72rem;padding:9px 10px;border-radius:7px;border:1.5px solid #47806A;background:#14503A;color:#EAF3EE;min-width:0}
+.btns{display:flex;flex-wrap:wrap;gap:7px;margin-top:13px}
+.btn{display:inline-block;padding:9px 15px;border-radius:7px;font-size:.83rem;font-weight:700;text-decoration:none;background:var(--sun);color:#3D2A00;border:none;cursor:pointer;font-family:var(--body)}
+.btn.ghost{background:transparent;border:1.5px solid #47806A;color:#EAF3EE}
+.fineprint{margin-top:14px;font-size:.76rem;line-height:1.5;color:#8FB3A2}
+.notice{margin-top:22px;padding:13px 15px;border-radius:9px;font-size:.87rem;background:#FFF6E0;border:1.5px solid #F2DFAE;color:#6B5307}
+.notice b{display:block;font-family:var(--display);font-size:1rem;margin-bottom:2px}
+footer{margin-top:30px;font-size:.82rem;color:var(--ink-soft)}
+footer a{color:var(--clay)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="masthead">
+  <div class="ribbon" id="ribbon"></div>
+  <p class="eyebrow">Greater Life Baptist Church · Midland, Georgia</p>
+  <h1>Get <em>your</em> calendar</h1>
+  <p class="lede">Pick what you care about. You get one link that puts all of it in the calendar app you already use, and it stays up to date on its own.</p>
+</header>
+
+<div class="notice" id="notice" hidden></div>
+
+<form id="form" hidden>
+  <div class="step">
+    <fieldset>
+      <legend>Step 1 — who are you</legend>
+      <label class="field">
+        <span>Your name</span>
+        <input type="text" id="name" autocomplete="name" maxlength="80" required>
+      </label>
+      <label class="field">
+        <span>Email <span class="hint">optional, so you can change your groups later</span></span>
+        <input type="email" id="email" autocomplete="email" maxlength="120">
+      </label>
+    </fieldset>
+  </div>
+
+  <div class="step">
+    <fieldset>
+      <legend>Step 2 — what to include</legend>
+      <div class="picks" id="picks"></div>
+    </fieldset>
+  </div>
+
+  <div class="actions">
+    <button type="submit" class="primary" id="go">Get my calendar link</button>
+    <span class="status" id="status"></span>
+  </div>
+</form>
+
+<section class="result" id="result" hidden>
+  <h2 id="resultHead">Here is your calendar</h2>
+  <p id="resultSub"></p>
+  <div class="qr" id="qr"></div>
+  <div class="linkrow">
+    <input type="text" id="feedUrl" readonly>
+    <button type="button" class="btn" id="copy">Copy</button>
+  </div>
+  <div class="btns">
+    <a class="btn" id="btnApple" href="#">Add on iPhone</a>
+    <a class="btn ghost" id="btnGoogle" href="#">Add on Android</a>
+    <a class="btn ghost" id="btnIcs" href="#">Outlook or other</a>
+  </div>
+  <p class="fineprint">
+    Scan the code with your phone camera, or tap a button on the phone itself.
+    Keep this link private: anyone who has it can see your calendar. It refreshes
+    on your phone's own schedule, so it can run a few hours behind.
+  </p>
+</section>
+
+<footer>
+  <p><a href="./">Back to the calendar</a></p>
+</footer>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+/* The token is a private URL, so the QR code is drawn in this browser and the
+   link is never sent to a third-party image service. If the library fails to
+   load the page still works; the reader copies the link instead. */
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
+
+let DATA = null;
+let chosen = new Set();
+
+function notice(head, body, kind){
+  const el = $("notice");
+  el.hidden = false;
+  el.innerHTML = "<b>" + esc(head) + "</b>" + esc(body);
+  if (kind === "warn") el.style.cssText = "background:#FFF6F2;border-color:#F3D3C6;color:#8C2F10";
+}
+
+function buildRibbon(list){
+  $("ribbon").innerHTML = list.map(m => '<span style="background:' + m.color + '"></span>').join("");
+}
+
+function buildPicks(){
+  const box = $("picks");
+  box.innerHTML = "";
+  DATA.ministries.forEach(m => {
+    const id = "pick-" + m.id;
+    const label = document.createElement("label");
+    label.className = "pick";
+    label.innerHTML =
+      '<input type="checkbox" id="' + id + '" value="' + esc(m.id) + '">' +
+      '<span class="dot" style="background:' + m.color + '"></span>' +
+      '<span><span class="who">' + esc(m.name) + '</span></span>';
+    const input = label.querySelector("input");
+    input.addEventListener("change", () => {
+      input.checked ? chosen.add(m.id) : chosen.delete(m.id);
+      label.classList.toggle("on", input.checked);
+      $("go").disabled = chosen.size === 0;
+    });
+    box.appendChild(label);
+  });
+  $("go").disabled = true;
+}
+
+function showResult(feedUrl, updated){
+  $("form").hidden = true;
+  $("notice").hidden = true;
+  $("result").hidden = false;
+  $("resultHead").textContent = updated ? "Your calendar is updated" : "Here is your calendar";
+  $("resultSub").textContent = updated
+    ? "Same link as before, so nothing to change on your phone. It will catch up on its own."
+    : "Scan this with your phone, or use the buttons below if you are already on it.";
+
+  $("feedUrl").value = feedUrl;
+  $("btnApple").href = feedUrl.replace(/^https?:/, "webcal:");
+  $("btnGoogle").href = "https://calendar.google.com/calendar/r?cid=" + encodeURIComponent(feedUrl);
+  $("btnIcs").href = feedUrl;
+
+  const box = $("qr");
+  box.innerHTML = "";
+  if (window.QRCode){
+    try {
+      new QRCode(box, { text: feedUrl, width: 172, height: 172, correctLevel: QRCode.CorrectLevel.M });
+    } catch { box.hidden = true; }
+  } else {
+    box.hidden = true;
+  }
+  $("result").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+$("copy").addEventListener("click", async () => {
+  const field = $("feedUrl");
+  try {
+    await navigator.clipboard.writeText(field.value);
+    $("copy").textContent = "Copied";
+    setTimeout(() => { $("copy").textContent = "Copy"; }, 1800);
+  } catch {
+    field.select();
+  }
+});
+
+$("form").addEventListener("submit", async e => {
+  e.preventDefault();
+  const name = $("name").value.trim();
+  const email = $("email").value.trim();
+  if (!name){ $("status").className = "status err"; $("status").textContent = "Please enter your name."; return; }
+  if (!chosen.size){ $("status").className = "status err"; $("status").textContent = "Pick at least one."; return; }
+
+  $("go").disabled = true;
+  $("status").className = "status";
+  $("status").textContent = "Setting it up…";
+
+  try {
+    // text/plain avoids a CORS preflight that Apps Script cannot answer.
+    const res = await fetch(DATA.signup, {
+      method: "POST",
+      headers: { "content-type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ name, email, groups: [...chosen] }),
+    });
+    const out = await res.json();
+    if (!out.ok){
+      // A message the endpoint wrote is meant for the reader. Anything else is
+      // a browser or network error and says things like "Failed to fetch",
+      // which tells somebody standing in the foyer nothing useful.
+      const e = new Error(out.error || "Something went wrong.");
+      e.fromServer = true;
+      throw e;
+    }
+    showResult(out.feedUrl, out.updated);
+  } catch (err) {
+    $("go").disabled = false;
+    $("status").className = "status err";
+    $("status").textContent = (err && err.fromServer && err.message)
+      ? err.message
+      : "Could not reach the church server. Check your connection and try again.";
+  }
+});
+
+fetch("./events.json?t=" + Date.now(), { cache: "no-store" })
+  .then(r => r.ok ? r.json() : Promise.reject())
+  .then(j => {
+    DATA = j;
+    buildRibbon(j.ministries || []);
+    if (!j.ministries || !j.ministries.length){
+      notice("Nothing to sign up for yet", "No ministry has anything scheduled, so there is nothing to put on your phone. Check back once events are on the calendar.");
+      return;
+    }
+    if (!j.signup){
+      notice("Signup is not switched on yet", "The calendar itself is working; this page just needs its connection finishing. Please check back shortly.");
+      return;
+    }
+    $("form").hidden = false;
+    buildPicks();
+  })
+  .catch(() => {
+    notice("We could not load the calendar list", "Please check your connection and reload the page.", "warn");
+  });
+</script>
+</body>
+</html>
