@@ -1,19 +1,38 @@
 {
-  "generated": "2026-09-04T16:00:00.000Z",
+  "generated": "2026-09-04T16:06:01.470Z",
   "timezone": "America/New_York",
   "feeds": {
     "base": "https://calendars.greaterlifebaptistchurch.com/feeds/",
     "all": "all.ics"
   },
-  "ministries": [],
+  "ministries": [
+    {
+      "id": "church",
+      "name": "Church-wide",
+      "color": "#1B5E45"
+    },
+    {
+      "id": "youth",
+      "name": "Greater Generation",
+      "color": "#6B9A12"
+    }
+  ],
   "events": [
     {
-      "uid": "old@google.com",
+      "uid": "4o2amkeu8rila1o5fcttepqens@google.com",
       "ministry": "church",
       "type": "event",
-      "title": "Last week",
-      "start": "2026-09-01T19:00:00",
-      "end": "2026-09-01T20:00:00"
+      "title": "Test - main church",
+      "start": "2026-09-17T19:00:00",
+      "end": "2026-09-17T20:00:00"
+    },
+    {
+      "uid": "4jgidqhfhlptb578dh6n1tqaee@google.com",
+      "ministry": "youth",
+      "type": "event",
+      "title": "Test - Youth",
+      "start": "2026-09-17T20:00:00",
+      "end": "2026-09-17T21:00:00"
     }
   ]
 }
