@@ -5,7 +5,7 @@
  * Run it against the real calendars:   npm start
  */
 
-import { loadConfig, loadDotEnv, activeMinistries, calendarIdFor, USE_FIXTURES } from './config.ts';
+import { loadConfig, loadDotEnv, activeMinistries, pendingMinistries, USE_FIXTURES } from './config.ts';
 import { fetchAll } from './fetch.ts';
 import { normalizeAll, dedupe, byStart } from './normalize.ts';
 import { publish } from './publish.ts';
@@ -26,8 +26,9 @@ export async function run(): Promise<number> {
   const now = new Date();
 
   const ministries = activeMinistries(cfg);
+  const pending = pendingMinistries(cfg);
   if (!ministries.length) {
-    log('No ministries enabled in config/ministries.json.');
+    log('No ministry has a calendar id. Add one in job/config/ministries.json.');
     return 1;
   }
 
@@ -39,6 +40,9 @@ export async function run(): Promise<number> {
   log('  mode      ' + (USE_FIXTURES() ? 'FIXTURES (no Google API calls)' : 'live'));
   log('  window    ' + timeMin.toISOString().slice(0, 10) + ' -> ' + timeMax.toISOString().slice(0, 10));
   log('  ministries ' + ministries.map((m) => m.id).join(', '));
+  if (pending.length) {
+    log('  waiting   ' + pending.map((m) => m.id).join(', ') + ' (no calendar id yet)');
+  }
 
   const results = await fetchAll(cfg, ministries, timeMin, timeMax);
 
@@ -48,9 +52,8 @@ export async function run(): Promise<number> {
 
   for (const r of results) {
     if (r.error) {
-      const missing = !USE_FIXTURES() && !calendarIdFor(r.ministry);
       problems.push(r.ministry.id + ': ' + r.error);
-      log('  [' + (missing ? 'skip' : 'FAIL') + '] ' + r.ministry.id + ' — ' + r.error);
+      log('  [FAIL] ' + r.ministry.id + ' — ' + r.error);
       continue;
     }
     instances.push(...normalizeAll(r.instances, tz, now));
@@ -71,9 +74,7 @@ export async function run(): Promise<number> {
   log('  by type      ' + [...counts].map(([k, v]) => k + '=' + v).join(' ') + '  pinned=' + pinned);
   log('  feeds        ' + result.feedPaths.length + ' .ics files');
 
-  const hardFailures = results.filter(
-    (r) => r.error && (USE_FIXTURES() || calendarIdFor(r.ministry)),
-  );
+  const hardFailures = results.filter((r) => r.error);
   if (hardFailures.length) {
     log('');
     log('FAILED for ' + hardFailures.length + ' calendar(s):');

@@ -5,8 +5,9 @@ Calendar; a job reads those calendars hourly and pushes the result out to a
 website, subscribable `.ics` feeds, and GroupMe reminders.
 
 Design decisions and their reasoning live in [CLAUDE.md](CLAUDE.md). Read that
-first. Google, GitHub and DNS setup is in [docs/SETUP.md](docs/SETUP.md). This
-file covers only how to run what exists.
+first. Google, GitHub and DNS setup is in [docs/SETUP.md](docs/SETUP.md), and
+the agreed design for the overflow-room TV is in [docs/TV.md](docs/TV.md).
+This file covers only how to run what exists.
 
 ## Status
 
@@ -126,13 +127,17 @@ Set these as GitHub Actions secrets. Never commit them.
 | Secret | Where from |
 |---|---|
 | `GOOGLE_SERVICE_ACCOUNT_JSON` | GCP console. Grant it edit rights on each calendar and the Sheet. |
-| `CAL_CHURCH`, `CAL_YOUTH`, `CAL_YOUTH_LEADERS` | Google Calendar > Settings > Integrate calendar |
 | `SHEET_ID` | the Sheet URL |
 | `GROUPME_BOT_YOUTH_PARENTS` | dev.groupme.com/bots |
 | `ADMIN_PASSCODE` | chosen |
 
-A calendar the service account has not been shared with returns 403. A calendar
-id left blank is skipped with a warning rather than failing the run.
+Calendar ids are not secrets and live in `job/config/ministries.json`. The
+calendars are not public, so an id grants nothing without the service account
+being shared onto that calendar. A ministry whose `calendarId` is blank is
+skipped entirely: no feed, no filter pill. Pasting the id brings it online.
+
+A calendar the service account has not been shared with returns 403 and fails
+the run loudly, which is what you want.
 
 ## Preview
 

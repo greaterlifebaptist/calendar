@@ -44,20 +44,39 @@ export function loadConfig(): Config {
   return parsed;
 }
 
-/** Ministries switched on for this phase. */
-export function activeMinistries(cfg: Config): Ministry[] {
-  return cfg.ministries.filter((m) => m.enabled);
+/**
+ * The Google calendar ID for a ministry.
+ *
+ * A calendar id is not a credential. The calendars are not public, so reading
+ * one requires the service account to have been shared onto it; knowing the id
+ * grants nothing. So the ids live in ministries.json, where they are visible,
+ * reviewable and changed by a commit, rather than as nine separate secrets
+ * that have to be typed correctly into a web form.
+ *
+ * An environment variable still wins, so a calendar can be repointed in an
+ * emergency without a deploy.
+ */
+export function calendarIdFor(m: Ministry): string | null {
+  const fromEnv = process.env[m.calendarIdEnv]?.trim();
+  if (fromEnv) return fromEnv;
+  const fromConfig = m.calendarId?.trim();
+  return fromConfig ? fromConfig : null;
 }
 
 /**
- * The Google calendar ID for a ministry, from its configured env var.
- * Returns null when the calendar has not been created yet, which is a
- * skip-with-a-warning condition rather than a failure.
+ * Ministries that are switched on and actually point at a calendar.
+ *
+ * A ministry with no id yet is simply not active: it produces no feed and no
+ * filter pill, rather than an empty pill leading to an empty calendar. Pasting
+ * the id into ministries.json is the only step needed to bring one online.
  */
-export function calendarIdFor(m: Ministry): string | null {
-  const raw = process.env[m.calendarIdEnv];
-  const value = raw?.trim();
-  return value ? value : null;
+export function activeMinistries(cfg: Config): Ministry[] {
+  return cfg.ministries.filter((m) => m.enabled && calendarIdFor(m));
+}
+
+/** Switched on but still waiting for a calendar id. Reported, never fatal. */
+export function pendingMinistries(cfg: Config): Ministry[] {
+  return cfg.ministries.filter((m) => m.enabled && !calendarIdFor(m));
 }
 
 export function requireEnv(name: string): string {

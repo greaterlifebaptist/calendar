@@ -1,5 +1,5 @@
 {
-  "$comment": "IDs are LOCKED (CLAUDE.md section 3). They appear in URLs, feed filenames and QR codes. Display names may change freely; ids never do.",
+  "$comment": "IDs are LOCKED (CLAUDE.md section 3). They appear in URLs, feed filenames and QR codes. Display names may change freely; ids never do. A ministry with a blank calendarId is skipped entirely: no feed, no filter pill. Paste the id to bring it online.",
   "timezone": "America/New_York",
   "site": {
     "feedBase": "https://calendars.greaterlifebaptistchurch.com/feeds/",
@@ -7,9 +7,21 @@
     "allFeed": "all.ics"
   },
   "reminderDefaults": {
-    "deadline": ["30d", "7d", "1d", "0d"],
-    "trip": ["30d", "7d", "1d"],
-    "event": ["7d", "1d"],
+    "deadline": [
+      "30d",
+      "7d",
+      "1d",
+      "0d"
+    ],
+    "trip": [
+      "30d",
+      "7d",
+      "1d"
+    ],
+    "event": [
+      "7d",
+      "1d"
+    ],
     "routine": []
   },
   "ministries": [
@@ -17,100 +29,102 @@
       "id": "church",
       "name": "Church-wide",
       "visibility": "public",
-      "phase": 1,
       "enabled": true,
       "color": "#1B5E45",
       "calendarIdEnv": "CAL_CHURCH",
       "notify": [],
-      "reminders": null
+      "reminders": null,
+      "calendarId": "08edfaf4977f2441b6cc09b06664b0dd7f2182d7b9d6c2b513b18e1b0571d9ba@group.calendar.google.com"
     },
     {
       "id": "youth",
       "name": "Greater Generation",
       "visibility": "public",
-      "phase": 1,
       "enabled": true,
       "color": "#6B9A12",
       "calendarIdEnv": "CAL_YOUTH",
-      "notify": ["youth-parents"],
-      "reminders": null
+      "notify": [
+        "youth-parents"
+      ],
+      "reminders": null,
+      "calendarId": "04cc8182f2139f35a05e34fe7e0eef8bcc31213876b29a53827d381bdb79db6f@group.calendar.google.com"
     },
     {
       "id": "youth-leaders",
       "name": "Youth Leaders",
       "visibility": "private",
-      "phase": 1,
       "enabled": true,
       "color": "#7A3E6E",
       "calendarIdEnv": "CAL_YOUTH_LEADERS",
       "notify": [],
-      "reminders": null
+      "reminders": null,
+      "calendarId": "c867f60e7cdbbc54e17206d894626575f35a5d23727d0725dd8d137614d74a97@group.calendar.google.com"
     },
     {
       "id": "children",
       "name": "Children",
       "visibility": "public",
-      "phase": 2,
-      "enabled": false,
+      "enabled": true,
       "color": "#EE7B21",
       "calendarIdEnv": "CAL_CHILDREN",
       "notify": [],
-      "reminders": null
+      "reminders": null,
+      "calendarId": ""
     },
     {
       "id": "youngadults",
       "name": "Ignite Young Adults",
       "visibility": "public",
-      "phase": 2,
-      "enabled": false,
+      "enabled": true,
       "color": "#D14E2B",
       "calendarIdEnv": "CAL_YOUNGADULTS",
       "notify": [],
-      "reminders": null
+      "reminders": null,
+      "calendarId": ""
     },
     {
       "id": "seniors",
       "name": "Best Life",
       "visibility": "public",
-      "phase": 2,
-      "enabled": false,
+      "enabled": true,
       "color": "#8A6A08",
       "calendarIdEnv": "CAL_SENIORS",
       "notify": [],
-      "reminders": null
+      "reminders": null,
+      "calendarId": ""
     },
     {
       "id": "mens",
       "name": "Man Church",
       "visibility": "public",
-      "phase": 2,
-      "enabled": false,
+      "enabled": true,
       "color": "#2C7EA1",
       "calendarIdEnv": "CAL_MENS",
       "notify": [],
-      "reminders": null
+      "reminders": null,
+      "calendarId": ""
     },
     {
       "id": "womens",
       "name": "Soul Sisters",
       "visibility": "public",
-      "phase": 2,
-      "enabled": false,
+      "enabled": true,
       "color": "#A0447F",
       "calendarIdEnv": "CAL_WOMENS",
       "notify": [],
-      "reminders": null
+      "reminders": null,
+      "calendarId": ""
     },
     {
       "id": "worship",
       "name": "Worship / Music",
       "visibility": "private",
-      "phase": 2,
-      "enabled": false,
+      "enabled": true,
       "color": "#5B4B8A",
       "calendarIdEnv": "CAL_WORSHIP",
       "notify": [],
-      "reminders": null
+      "reminders": null,
+      "calendarId": ""
     }
   ],
   "channels": {

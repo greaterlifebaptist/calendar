@@ -51,10 +51,8 @@ jobs:
       - name: Sync calendars
         working-directory: job
         env:
+          # Calendar ids are not secrets and live in config/ministries.json.
           GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
-          CAL_CHURCH: ${{ secrets.CAL_CHURCH }}
-          CAL_YOUTH: ${{ secrets.CAL_YOUTH }}
-          CAL_YOUTH_LEADERS: ${{ secrets.CAL_YOUTH_LEADERS }}
           SHEET_ID: ${{ secrets.SHEET_ID }}
           GROUPME_BOT_YOUTH_PARENTS: ${{ secrets.GROUPME_BOT_YOUTH_PARENTS }}
           DRY_RUN: ${{ inputs.dry_run || '' }}

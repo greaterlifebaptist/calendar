@@ -8,9 +8,11 @@ export type Ministry = {
   id: string;
   name: string;
   visibility: Visibility;
-  phase: number;
   enabled: boolean;
   color: string;
+  /** Google calendar id. Not a credential: the calendars are not public. */
+  calendarId: string;
+  /** Env var that overrides calendarId, for repointing without a deploy. */
   calendarIdEnv: string;
   notify: string[];
   reminders: Partial<Record<EventType, string[]>> | null;

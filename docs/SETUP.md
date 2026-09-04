@@ -78,7 +78,7 @@ section 6. Two systems sending reminders is worse than one.
 
 | | |
 |---|---|
-| Needed | Calendar ID, per calendar |
+| Needed | Calendar id per calendar, pasted into ministries.json |
 | Needed | The service account JSON key, as a GitHub secret |
 | Not needed | Public URL, share link, embed code, public iCal address |
 | **Never send** | The **secret iCal address** |
@@ -95,16 +95,15 @@ a second admin, matching CLAUDE.md section 11.
 
 1. Create the repository and push this code.
 2. Settings > Pages > Source: **GitHub Actions**.
-3. Settings > Secrets and variables > Actions, add:
+3. Settings > Secrets and variables > Actions, add **one** secret:
 
    | Secret | Value |
    |---|---|
    | `GOOGLE_SERVICE_ACCOUNT_JSON` | the whole JSON key file, pasted |
-   | `CAL_CHURCH` | the church calendar ID |
-   | `CAL_YOUTH` | the youth calendar ID |
-   | `CAL_YOUTH_LEADERS` | the youth leaders calendar ID |
 
-   `SHEET_ID`, `GROUPME_BOT_YOUTH_PARENTS` and `ADMIN_PASSCODE` come later.
+   That is the only secret needed to go live. Calendar ids are not credentials
+   and live in `job/config/ministries.json`. `SHEET_ID`,
+   `GROUPME_BOT_YOUTH_PARENTS` and `ADMIN_PASSCODE` arrive with later steps.
 
 4. Actions tab > Calendar sync > Run workflow, to test without waiting for the
    hour. The site appears at `https://<owner>.github.io/<repo>/`. DNS can wait.
