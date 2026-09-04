@@ -113,5 +113,15 @@ export const DRY_RUN = (): boolean => {
   return !envOn('REMINDERS_LIVE');
 };
 
+/**
+ * Ignore the once-a-day send hour, for testing.
+ *
+ * Reminders normally only go out at 9am local, which makes it impossible to
+ * try the thing out at four in the afternoon. This exists so a test run can
+ * be made on demand. It does not bypass DRY_RUN, the dedupe state, or the
+ * blast guard: it only answers 'is it time yet' with yes.
+ */
+export const FORCE_SEND_HOUR = (): boolean => envOn('FORCE_SEND_HOUR') || flag('send-now');
+
 /** Run the whole pipeline off local sample data, with no Google credentials. */
 export const USE_FIXTURES = (): boolean => envOn('FIXTURES') || flag('fixtures');

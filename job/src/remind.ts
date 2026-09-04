@@ -23,6 +23,7 @@ import { dirname, join } from 'node:path';
 import type { CalEvent, Config, EventType, Ministry } from './types.ts';
 import { isWeeklyish } from './classify.ts';
 import { daysBetween, isoDate, zonedParts } from './time.ts';
+import { FORCE_SEND_HOUR } from './config.ts';
 
 export type Channel = { id: string; label: string; botId: string | null };
 
@@ -226,7 +227,7 @@ export function planReminders(input: PlanInput): ReminderPlan {
   const hour = zonedParts(now, tz).H;
 
   // Once a day, not once an hour.
-  if (hour !== schedule.sendHour) {
+  if (hour !== schedule.sendHour && !FORCE_SEND_HOUR()) {
     return { due: [], skipped: `not the send hour (${schedule.sendHour}:00 local)`, seeding: false };
   }
 
@@ -293,7 +294,7 @@ export function planDigest(input: PlanInput): PlannedReminder[] {
   const { weekday, hour } = cfg.reminderSchedule.digest;
   const p = zonedParts(now, tz);
   const dow = new Date(Date.UTC(p.y, p.m - 1, p.d)).getUTCDay();
-  if (dow !== weekday || p.H !== hour) return [];
+  if ((dow !== weekday || p.H !== hour) && !FORCE_SEND_HOUR()) return [];
 
   const out: PlannedReminder[] = [];
   const weekKey = isoDate(now, tz);

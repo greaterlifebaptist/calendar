@@ -28,7 +28,3 @@ backup/
 # Output of a fixture run. Never published; keeps npm run dev from
 # clobbering the real data in public/.
 .dev-site/
-
-# Reminder dedupe state is committed by the workflow so the hourly job cannot
-# repeat itself. It must NOT be ignored.
-!job/state/

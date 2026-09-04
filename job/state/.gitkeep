@@ -1,0 +1,5 @@
+Reminder dedupe state lives here, written by the job and committed by the
+workflow so the hourly run cannot repeat a reminder.
+
+This file exists so the directory is always present. Without it the workflow's
+`git add job/state` fails on any run before the first reminder is ever planned.

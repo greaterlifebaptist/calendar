@@ -67,6 +67,20 @@ and fails loudly. If that trips it is a bug, not a busy week.
 **A dry run records nothing.** Anything logged rather than sent is still owed,
 so nothing is quietly skipped when it goes live.
 
+## Testing it on demand
+
+Reminders only fire at 9am local, which makes them awkward to try out at four
+in the afternoon. The **Run workflow** button has a **send_now** tick box that
+ignores the send hour for that one run.
+
+It ignores the hour and nothing else. Dry run, the dedupe state and the blast
+guard all still apply, so ticking it cannot cause a send that would not have
+happened at 9am anyway.
+
+Locally the same thing is :
+
+
+
 ## Turning it on
 
 1. **Make a GroupMe bot on a private test group.** Create a group with only

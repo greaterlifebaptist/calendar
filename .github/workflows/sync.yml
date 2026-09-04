@@ -13,6 +13,10 @@ on:
         description: 'Log reminders instead of sending them'
         type: boolean
         default: true
+      send_now:
+        description: 'Ignore the 9am send hour, so reminders can be tested on demand'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -60,6 +64,7 @@ jobs:
           # messaging parents.
           REMINDERS_LIVE: ${{ vars.REMINDERS_LIVE }}
           DRY_RUN: ${{ inputs.dry_run && 'true' || '' }}
+          FORCE_SEND_HOUR: ${{ inputs.send_now && 'true' || '' }}
         run: npm start
 
       # Two things are true at once: scheduled workflows are disabled after 60
@@ -72,6 +77,8 @@ jobs:
         run: |
           git config user.name 'glbc-calendar-bot'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          # job/state carries a .gitkeep so this path always exists; git add
+          # fails outright on a pathspec that matches nothing.
           git add public job/state
 
           if git diff --cached --quiet; then
