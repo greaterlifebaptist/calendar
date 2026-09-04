@@ -34,7 +34,7 @@
  * not take looks identical to one that did. Open the /exec URL and read the
  * version back.
  */
-var VERSION = 8;
+var VERSION = 9;
 
 var SITE = 'https://calendars.greaterlifebaptistchurch.com';
 var EVENTS_JSON = SITE + '/events.json';
@@ -42,14 +42,15 @@ var FEED_BASE = SITE + '/f/';
 var TAB = 'People';
 
 /**
- * Only needed if this script is NOT bound to the spreadsheet.
+ * Fallback spreadsheet id, for a script that is not bound to the sheet.
  *
- * The normal route is Extensions > Apps Script from inside the sheet, which
- * binds them together and leaves this blank. If that menu will not open, a
- * standalone script at script.google.com works just as well: paste the
- * spreadsheet id from its URL in here.
+ * Prefer the SPREADSHEET_ID **script property** over this. Anything written
+ * here is wiped every time this file is pasted over, which is a trap: the
+ * script keeps working until the moment somebody updates it, then silently
+ * cannot find the sheet. A script property survives every paste.
  *
- *   https://docs.google.com/spreadsheets/d/THIS_PART/edit
+ * Project Settings > Script Properties > Add script property:
+ *   SPREADSHEET_ID = the long part of the sheet URL between /d/ and /edit
  */
 var SPREADSHEET_ID = '';
 
@@ -66,14 +67,37 @@ function json_(obj) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-/** Works whether this script is bound to the sheet or standalone. */
+/** Where the sheet id came from, for the health check. */
+function sheetSource_() {
+  var fromProperty = PropertiesService.getScriptProperties()
+    .getProperty('SPREADSHEET_ID');
+  if (fromProperty && String(fromProperty).trim()) return 'script property';
+  if (SPREADSHEET_ID) return 'the file';
+  return 'bound spreadsheet';
+}
+
+/**
+ * Works whether this script is bound to the sheet or standalone.
+ *
+ * The script property wins, because it is the only one of the three that
+ * survives pasting a new version of this file over the old one.
+ */
+function spreadsheetId_() {
+  var fromProperty = PropertiesService.getScriptProperties()
+    .getProperty('SPREADSHEET_ID');
+  if (fromProperty && String(fromProperty).trim()) return String(fromProperty).trim();
+  if (SPREADSHEET_ID) return SPREADSHEET_ID;
+  return '';
+}
+
 function spreadsheet_() {
-  if (SPREADSHEET_ID) return SpreadsheetApp.openById(SPREADSHEET_ID);
+  var id = spreadsheetId_();
+  if (id) return SpreadsheetApp.openById(id);
   var active = SpreadsheetApp.getActiveSpreadsheet();
   if (!active) {
     throw new Error(
-      'This script is not attached to a spreadsheet. Set SPREADSHEET_ID at the ' +
-      'top of the file to the id from the sheet URL.'
+      'This script is not attached to a spreadsheet, and no SPREADSHEET_ID is ' +
+      'set. Add it under Project Settings > Script Properties.'
     );
   }
   return active;
@@ -226,6 +250,7 @@ function doGet() {
     ],
     adminReady: !!adminPasscode_(),
     calendar: calendarOk,
+    sheetFrom: sheetSource_(),
     sheet: sheetOk,
     detail: detail
   });

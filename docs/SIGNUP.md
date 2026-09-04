@@ -111,8 +111,12 @@ entirely. Nothing is lost; a standalone script can reach the sheet just as well.
      `https://docs.google.com/spreadsheets/d/THIS_PART/edit`
   2. Go to <https://script.google.com> and click **New project**.
   3. Paste in `Code.gs` as before.
-  4. Near the top, set `SPREADSHEET_ID` to the id you copied:
-     `var SPREADSHEET_ID = '1a2b3c…';`
+  4. **Project Settings** > **Script Properties** > Add script property:
+     `SPREADSHEET_ID` = the id you copied.
+
+     Put it there rather than in the file. A value typed into `Code.gs` is
+     wiped every time the file is pasted over, and the script keeps working
+     right up until somebody updates it.
   5. Deploy exactly as described above.
 
 The script checks for this itself. If it is standalone and the id is missing,

@@ -131,18 +131,23 @@ else. It is not a GitHub secret and not in the repo; it lives in the script.
 
 ### Checking
 
-Open the `/exec` URL. You want `version` 8 or higher, with `adminReady`,
+Open the `/exec` URL. You want `version` 9 or higher, with `adminReady`,
 `sheet` and `calendar` all `true`:
 
 ```json
-{"ok":true,"service":"glbc-signup","version":8,
+{"ok":true,"service":"glbc-signup","version":9,
  "actions":["signup","load","save","rotate","admin.hello","admin.list",
   "admin.save","admin.delete","admin.people","admin.setgroups"],
- "sheet":true,"adminReady":true,"calendar":true,"detail":""}
+ "sheet":true,"adminReady":true,"calendar":true,
+ "sheetFrom":"script property","detail":""}
 ```
 
 `adminReady: false` means the passcode has not been set, and every admin action
 will refuse until it is.
+
+`sheetFrom` says where the spreadsheet id came from. "script property" is what
+you want; "the file" means it will be lost the next time somebody pastes a new
+`Code.gs` over the old one.
 
 `calendar: false` means step 2 has not taken, and saving an event will fail
 with a 403. The `detail` field says which half is missing. It is checked here
