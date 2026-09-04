@@ -29,8 +29,8 @@ the church's leaders actually type them:
 cd job && npm install && npm run dev
 ```
 
-That writes `public/events.json` and `public/feeds/*.ics`. Open
-`site/index.html` next to a copy of `events.json` to see the page render them.
+That writes `public/events.json` and `public/feeds/*.ics`. See the Preview
+section below to view the page rendering them.
 
 Against the real calendars, once `.env` is filled in from `.env.example`:
 
