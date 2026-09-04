@@ -26,6 +26,16 @@
  * Deployment steps are in docs/SIGNUP.md.
  */
 
+/**
+ * Bump this whenever this file changes.
+ *
+ * Apps Script serves the DEPLOYED version, not the saved one, and the editor
+ * gives no hint which is live. Without a marker, a deploy that silently did
+ * not take looks identical to one that did. Open the /exec URL and read the
+ * version back.
+ */
+var VERSION = 2;
+
 var SITE = 'https://calendars.greaterlifebaptistchurch.com';
 var EVENTS_JSON = SITE + '/events.json';
 var FEED_BASE = SITE + '/f/';
@@ -194,7 +204,14 @@ function doGet() {
   } catch (err) {
     detail = String(err && err.message ? err.message : err);
   }
-  return json_({ ok: true, service: 'glbc-signup', sheet: sheetOk, detail: detail });
+  return json_({
+    ok: true,
+    service: 'glbc-signup',
+    version: VERSION,
+    actions: ['signup', 'load', 'save', 'rotate'],
+    sheet: sheetOk,
+    detail: detail
+  });
 }
 
 function doPost(e) {

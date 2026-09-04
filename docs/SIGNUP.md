@@ -136,10 +136,37 @@ The feed itself appears after the next hourly sync.
 
 ## When you change the script
 
-Apps Script keeps serving the **deployed version**, not the saved one. After
-editing, go to **Deploy** > **Manage deployments**, click the pencil, set
-**Version** to **New version**, and Deploy. The URL stays the same. Forgetting
-this step is the usual reason a change appears to have no effect.
+This is the step that catches everyone, so it is worth being precise.
+
+Apps Script serves the **deployed version**, not the file you just saved. And
+**Deploy > New deployment** makes a *second* web app at a *different URL*,
+leaving the URL the site actually uses still serving the old code. It looks
+like it worked. It did not.
+
+The correct path:
+
+1. Paste in the new code and save.
+2. **Deploy** > **Manage deployments**.
+3. Click the **pencil** on the existing deployment. Not "New deployment".
+4. Set **Version** to **New version**.
+5. **Deploy**.
+
+The URL stays the same, which is how you know you did it right.
+
+### Checking which version is actually live
+
+Open the `/exec` URL in a browser. It reports the version of the code that is
+really running:
+
+```json
+{"ok":true,"service":"glbc-signup","version":2,
+ "actions":["signup","load","save","rotate"],"sheet":true,"detail":""}
+```
+
+Compare `version` with `VERSION` at the top of `Code.gs`. If they differ, the
+deployment did not take, whatever the editor said. This marker exists because
+a deploy that silently failed is indistinguishable from one that worked until
+somebody hits the missing feature.
 
 ## What it deliberately does not do
 
