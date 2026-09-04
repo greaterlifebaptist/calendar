@@ -30,34 +30,39 @@ Signed in as the church Gmail:
    `glbc-calendar-job@glbc-calendar.iam.gserviceaccount.com`.
 
 The JSON key file is a password. Never commit it, never email it, never paste
-it into a chat. It goes in one place: the GitHub Actions secret
-`GOOGLE_SERVICE_ACCOUNT_JSON`.
+it into a chat. Open it in a text editor, copy the whole contents, and paste
+that as the value of one GitHub Actions secret, `GOOGLE_SERVICE_ACCOUNT_JSON`.
+Then delete the downloaded file. If it is ever needed again, generate a new key
+and delete the old one from the Keys tab.
 
 ## 2. Share each calendar with the robot
 
 For all three calendars: Settings > **Share with specific people or groups** >
 Add people > paste the service account email.
 
-Set permission to **Make changes to events**, not "See all event details". Read
-access is enough today, but the admin form writes events back to Google, and
-setting it now avoids doing this twice.
+Set permission to **Make changes and see all event details**.
+
+Not "See event details", which is read-only, and the admin form has to write
+events back to Google. Not "Make changes (see private events as free/busy)"
+either: that one hides the details of any event marked Private in Google, so
+those would reach the website as blank entries. Not "Make changes and manage
+sharing", which lets the robot re-share the calendar and is more than it needs.
 
 ## 3. Calendar settings
 
-| Setting | church | youth | youth-leaders |
-|---|---|---|---|
-| Make available to public | fine either way | fine either way | **turn off** |
-| Auto-accept invitations | **do not show invitations** | **do not show invitations** | **do not show invitations** |
-| Event notifications | none | none | none |
+All three calendars get the same settings:
 
-**Public access on `youth-leaders`.** With it on, anyone who has the calendar ID
-can subscribe to the raw calendar directly, and no amount of filtering on our
-side changes that. The system treats this calendar as private and keeps it out
-of the website and every bundle feed. Leaving it public in Google contradicts
-that. Turn it off.
+| Setting | Value |
+|---|---|
+| Make available to public | **off** |
+| Auto-accept invitations | **do not show invitations** |
+| Event notifications | none |
 
-On `church` and `youth` it makes no difference to us either way, since we read
-through the API. Leaving them public is harmless.
+**Public access off everywhere.** The job reads through the API as the service
+account, so public access buys us nothing. Off is better than harmless: it
+means the only way to see the calendar is through the church's own system, so
+nobody ends up subscribed to a raw Google calendar that we cannot revoke, cannot
+filter, and cannot rename without breaking.
 
 **Auto-accept invitations.** Every secondary calendar has its own email address.
 With auto-accept on, anyone who discovers that address can send an invitation
@@ -127,24 +132,62 @@ The subdomain is deliberate indirection. If hosting ever moves to Cloudflare
 Pages or Azure, it is this one DNS record that changes and nothing else. No
 WordPress edits, no re-issued QR codes.
 
-## 7. Decision still open: repo visibility
+## 7. Repo visibility
 
-GitHub Pages is free only for public repositories. That is fine for calendar
-data, which is public anyway, and secrets live in Actions secrets rather than
-in the repo.
+**Public repo, GitHub Pages.** No Cloudflare, no paid plan.
 
-It stops being fine at step 6 of the plan, personal feeds. Those are committed
-to `public/f/<token>.ics`, and a person's feed contains every group they belong
-to, including private ones. The token makes the URL unguessable, but in a
-**public repo the file is browsable regardless of the token**.
+GitHub Pages is free only for public repositories, and a public repo is fine
+here: the calendar data is public anyway and every credential lives in Actions
+secrets rather than in the code.
 
-Two ways forward:
+The one thing that would have made a public repo wrong is personal token feeds,
+at step 6 of the plan. A person's feed contains every group they belong to,
+including private ones, so committing those files would put youth leaders
+content in front of anyone browsing the repo, token or no token.
 
-- **Public repo.** Accept that `youth-leaders` content is readable by anyone who
-  browses the repo. Reasonable if it stays what CLAUDE.md says it is: meeting
-  planning, not personal information.
-- **Private repo on Cloudflare Pages.** Free, serves private repos, same static
-  output, same DNS indirection. Slightly more setup.
+They are not committed. `public/f/*.ics` is gitignored. The feeds are rebuilt
+from the Sheet on every run and copied straight into the deployed site, which
+the workflow assembles as an artifact rather than from committed files. Nothing
+private ever enters git history.
 
-This only needs deciding before step 6. Steps 1 through 5 are identical either
-way.
+What remains true, and always would have been: the deployed feed is reachable by
+anyone holding the token URL. That is inherent to a calendar subscription, which
+is why tokens are rotatable and why genuinely sensitive information must not go
+into any feed. GitHub Pages does not list directory contents, so `/f/` itself
+returns nothing.
+
+---
+
+## 8. Where the church's passwords live
+
+Not in this repo, and not in any repo.
+
+A repository is the wrong container for credentials, even a private one:
+
+- Everyone with repo access reads them, and access tends to widen over time.
+- Every clone puts a copy on someone's laptop, inside their backups.
+- Git keeps history. Deleting a password in a later commit does not remove it,
+  and rewriting history breaks every existing clone.
+- A repo that later needs to go public, or a fork made by a helper, exposes
+  everything at once.
+
+The failure mode is not theoretical. The church Gmail is the account that owns
+the calendars, the GitHub account, the app store listing, and the domain
+recovery path. Whoever reads that password controls all of it.
+
+Use a password manager with shared access instead. Bitwarden's free plan
+includes a two-person organisation, which covers Spencer plus the pastor or a
+deacon, and is enough for what is needed here. 1Password Families works equally
+well if the church already pays for one.
+
+Per CLAUDE.md section 11, alongside that:
+
+- Two-factor authentication on the church Gmail and the GitHub account.
+- Recovery codes printed and kept in the church safe, not in the manager.
+- A second admin on the Google account, the GitHub account, and the Sheet.
+- Registrar account under church control, church card, auto-renew on.
+
+What may safely live in the repo: calendar IDs, the Sheet ID, ministry config,
+and every line of code. What may not: the service account key, GroupMe bot IDs,
+the admin passcode, and any account password. Those are GitHub Actions secrets
+or password manager entries.

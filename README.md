@@ -114,7 +114,10 @@ the filter pills. `job/test/publish.test.ts` asserts this on every run, by id
 and by searching the published bytes for private event text.
 
 Private content will only leave via per-person token feeds, generated in the
-same run from data held in memory.
+same run from data held in memory. Those feeds are gitignored: they are written
+into `public/f/` at run time and copied into the deployed site, but never
+committed, so a public repo cannot expose one person's private-ministry events
+to anyone reading the code.
 
 ## Secrets
 

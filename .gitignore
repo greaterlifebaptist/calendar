@@ -11,3 +11,12 @@ node_modules/
 .DS_Store
 Thumbs.db
 *.log
+
+# Personal token feeds are regenerated from the Sheet on every run, so they
+# never need to be in git. Keeping them out means a public repo cannot expose
+# one person's private-ministry events to anyone browsing the code. They are
+# still written into public/f/ at run time and deployed with the site.
+public/f/*.ics
+
+# Deploy staging directory, assembled by the workflow.
+_site/
