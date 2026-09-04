@@ -1,0 +1,7 @@
+# Source and data stay LF everywhere, including on the Linux Actions runner.
+* text=auto eol=lf
+
+# .ics files are CRLF by RFC 5545. Store the exact bytes the job writes, or
+# checkout on Linux would strip the CR and the job would rewrite every feed
+# on every hourly run.
+*.ics -text
