@@ -178,6 +178,6 @@ events as though they were real is worse than blank, so the fallback is real
 data where possible and always says which it is. A response that returns HTTP
 200 but is not shaped like `events.json` is rejected rather than trusted.
 
-The page also warns when live data is more than twelve hours old. Feeds refresh
+The page also warns when live data is more than a day old. Feeds refresh
 hourly, so anything older means the job has stopped and the reader should not
 trust the dates.
