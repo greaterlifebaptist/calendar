@@ -1,12 +1,12 @@
 {
-  "generated": "2026-09-04T17:20:00.770Z",
+  "generated": "2026-09-04T17:51:12.485Z",
   "timezone": "America/New_York",
   "feeds": {
     "base": "https://calendars.greaterlifebaptistchurch.com/feeds/",
     "all": "all.ics",
     "personal": "https://calendars.greaterlifebaptistchurch.com/f/"
   },
-  "signup": "",
+  "signup": "https://script.google.com/macros/s/AKfycbyNowdqhkq7HxBtKSI3Sxk12e5MBs8N2kmxBPCBsVwlyfGSkwLrMx77FgkBRtPsobEO/exec",
   "ministries": [
     {
       "id": "church",
