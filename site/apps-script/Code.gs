@@ -23,6 +23,18 @@ var EVENTS_JSON = SITE + '/events.json';
 var FEED_BASE = SITE + '/f/';
 var TAB = 'People';
 
+/**
+ * Only needed if this script is NOT bound to the spreadsheet.
+ *
+ * The normal route is Extensions > Apps Script from inside the sheet, which
+ * binds them together and leaves this blank. If that menu will not open, a
+ * standalone script at script.google.com works just as well: paste the
+ * spreadsheet id from its URL in here.
+ *
+ *   https://docs.google.com/spreadsheets/d/THIS_PART/edit
+ */
+var SPREADSHEET_ID = '';
+
 /** Token length in bytes. Matches job/src/sheet.ts. */
 var TOKEN_BYTES = 16;
 
@@ -34,7 +46,17 @@ function json_(obj) {
 
 function doGet() {
   // Useful for confirming the deployment is alive without writing anything.
-  return json_({ ok: true, service: 'glbc-signup' });
+  // It also checks it can actually see the sheet, since the usual mistake is a
+  // standalone script with no SPREADSHEET_ID set, which otherwise only shows
+  // up when the first real person tries to sign up.
+  var sheetOk = false;
+  var detail = '';
+  try {
+    sheetOk = sheet_().getLastColumn() > 0;
+  } catch (err) {
+    detail = String(err && err.message ? err.message : err);
+  }
+  return json_({ ok: true, service: 'glbc-signup', sheet: sheetOk, detail: detail });
 }
 
 /**
@@ -76,8 +98,21 @@ function token_() {
     .join('');
 }
 
+/** Works whether this script is bound to the sheet or standalone. */
+function spreadsheet_() {
+  if (SPREADSHEET_ID) return SpreadsheetApp.openById(SPREADSHEET_ID);
+  var active = SpreadsheetApp.getActiveSpreadsheet();
+  if (!active) {
+    throw new Error(
+      'This script is not attached to a spreadsheet. Set SPREADSHEET_ID at the ' +
+      'top of the file to the id from the sheet URL.'
+    );
+  }
+  return active;
+}
+
 function sheet_() {
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(TAB);
+  var sheet = spreadsheet_().getSheetByName(TAB);
   if (!sheet) throw new Error('No "' + TAB + '" tab in this spreadsheet.');
   return sheet;
 }

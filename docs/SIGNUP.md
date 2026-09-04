@@ -54,15 +54,51 @@ into `events.json`, so the page needs no separate config file.
 Until it is set, the signup page says signup is not switched on yet rather
 than showing a form that cannot work.
 
+## If Extensions > Apps Script will not open
+
+> Sorry, unable to open the file at this time.
+
+This is almost always **more than one Google account signed in at once**.
+Apps Script opens under whichever account the browser considers first, and that
+account has no access to the church's file, so it refuses.
+
+Try these in order.
+
+**1. Use a private window.** Open an incognito or private window, sign in as
+the church account and nothing else, open the spreadsheet, then Extensions >
+Apps Script. This fixes it most of the time and costs nothing to try.
+
+**2. Check the account number in the URL.** Look at the spreadsheet's address.
+If it contains `/u/1/` or `/u/2/`, the church account is not the browser's
+default. Signing out of every account and back in as only the church account
+fixes it permanently.
+
+**3. Use a standalone script instead.** If the menu still refuses, skip it
+entirely. Nothing is lost; a standalone script can reach the sheet just as well.
+
+  1. Copy the spreadsheet id out of its URL. It is the long part between
+     `/d/` and `/edit`:
+     `https://docs.google.com/spreadsheets/d/THIS_PART/edit`
+  2. Go to <https://script.google.com> and click **New project**.
+  3. Paste in `Code.gs` as before.
+  4. Near the top, set `SPREADSHEET_ID` to the id you copied:
+     `var SPREADSHEET_ID = '1a2b3c…';`
+  5. Deploy exactly as described above.
+
+The script checks for this itself. If it is standalone and the id is missing,
+it says so rather than failing later when somebody first tries to sign up.
+
 ## Checking it worked
 
 Open the web app URL directly in a browser. A `GET` returns:
 
 ```json
-{"ok":true,"service":"glbc-signup"}
+{"ok":true,"service":"glbc-signup","sheet":true,"detail":""}
 ```
 
-That confirms the deployment is alive without writing anything.
+`sheet: true` is the part that matters. It means the script can actually see
+the People tab. If it comes back `false` there will be a `detail` explaining
+why, usually a standalone script with no `SPREADSHEET_ID` set.
 
 Then use the real page at `/signup.html`, sign yourself up for one public
 calendar, and check that a row appears on the People tab with a token in it.
