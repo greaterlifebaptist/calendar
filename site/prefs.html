@@ -287,6 +287,19 @@ async function start(){
 }
 
 start();
+
+// Following a link to a different token while already on this page changes
+// only the fragment, which does not reload anything, so the page would go on
+// showing the previous person. Rare, but silently wrong when it happens.
+addEventListener("hashchange", () => {
+  const next = readToken();
+  if (!next || next === TOKEN) return;
+  document.getElementById("panel").hidden = true;
+  document.getElementById("notice").hidden = true;
+  document.getElementById("newlink").hidden = true;
+  document.getElementById("status").textContent = "";
+  start();
+});
 </script>
 </body>
 </html>
