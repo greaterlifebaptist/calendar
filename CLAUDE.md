@@ -125,9 +125,18 @@ system must work correctly with zero special syntax.
 **Inference (default path, no user effort):**
 - Title matches `/\b(due|deadline|deposit|forms?|rsvp|sign[- ]?up|last day|turn in|money)\b/i` → `type: deadline`
 - All-day event spanning 2+ days → `type: trip`, auto-pinned
-- Weekly/biweekly recurring → `type: routine`, never pinned
 - `trip` or `deadline` starting more than 60 days out → auto-pinned
-- Everything else → `type: event`
+- Everything else → `type: event`, **including recurring events**
+
+**Recurrence does NOT imply `routine`.** The original rule demoted anything
+weekly to `routine`. That assumed these calendars carry the normal Sunday and
+Thursday rhythm, and they do not: only things people need to pay attention to
+go on them. A weekly series here is a four-night revival or a six-week class,
+so it needs pinning and reminders like anything else. Demoting it would have
+taken a tag to undo, which is the one thing this classifier exists to avoid.
+
+`routine` still exists for a genuine standing fixture, but it has to be asked
+for, with a `ROUTINE:` prefix or the admin form.
 
 **Prefix overrides (for when inference guesses wrong):**
 - `DUE:` at start of title → force deadline
@@ -150,6 +159,13 @@ Ladder, configurable per ministry, defaults:
 - `trip`: 30d, 7d, 1d
 - `event`: 7d, 1d
 - `routine`: none
+
+**Recurring series are throttled, not silenced.** A daily, weekly or biweekly
+series gets the full ladder for its first upcoming occurrence, then day-before
+only for each occurrence after that. Otherwise a six-week Wednesday class sends
+twelve messages, and its 7-day notice always lands the day after the previous
+week's session. A monthly or rarer series is not throttled and takes the full
+ladder every time. Configured as `recurringSeries.frequentFollowUp`.
 
 Weekly digest: Sunday 7pm local, "here's the week ahead."
 

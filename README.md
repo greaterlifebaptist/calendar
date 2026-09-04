@@ -98,9 +98,13 @@ deadline because of the word *money*, and `DUE:` cannot un-say that.
 - a title containing due, deadline, deposit, form(s), rsvp, sign-up, last day,
   turn in, or money becomes a **deadline**
 - an all-day event spanning two or more days becomes a **trip**, and is pinned
-- weekly, biweekly, or daily recurrence becomes **routine**, never pinned
 - a trip or deadline more than 60 days out is pinned
-- everything else is an **event**
+- everything else is an **event**, recurring ones included
+
+Recurrence does not imply routine. These calendars only carry what people need
+to pay attention to, so a weekly series here is a four-night revival or a
+six-week class, and it needs reminders like anything else. `routine` exists for
+a genuine standing fixture but has to be asked for with a `ROUTINE:` prefix.
 
 Optional description lines, parsed if present and never required:
 

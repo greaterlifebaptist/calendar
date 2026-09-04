@@ -24,6 +24,12 @@
     ],
     "routine": []
   },
+  "recurringSeries": {
+    "$comment": "A daily, weekly or biweekly series gets the full ladder for its first upcoming occurrence, then only followUp for each later one, so a six week class does not send twelve messages. A monthly or rarer series is not throttled and takes the full ladder every time.",
+    "frequentFollowUp": [
+      "1d"
+    ]
+  },
   "ministries": [
     {
       "id": "church",

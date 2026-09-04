@@ -116,10 +116,13 @@ test('a cancelled occurrence becomes an EXDATE on its series', () => {
 });
 
 test('a moved occurrence keeps the series UID and gains a RECURRENCE-ID', () => {
+  // The series is explicitly ROUTINE:. The moved occurrence carries no
+  // recurrence of its own, so left to itself it would classify as an ordinary
+  // event. Asserting it comes out routine is what proves it inherited.
   const master = cal({
     id: 'svc',
     iCalUID: 'svc@google.com',
-    summary: 'Sunday morning worship',
+    summary: 'ROUTINE: Sunday morning worship',
     start: { dateTime: '2026-09-06T11:00:00-04:00' },
     end: { dateTime: '2026-09-06T12:15:00-04:00' },
     recurrence: ['RRULE:FREQ=WEEKLY;BYDAY=SU'],
@@ -137,8 +140,11 @@ test('a moved occurrence keeps the series UID and gains a RECURRENCE-ID', () => 
   const lines = unfold(ics);
   assert.equal(lines.filter((l) => l === 'UID:svc@google.com').length, 2);
   assert.ok(ics.includes('RECURRENCE-ID;TZID=America/New_York:20261227T110000'));
-  // The override inherits the series classification rather than re-inferring it.
-  assert.equal(lines.filter((l) => l === 'X-GLBC-TYPE:routine').length, 2);
+  assert.equal(
+    lines.filter((l) => l === 'X-GLBC-TYPE:routine').length,
+    2,
+    'the moved occurrence re-inferred its own type instead of inheriting the series',
+  );
 });
 
 test('an override whose series is out of window is published standalone', () => {

@@ -82,25 +82,41 @@ test('a single all-day event is not a trip', () => {
   assert.equal(c.pinned, false);
 });
 
-test('weekly and biweekly recurrence is routine and never pinned', () => {
+test('a recurring event is an ordinary event, not demoted to routine', () => {
+  // These calendars carry only what people need to pay attention to. A weekly
+  // series here is a short run of classes or revival nights, not the standing
+  // Sunday service, so it must behave like any other event and be reminded
+  // about without anyone having to tag it.
   for (const rule of [
     'RRULE:FREQ=WEEKLY;BYDAY=TH',
     'RRULE:FREQ=WEEKLY;INTERVAL=2;BYDAY=SU',
-    'RRULE:FREQ=DAILY',
+    'RRULE:FREQ=DAILY;COUNT=4',
+    'RRULE:FREQ=MONTHLY;BYDAY=2TU',
   ]) {
-    const c = classify(ev({ summary: 'Thursday night service', recurrence: [rule] }), TZ, NOW);
-    assert.equal(c.type, 'routine', rule);
-    assert.equal(c.pinned, false, rule);
+    const c = classify(ev({ summary: 'Revival', recurrence: [rule] }), TZ, NOW);
+    assert.equal(c.type, 'event', rule);
+    assert.equal(c.reason, 'default', rule);
   }
 });
 
-test('monthly recurrence is not routine', () => {
+test('a recurring deadline is still a deadline', () => {
   const c = classify(
-    ev({ summary: 'Youth leaders monthly planning', recurrence: ['RRULE:FREQ=MONTHLY;BYDAY=2TU'] }),
+    ev({ summary: 'Fundraiser money due', recurrence: ['RRULE:FREQ=WEEKLY;BYDAY=SU'] }),
     TZ,
     NOW,
   );
-  assert.equal(c.type, 'event');
+  assert.equal(c.type, 'deadline');
+});
+
+test('routine still exists, but has to be asked for', () => {
+  const c = classify(
+    ev({ summary: 'ROUTINE: Sunday morning worship', recurrence: ['RRULE:FREQ=WEEKLY;BYDAY=SU'] }),
+    TZ,
+    NOW,
+  );
+  assert.equal(c.type, 'routine');
+  assert.equal(c.title, 'Sunday morning worship');
+  assert.equal(c.pinned, false, 'a standing fixture is never pinned');
 });
 
 test('deadlines beyond the 60 day horizon pin themselves', () => {

@@ -130,7 +130,13 @@ export function parseFields(description: string): Fields {
   };
 }
 
-/** True when the RRULE repeats weekly or every two weeks. */
+/**
+ * True when the RRULE repeats weekly, biweekly or daily.
+ *
+ * No longer used for classification. The reminder engine uses it to throttle
+ * a frequent series: a monthly meeting can take the full ladder, an eight week
+ * Wednesday class reminding a week ahead every week is just noise.
+ */
 export function isWeeklyish(recurrence: string[] | undefined): boolean {
   if (!recurrence?.length) return false;
   for (const line of recurrence) {
@@ -181,7 +187,6 @@ export function classify(ev: RawEvent, tz: string, now: Date = new Date()): Clas
 
   const allDay = Boolean(ev.start.date);
   const span = allDaySpan(ev, tz);
-  const recurring = isWeeklyish(ev.recurrence);
 
   // ---- type ----
   let type: EventType;
@@ -199,10 +204,19 @@ export function classify(ev: RawEvent, tz: string, now: Date = new Date()): Clas
   } else if (allDay && span >= 2) {
     type = 'trip';
     reason = 'multi-day-all-day';
-  } else if (recurring) {
-    type = 'routine';
-    reason = 'recurring';
   } else {
+    // Deliberately NOT demoting recurring events to `routine`.
+    //
+    // That rule assumed these calendars would carry the normal Sunday and
+    // Thursday rhythm, which they do not. Only things people need to pay
+    // attention to go on them, and a weekly series here is usually a
+    // six-week class or a short run of practices: exactly the kind of thing
+    // somebody needs reminding about. Demoting it would hide it from the
+    // pinned rail and silence its reminders, and would need a tag to undo,
+    // which is the one thing this classifier exists to avoid.
+    //
+    // `routine` still exists for a genuine standing fixture, but it has to be
+    // asked for now, with a ROUTINE: prefix or the admin form.
     type = 'event';
     reason = 'default';
   }
