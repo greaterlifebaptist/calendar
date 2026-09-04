@@ -34,7 +34,7 @@
  * not take looks identical to one that did. Open the /exec URL and read the
  * version back.
  */
-var VERSION = 7;
+var VERSION = 8;
 
 var SITE = 'https://calendars.greaterlifebaptistchurch.com';
 var EVENTS_JSON = SITE + '/events.json';
@@ -210,17 +210,8 @@ function doGet() {
   // than as a 403 the first time somebody tries to save an event.
   var calendarOk = false;
   try {
-    var probe = UrlFetchApp.fetch(
-      'https://www.googleapis.com/calendar/v3/users/me/calendarList?maxResults=1',
-      {
-        muteHttpExceptions: true,
-        headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() }
-      }
-    );
-    calendarOk = probe.getResponseCode() === 200;
-    if (!calendarOk && !detail) {
-      detail = 'Calendar scope not granted. See docs/ADMIN.md.';
-    }
+    calendarService_().CalendarList.list({ maxResults: 1 });
+    calendarOk = true;
   } catch (err) {
     if (!detail) detail = String(err && err.message ? err.message : err);
   }
@@ -428,13 +419,33 @@ function handleRotate_(body) {
 // Set the passcode once: Project Settings > Script Properties >
 //   ADMIN_PASSCODE = something long
 //
-// Calendar writes go through the REST API with this script's own OAuth token.
-// CalendarApp is touched in calendarExists_() purely so Apps Script grants the
-// calendar scope; the REST call is what supports extendedProperties, which
-// CalendarApp cannot set and which is how the admin form records the event
-// type explicitly instead of relying on the title.
+// Calendar writes go through the advanced Calendar service. See below for why
+// that rather than CalendarApp or a direct REST call.
 
-var CAL_API = 'https://www.googleapis.com/calendar/v3/calendars/';
+/**
+ * Calendar access goes through the ADVANCED Calendar service, the global
+ * `Calendar`, not the plain CalendarApp and not a hand-rolled REST call.
+ *
+ * CalendarApp cannot set extendedProperties, which is how the admin form
+ * records the event type explicitly, so it is not enough on its own. Calling
+ * the REST API directly does support them, but it needs the Calendar API
+ * switched on inside the hidden Cloud project behind the script, which fails
+ * with a 403 that mentions a project number nobody recognises.
+ *
+ * Adding the advanced service from the editor turns that API on as a side
+ * effect, which is why this is the route that actually works:
+ *   Editor > Services > + > Google Calendar API > Add
+ */
+function calendarService_() {
+  if (typeof Calendar === 'undefined' || !Calendar || !Calendar.Events) {
+    throw new Error(
+      'The Google Calendar API service is not switched on for this script. ' +
+      'In the Apps Script editor open Services, press +, choose Google ' +
+      'Calendar API and press Add, then deploy a new version.'
+    );
+  }
+  return Calendar;
+}
 
 function adminPasscode_() {
   return String(PropertiesService.getScriptProperties().getProperty('ADMIN_PASSCODE') || '');
@@ -505,32 +516,6 @@ function findMinistry_(id) {
     if (list[i].id === id) return list[i];
   }
   return null;
-}
-
-/** Touching CalendarApp here is what makes Apps Script grant the calendar scope. */
-function calendarExists_(calendarId) {
-  try {
-    return !!CalendarApp.getCalendarById(calendarId);
-  } catch (err) {
-    return false;
-  }
-}
-
-function calFetch_(url, method, payload) {
-  var opts = {
-    method: method,
-    muteHttpExceptions: true,
-    headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() },
-    contentType: 'application/json'
-  };
-  if (payload) opts.payload = JSON.stringify(payload);
-  var res = UrlFetchApp.fetch(url, opts);
-  var code = res.getResponseCode();
-  var text = res.getContentText();
-  if (code < 200 || code >= 300) {
-    throw new Error('Calendar API ' + code + ': ' + text.slice(0, 300));
-  }
-  return text ? JSON.parse(text) : {};
 }
 
 /** Rebuild the description from the notes plus the optional parsed fields. */
@@ -611,14 +596,10 @@ function handleAdminSave_(body) {
   if (!m) return json_({ ok: false, error: 'Pick a calendar.' });
   if (!m.calendarId) return json_({ ok: false, error: 'That ministry has no calendar set up.' });
   var resource = toResource_(body.event || {});
-  var base = CAL_API + encodeURIComponent(m.calendarId) + '/events';
-  var saved;
-
-  if (body.id) {
-    saved = calFetch_(base + '/' + encodeURIComponent(body.id), 'put', resource);
-  } else {
-    saved = calFetch_(base, 'post', resource);
-  }
+  var cal = calendarService_();
+  var saved = body.id
+    ? cal.Events.update(resource, m.calendarId, body.id)
+    : cal.Events.insert(resource, m.calendarId);
 
   return json_({
     ok: true,
@@ -640,10 +621,12 @@ function handleAdminList_(body) {
   // Unexpanded, so a series shows as one editable thing rather than every
   // occurrence. Editing a single occurrence of a series is a job for Google
   // Calendar; this form deals in the series itself.
-  var url = CAL_API + encodeURIComponent(m.calendarId) + '/events' +
-    '?singleEvents=false&maxResults=250&showDeleted=false' +
-    '&timeMin=' + encodeURIComponent(new Date(Date.now() - 7 * 86400000).toISOString());
-  var data = calFetch_(url, 'get');
+  var data = calendarService_().Events.list(m.calendarId, {
+    singleEvents: false,
+    maxResults: 250,
+    showDeleted: false,
+    timeMin: new Date(Date.now() - 7 * 86400000).toISOString()
+  });
 
   var items = (data.items || []).map(function (e) {
     var shared = (e.extendedProperties && e.extendedProperties.shared) || {};
@@ -672,7 +655,7 @@ function handleAdminDelete_(body) {
   if (!m || !m.calendarId) return json_({ ok: false, error: 'Pick a calendar.' });
   if (!body.id) return json_({ ok: false, error: 'Nothing to delete.' });
 
-  calFetch_(CAL_API + encodeURIComponent(m.calendarId) + '/events/' + encodeURIComponent(body.id), 'delete');
+  calendarService_().Events.remove(m.calendarId, body.id);
   return json_({ ok: true, deleted: body.id });
 }
 
@@ -796,15 +779,10 @@ function authorizeCalendar() {
   var owned = CalendarApp.getAllOwnedCalendars();
   Logger.log('CalendarApp can see ' + owned.length + ' calendars this account owns.');
 
-  var probe = UrlFetchApp.fetch(
-    'https://www.googleapis.com/calendar/v3/users/me/calendarList?maxResults=1',
-    {
-      muteHttpExceptions: true,
-      headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() }
-    }
-  );
-  Logger.log('Calendar REST check: HTTP ' + probe.getResponseCode() +
-    (probe.getResponseCode() === 200
-      ? '  (good, redeploy a new version now)'
-      : '  ' + probe.getContentText().slice(0, 200)));
+  try {
+    var list = calendarService_().CalendarList.list({ maxResults: 1 });
+    Logger.log('Calendar API service: OK. Redeploy a new version now.');
+  } catch (err) {
+    Logger.log('Calendar API service: FAILED. ' + (err && err.message ? err.message : err));
+  }
 }

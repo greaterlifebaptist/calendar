@@ -42,29 +42,44 @@ Three steps, and the middle one is the easy one to miss.
 signup. Paste in the current `site/apps-script/Code.gs`, then Deploy > Manage
 deployments > pencil > Version: **New version** > Deploy.
 
-**2. Declare and authorise the calendar permission.**
+**2. Switch on the Calendar service and authorise it.**
 
-Apps Script normally works out for itself which permissions a script needs, by
-reading the code. That inference is not reliable here, and when it comes up
-short the symptom is a save failing with:
+There are two separate things here that both produce a 403, and they look
+alike:
 
-> Calendar API 403: Request had insufficient authentication scopes.
+> Request had insufficient authentication scopes.
 
-The fix is to stop relying on the guess and state the permissions outright.
+means the *permission* was never granted, because Apps Script guesses which
+permissions a script needs by reading the code and the guess came up short.
 
-  1. In the Apps Script editor: **Project Settings**, then tick
+> Google Calendar API has not been used in project 135044255031 before or it is
+> disabled.
+
+means the permission is fine but the *API* is switched off in the hidden Cloud
+project behind the script. That project number belongs to nobody and is
+alarming the first time you see it; it is just the script's own project.
+
+Doing both, in order:
+
+  1. In the editor sidebar, next to **Services**, press **+**. Choose
+     **Google Calendar API**, leave the identifier as `Calendar`, and press
+     **Add**. This does two jobs at once: it gives the script a `Calendar`
+     object that can set the fields this form needs, and it turns the API on
+     in that Cloud project, which is what the console link was asking you to
+     do by hand.
+  2. **Project Settings**, then tick
      **Show "appsscript.json" manifest file in editor**.
-  2. Go back to the **Editor**. `appsscript.json` is now in the file list.
-  3. Replace its contents with
+  3. Back in the **Editor**, `appsscript.json` is now in the file list.
+     Replace its contents with
      [`site/apps-script/appsscript.json`](../site/apps-script/appsscript.json)
      from this repo, and save.
   4. Pick **`authorizeCalendar`** from the function dropdown at the top and
      press **Run**. Not `doGet`: `doGet` never touches `CalendarApp`, so Apps
      Script can decide the calendar permission is unnecessary and skip the
      prompt entirely. `authorizeCalendar` exists only to make that impossible.
-  5. Approve the consent screen. It will mention seeing and editing your
-     calendars, which is the point.
-  6. Read the execution log. `Calendar REST check: HTTP 200` means it worked.
+  5. Approve the consent screen if one appears. It will mention seeing and
+     editing your calendars, which is the point.
+  6. Read the execution log. **`Calendar API service: OK`** means it worked.
   7. Redeploy: **Deploy** > **Manage deployments** > pencil > **New version**.
 
   The manifest also pins "execute as me" and "anyone can access", so those
@@ -116,11 +131,11 @@ else. It is not a GitHub secret and not in the repo; it lives in the script.
 
 ### Checking
 
-Open the `/exec` URL. You want `version` 7 or higher, with `adminReady`,
+Open the `/exec` URL. You want `version` 8 or higher, with `adminReady`,
 `sheet` and `calendar` all `true`:
 
 ```json
-{"ok":true,"service":"glbc-signup","version":7,
+{"ok":true,"service":"glbc-signup","version":8,
  "actions":["signup","load","save","rotate","admin.hello","admin.list",
   "admin.save","admin.delete","admin.people","admin.setgroups"],
  "sheet":true,"adminReady":true,"calendar":true,"detail":""}
@@ -130,8 +145,8 @@ Open the `/exec` URL. You want `version` 7 or higher, with `adminReady`,
 will refuse until it is.
 
 `calendar: false` means step 2 has not taken, and saving an event will fail
-with a 403. It is checked here so that shows up now rather than the first time
-somebody tries to add something.
+with a 403. The `detail` field says which half is missing. It is checked here
+so that shows up now rather than the first time somebody adds something real.
 
 ## About that passcode
 
