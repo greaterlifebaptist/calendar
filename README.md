@@ -5,7 +5,8 @@ Calendar; a job reads those calendars hourly and pushes the result out to a
 website, subscribable `.ics` feeds, and GroupMe reminders.
 
 Design decisions and their reasoning live in [CLAUDE.md](CLAUDE.md). Read that
-first. This file covers only how to run what exists.
+first. Google, GitHub and DNS setup is in [docs/SETUP.md](docs/SETUP.md). This
+file covers only how to run what exists.
 
 ## Status
 
@@ -15,8 +16,8 @@ publish `events.json` plus the bundle feeds.
 | Step | State |
 |---|---|
 | 1. Job core | done |
-| 2. Public site page | starting HTML in `site/index.html`, not yet wired to Actions |
-| 3. Hourly workflow | not started |
+| 2. Public site page | starting HTML in `site/index.html`, TV mode still to add |
+| 3. Hourly workflow | written, waiting on the repo and secrets |
 | 4. Reminder engine | not started |
 | 5-9. Signup, personal feeds, prefs, admin, TV mode | not started |
 

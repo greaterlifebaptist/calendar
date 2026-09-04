@@ -1,0 +1,149 @@
+name: Calendar sync
+
+# GitHub Actions cron is UTC only. Rather than depend on a per-schedule
+# timezone field, the job runs every hour and works out the local hour for
+# itself. That is the behaviour the reminder ladder needs anyway, and it keeps
+# working if the workflow syntax ever changes underneath us.
+on:
+  schedule:
+    - cron: '7 * * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Log reminders instead of sending them'
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+  issues: write
+
+# Never let two runs overlap. They would race on the reminder dedupe state and
+# could send the same reminder twice.
+concurrency:
+  group: calendar-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: job/package-lock.json
+
+      - name: Install
+        working-directory: job
+        run: npm ci
+
+      # A broken classifier would quietly publish wrong data to the website and
+      # wrong dates to parents. Cheap enough to run every hour.
+      - name: Check
+        working-directory: job
+        run: npm run check
+
+      - name: Sync calendars
+        working-directory: job
+        env:
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+          CAL_CHURCH: ${{ secrets.CAL_CHURCH }}
+          CAL_YOUTH: ${{ secrets.CAL_YOUTH }}
+          CAL_YOUTH_LEADERS: ${{ secrets.CAL_YOUTH_LEADERS }}
+          SHEET_ID: ${{ secrets.SHEET_ID }}
+          GROUPME_BOT_YOUTH_PARENTS: ${{ secrets.GROUPME_BOT_YOUTH_PARENTS }}
+          DRY_RUN: ${{ inputs.dry_run || '' }}
+        run: npm start
+
+      # Two things are true at once: scheduled workflows are disabled after 60
+      # days without repo activity, and nobody wants 24 commits a day that only
+      # move a timestamp. So commit when the data really changed, and otherwise
+      # force a keepalive commit well inside the 60 day window. The site still
+      # updates hourly, because the deploy below does not depend on a commit.
+      - name: Commit changed data
+        id: commit
+        run: |
+          git config user.name 'glbc-calendar-bot'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add public
+
+          if git diff --cached --quiet; then
+            echo 'No output changes at all.'
+            exit 0
+          fi
+
+          REAL=$(git diff --cached -U0 \
+            | grep -E '^[+-]' \
+            | grep -vE '^(\+\+\+|---)' \
+            | grep -v '"generated"' \
+            | head -1 || true)
+
+          LAST=$(git log -1 --format=%ct)
+          AGE_DAYS=$(( ( $(date +%s) - LAST ) / 86400 ))
+
+          if [ -n "$REAL" ]; then
+            git commit -m "Calendar data changed $(date -u +'%Y-%m-%d %H:%M UTC')"
+            git push
+          elif [ "$AGE_DAYS" -ge 20 ]; then
+            git commit -m "Keepalive: scheduled workflows are disabled after 60 idle days"
+            git push
+          else
+            echo "Only the generated timestamp moved, and the last commit was ${AGE_DAYS}d ago. Skipping."
+            git reset
+          fi
+
+      # Assemble exactly what scripts/serve.mjs serves locally: the pages in
+      # site/ over the job output in public/.
+      - name: Assemble site
+        run: |
+          mkdir -p _site
+          cp -r public/. _site/
+          cp -r site/. _site/
+          ls -R _site | head -40
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Report failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          # Silent failure is the real operational risk: feeds go stale and
+          # nobody notices. An issue emails whoever watches the repo.
+          EXISTING=$(gh issue list --label sync-failure --state open \
+            --json number --jq '.[0].number' || true)
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" --body "Sync failed again: $RUN_URL"
+          else
+            gh label create sync-failure --color B60205 --force >/dev/null 2>&1 || true
+            cat > /tmp/body.md <<BODY
+          The hourly calendar sync failed. Feeds and the website will go stale
+          until this is fixed.
+
+          Run: $RUN_URL
+
+          Close this issue once the sync is green again.
+          BODY
+            sed -i 's/^          //' /tmp/body.md
+            gh issue create --label sync-failure \
+              --title 'Calendar sync is failing' \
+              --body-file /tmp/body.md
+          fi
+
+  deploy:
+    needs: sync
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4
