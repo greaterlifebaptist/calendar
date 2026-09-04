@@ -1,46 +1,19 @@
 {
-  "generated": "2026-09-04T15:46:05.549Z",
+  "generated": "2026-09-04T16:00:00.000Z",
   "timezone": "America/New_York",
   "feeds": {
     "base": "https://calendars.greaterlifebaptistchurch.com/feeds/",
     "all": "all.ics"
   },
-  "ministries": [
+  "ministries": [],
+  "events": [
     {
-      "id": "church",
-      "name": "Church-wide",
-      "color": "#1B5E45"
-    },
-    {
-      "id": "youth",
-      "name": "Greater Generation",
-      "color": "#6B9A12"
-    },
-    {
-      "id": "children",
-      "name": "Children",
-      "color": "#EE7B21"
-    },
-    {
-      "id": "youngadults",
-      "name": "Ignite Young Adults",
-      "color": "#D14E2B"
-    },
-    {
-      "id": "seniors",
-      "name": "Best Life",
-      "color": "#8A6A08"
-    },
-    {
-      "id": "mens",
-      "name": "Man Church",
-      "color": "#2C7EA1"
-    },
-    {
-      "id": "womens",
-      "name": "Soul Sisters",
-      "color": "#A0447F"
+      "uid": "old@google.com",
+      "ministry": "church",
+      "type": "event",
+      "title": "Last week",
+      "start": "2026-09-01T19:00:00",
+      "end": "2026-09-01T20:00:00"
     }
-  ],
-  "events": []
+  ]
 }

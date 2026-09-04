@@ -37,7 +37,7 @@ and delete the old one from the Keys tab.
 
 ## 2. Share each calendar with the robot
 
-For all three calendars: Settings > **Share with specific people or groups** >
+For every calendar: Settings > **Share with specific people or groups** >
 Add people > paste the service account email.
 
 Set permission to **Make changes and see all event details**.
@@ -50,7 +50,7 @@ sharing", which lets the robot re-share the calendar and is more than it needs.
 
 ## 3. Calendar settings
 
-All three calendars get the same settings:
+Every calendar gets the same settings:
 
 | Setting | Value |
 |---|---|

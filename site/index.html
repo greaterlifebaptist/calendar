@@ -426,8 +426,13 @@ function renderAgenda(){
   host.innerHTML = "";
 
   if (!list.length){
-    host.innerHTML = '<div class="empty"><strong>Nothing scheduled here yet</strong>' +
-      'Turn on another ministry above, or check back after Sunday.</div>';
+    // A ministry only appears once it has something on it, so when none do
+    // there is nothing above to turn on and saying so would just confuse.
+    host.innerHTML = DATA.ministries.length
+      ? '<div class="empty"><strong>Nothing scheduled here yet</strong>' +
+        'Turn on another ministry above, or check back after Sunday.</div>'
+      : '<div class="empty"><strong>Nothing on the calendar yet</strong>' +
+        'Events will show up here as soon as they are scheduled.</div>';
     btn.hidden = !later.length;
     if (later.length) btn.textContent = "Show " + later.length + " event" + (later.length>1?"s":"") + " further out";
     return;
@@ -712,6 +717,10 @@ function installed(){
 
 function setupInstall(){
   if (TV || installed()) return;
+  // Chrome offers to install on desktop too, but "put this on your phone" is
+  // nonsense in front of somebody at a keyboard. A coarse pointer means a
+  // finger, which covers phones and tablets and excludes a mouse.
+  if (!matchMedia("(pointer: coarse)").matches) return;
   try { if (localStorage.getItem(DISMISS_KEY)) return; } catch {}
 
   const box = $("install");
@@ -743,13 +752,17 @@ function setupInstall(){
     show("<b>Keep this on your phone</b>Add the calendar to your home screen. No app store, nothing to install.", true);
   });
 
-  // iOS never fires that event, so it gets the manual instructions instead,
-  // and only after the reader has had a moment with the page.
-  if (isIos) {
-    setTimeout(() => {
-      if (box.hidden) show("<b>Keep this on your phone</b>Tap Share at the bottom of Safari, then <b style=\"display:inline\">Add to Home Screen</b>.", false);
-    }, 4000);
-  }
+  // That event is not dependable. Safari never fires it at all, and Chrome
+  // only does so when it decides the page qualifies. Adding to the home
+  // screen works by hand on both regardless, so after a moment with the page
+  // anyone who has not been offered the button gets told how.
+  setTimeout(() => {
+    if (!box.hidden) return;
+    show(isIos
+      ? "<b>Keep this on your phone</b>Tap Share at the bottom of Safari, then <b style=\"display:inline\">Add to Home Screen</b>."
+      : "<b>Keep this on your phone</b>Open your browser's menu, then <b style=\"display:inline\">Add to Home screen</b>.",
+      false);
+  }, 4000);
 }
 
 /* ---------- go ---------- */

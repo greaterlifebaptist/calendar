@@ -146,3 +146,39 @@ test('every listed ministry actually has something coming up', async () => {
     assert.ok(withEvents.has(m.id), m.id + ' is listed but has no events');
   }
 });
+
+test('with nothing scheduled anywhere, no ministry is offered at all', () => {
+  const ministries = activeMinistries(cfg);
+  publish({ cfg, ministries, instances: [], masters: [], generated: NOW });
+  const events = JSON.parse(
+    readFileSync(join(PUBLIC_DIR, 'events.json'), 'utf8'),
+  ) as EventsJson;
+  assert.equal(events.events.length, 0);
+  assert.equal(
+    events.ministries.length,
+    0,
+    'empty pills are worse than an honest empty page',
+  );
+});
+
+test('only past events does not count as being in use', () => {
+  const ministries = activeMinistries(cfg);
+  const past = normalize(
+    {
+      ministry: 'church',
+      id: 'old',
+      iCalUID: 'old@google.com',
+      status: 'confirmed',
+      summary: 'Last week',
+      start: { dateTime: '2026-09-01T19:00:00-04:00' },
+      end: { dateTime: '2026-09-01T20:00:00-04:00' },
+    } as RawEvent,
+    TZ,
+    NOW,
+  );
+  publish({ cfg, ministries, instances: [past], masters: [past], generated: NOW });
+  const events = JSON.parse(
+    readFileSync(join(PUBLIC_DIR, 'events.json'), 'utf8'),
+  ) as EventsJson;
+  assert.equal(events.ministries.length, 0, 'a finished event should not keep a ministry listed');
+});

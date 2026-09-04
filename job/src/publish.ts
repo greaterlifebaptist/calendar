@@ -122,10 +122,10 @@ export function publish(input: PublishInput): PublishResult {
     generated: generated.toISOString(),
     timezone: tz,
     feeds: { base: cfg.site.feedBase, all: cfg.site.allFeed },
-    // If nothing at all is scheduled anywhere, list everything rather than
-    // rendering a page with no filters on it.
-    ministries: (listed.length ? listed : publicMinistries)
-      .map((m) => ({ id: m.id, name: m.name, color: m.color })),
+    // When nothing at all is scheduled, list nothing. Offering every ministry
+    // as a filter with no events behind any of them is worse than an honest
+    // empty page, which is what the site renders instead.
+    ministries: listed.map((m) => ({ id: m.id, name: m.name, color: m.color })),
     events: publicInstances.map((e) => toPublicEvent(e, tz)),
   };
   const eventsJsonPath = join(PUBLIC_DIR, 'events.json');
