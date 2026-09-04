@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Change your calendar — Greater Life Baptist Church</title>
+<meta name="description" content="Change which ministries appear in your calendar.">
+<meta name="robots" content="noindex, nofollow">
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="theme-color" content="#1B5E45">
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ivory:#FFFCF4; --card:#FFFFFF; --ink:#241F1B; --ink-soft:#6B625A;
+  --rule:#EBE3D5; --sun:#F0A202; --clay:#D14E2B; --pine:#1B5E45;
+  --display:"Zilla Slab",Georgia,serif;
+  --body:"Public Sans",system-ui,-apple-system,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;padding:0}
+body{background:var(--ivory);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{max-width:640px;margin:0 auto;padding:0 20px 70px}
+
+.masthead{padding:32px 0 18px}
+.ribbon{display:flex;height:6px;border-radius:100px;overflow:hidden;margin-bottom:20px}
+.ribbon span{flex:1}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--clay);margin:0 0 8px;font-weight:600}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(1.9rem,6.5vw,2.7rem);line-height:1.05;letter-spacing:-.02em;margin:0;color:var(--pine)}
+h1 em{font-style:normal;color:var(--sun)}
+.lede{margin:12px 0 0;color:var(--ink-soft);font-size:.95rem;max-width:46ch}
+
+.picks{display:flex;flex-direction:column;gap:8px;margin-top:22px}
+.pick{display:flex;align-items:flex-start;gap:11px;border:1.5px solid var(--rule);background:var(--card);border-radius:10px;padding:12px 14px;cursor:pointer}
+.pick:hover{border-color:var(--sun)}
+.pick input{margin:2px 0 0;width:19px;height:19px;accent-color:var(--pine);flex:0 0 auto}
+.pick .dot{width:10px;height:10px;border-radius:50%;flex:0 0 auto;margin-top:6px}
+.pick .who{font-weight:700}
+.pick.on{border-color:var(--pine);background:#F5FAF7}
+
+.actions{margin-top:22px;display:flex;flex-wrap:wrap;gap:11px;align-items:center}
+button.primary{font-family:var(--body);font-size:.95rem;font-weight:700;border:none;border-radius:9px;padding:13px 22px;background:var(--pine);color:#fff;cursor:pointer}
+button.primary:hover{opacity:.92}
+button.primary[disabled]{opacity:.45;cursor:default}
+.status{font-size:.88rem;color:var(--ink-soft)}
+.status.err{color:var(--clay);font-weight:600}
+.status.ok{color:var(--pine);font-weight:700}
+
+.notice{margin-top:22px;padding:13px 15px;border-radius:9px;font-size:.87rem;background:#FFF6E0;border:1.5px solid #F2DFAE;color:#6B5307}
+.notice.warn{background:#FFF6F2;border-color:#F3D3C6;color:#8C2F10}
+.notice b{display:block;font-family:var(--display);font-size:1rem;margin-bottom:2px}
+.notice a{color:inherit;font-weight:700}
+
+.danger{margin-top:34px;padding-top:20px;border-top:1px solid var(--rule)}
+.danger h2{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-soft);font-weight:600;margin:0 0 8px}
+.danger p{margin:0 0 12px;font-size:.86rem;color:var(--ink-soft);max-width:52ch}
+button.quiet{font-family:var(--body);font-size:.84rem;font-weight:700;border:1.5px solid var(--rule);background:var(--card);color:var(--clay);border-radius:8px;padding:10px 16px;cursor:pointer}
+button.quiet:hover{border-color:var(--clay)}
+
+.newlink{margin-top:16px;background:var(--pine);border-radius:11px;padding:16px 17px;color:#EAF3EE}
+.newlink h3{font-family:var(--display);font-size:1.1rem;margin:0 0 5px;color:#fff}
+.newlink p{margin:0 0 12px;font-size:.85rem;color:#B9D2C6}
+.qr{background:#fff;border-radius:9px;padding:11px;display:inline-block;line-height:0}
+.linkrow{display:flex;gap:8px;margin-top:12px}
+.linkrow input{flex:1;font-family:var(--mono);font-size:.72rem;padding:9px 10px;border-radius:7px;border:1.5px solid #47806A;background:#14503A;color:#EAF3EE;min-width:0}
+.btn{display:inline-block;padding:9px 15px;border-radius:7px;font-size:.83rem;font-weight:700;text-decoration:none;background:var(--sun);color:#3D2A00;border:none;cursor:pointer;font-family:var(--body)}
+footer{margin-top:30px;font-size:.82rem;color:var(--ink-soft)}
+footer a{color:var(--clay)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="masthead">
+  <div class="ribbon" id="ribbon"></div>
+  <p class="eyebrow">Greater Life Baptist Church · Midland, Georgia</p>
+  <h1>Change <em>your</em> calendar</h1>
+  <p class="lede" id="lede">Tick what you want to see. Your link stays the same, so there is nothing to change on your phone.</p>
+</header>
+
+<div class="notice" id="notice" hidden></div>
+
+<main id="panel" hidden>
+  <div class="picks" id="picks"></div>
+
+  <div class="actions">
+    <button type="button" class="primary" id="save">Save changes</button>
+    <span class="status" id="status"></span>
+  </div>
+
+  <section class="danger">
+    <h2>If your link got out</h2>
+    <p>Anyone who has your link can see your calendar. Replacing it stops the old one working within the hour. You will need to add the new one to your phone and remove the old.</p>
+    <button type="button" class="quiet" id="rotate">Replace my link</button>
+    <div class="newlink" id="newlink" hidden>
+      <h3>Your new link</h3>
+      <p>The old one stops working shortly. Add this one to your phone, then delete the old calendar.</p>
+      <div class="qr" id="qr"></div>
+      <div class="linkrow">
+        <input type="text" id="feedUrl" readonly>
+        <button type="button" class="btn" id="copy">Copy</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <p><a href="./">Back to the calendar</a></p>
+</footer>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+/* The token arrives in the URL fragment, after the #, because a fragment is
+   never sent to a server and never appears in a referrer header. It is the
+   one part of the URL that stays between the reader and their browser. A
+   ?token= query string is still accepted, since an old link may use one. */
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
+
+let DATA = null;
+let TOKEN = "";
+let chosen = new Set();
+
+function readToken(){
+  const hash = location.hash.replace(/^#/, "").trim();
+  if (hash) return decodeURIComponent(hash.replace(/^token=/, ""));
+  return (new URLSearchParams(location.search).get("token") || "").trim();
+}
+
+function notice(head, body, kind, html){
+  const el = $("notice");
+  el.hidden = false;
+  el.className = kind === "warn" ? "notice warn" : "notice";
+  el.innerHTML = "<b>" + esc(head) + "</b>" + (html || esc(body));
+}
+
+function buildRibbon(list){
+  $("ribbon").innerHTML = list.map(m => '<span style="background:' + m.color + '"></span>').join("");
+}
+
+function buildPicks(current){
+  chosen = new Set(current);
+  const box = $("picks");
+  box.innerHTML = "";
+  DATA.ministries.forEach(m => {
+    const on = chosen.has(m.id);
+    const label = document.createElement("label");
+    label.className = "pick" + (on ? " on" : "");
+    label.innerHTML =
+      '<input type="checkbox"' + (on ? " checked" : "") + ' value="' + esc(m.id) + '">' +
+      '<span class="dot" style="background:' + m.color + '"></span>' +
+      '<span><span class="who">' + esc(m.name) + '</span></span>';
+    const input = label.querySelector("input");
+    input.addEventListener("change", () => {
+      input.checked ? chosen.add(m.id) : chosen.delete(m.id);
+      label.classList.toggle("on", input.checked);
+      $("status").textContent = "";
+    });
+    box.appendChild(label);
+  });
+}
+
+async function call(payload){
+  const res = await fetch(DATA.signup, {
+    method: "POST",
+    headers: { "content-type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(payload),
+  });
+  const out = await res.json();
+  if (!out.ok){
+    const e = new Error(out.error || "Something went wrong.");
+    e.fromServer = true;
+    throw e;
+  }
+  return out;
+}
+
+function fail(err){
+  $("status").className = "status err";
+  $("status").textContent = (err && err.fromServer && err.message)
+    ? err.message
+    : "Could not reach the church server. Check your connection and try again.";
+}
+
+$("save").addEventListener("click", async () => {
+  $("save").disabled = true;
+  $("status").className = "status";
+  $("status").textContent = "Saving…";
+  try {
+    await call({ action: "save", token: TOKEN, groups: [...chosen] });
+    $("status").className = "status ok";
+    $("status").textContent = chosen.size
+      ? "Saved. Your phone will catch up within a few hours."
+      : "Saved. Your calendar will be empty until you pick something.";
+  } catch (err) {
+    fail(err);
+  } finally {
+    $("save").disabled = false;
+  }
+});
+
+$("rotate").addEventListener("click", async () => {
+  if (!confirm("Replace your link?\n\nThe old one stops working within the hour, and you will need to add the new one to your phone.")) return;
+  $("rotate").disabled = true;
+  $("status").className = "status";
+  $("status").textContent = "Making a new link…";
+  try {
+    const out = await call({ action: "rotate", token: TOKEN });
+    TOKEN = out.token;
+    location.hash = TOKEN;
+    $("status").textContent = "";
+    $("feedUrl").value = out.feedUrl;
+    const box = $("qr");
+    box.innerHTML = "";
+    if (window.QRCode){
+      try { new QRCode(box, { text: out.feedUrl, width: 160, height: 160, correctLevel: QRCode.CorrectLevel.M }); }
+      catch { box.hidden = true; }
+    } else { box.hidden = true; }
+    $("newlink").hidden = false;
+    $("newlink").scrollIntoView({ behavior: "smooth", block: "nearest" });
+  } catch (err) {
+    fail(err);
+    $("rotate").disabled = false;
+  }
+});
+
+$("copy").addEventListener("click", async () => {
+  try {
+    await navigator.clipboard.writeText($("feedUrl").value);
+    $("copy").textContent = "Copied";
+    setTimeout(() => { $("copy").textContent = "Copy"; }, 1800);
+  } catch {
+    $("feedUrl").select();
+  }
+});
+
+async function start(){
+  TOKEN = readToken();
+
+  let json;
+  try {
+    const res = await fetch("./events.json?t=" + Date.now(), { cache: "no-store" });
+    if (!res.ok) throw new Error();
+    json = await res.json();
+  } catch {
+    notice("We could not load the calendar list", "Please check your connection and reload the page.", "warn");
+    return;
+  }
+
+  DATA = json;
+  buildRibbon(json.ministries || []);
+
+  if (!TOKEN){
+    notice("This page needs your personal link", "",
+      null,
+      'Open the link the church gave you, the one ending in your own code. ' +
+      'If you have not set one up yet, <a href="./signup.html">get your calendar here</a>.');
+    return;
+  }
+  if (!json.signup){
+    notice("Not switched on yet", "The calendar itself is working; this page just needs its connection finishing. Please check back shortly.");
+    return;
+  }
+
+  try {
+    const me = await call({ action: "load", token: TOKEN });
+    $("lede").textContent = me.name
+      ? me.name + ", tick what you want to see. Your link stays the same, so there is nothing to change on your phone."
+      : "Tick what you want to see. Your link stays the same, so there is nothing to change on your phone.";
+    buildPicks(me.groups || []);
+    $("panel").hidden = false;
+  } catch (err) {
+    notice("We could not find that link", "",
+      null,
+      esc((err && err.fromServer && err.message) || "Please check the link and try again.") +
+      ' You can always <a href="./signup.html">start again here</a>.');
+  }
+}
+
+start();
+</script>
+</body>
+</html>

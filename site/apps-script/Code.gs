@@ -1,10 +1,10 @@
 /**
- * GLBC calendar signup endpoint.
+ * GLBC calendar membership endpoint.
  *
- * Bound to the Calendar Permissions spreadsheet, deployed as a web app that
- * runs as the church account. The website is static files on GitHub Pages and
- * cannot hold a service account key, so this is the only thing that may write
- * to the sheet.
+ * Bound to (or pointed at) the Calendar Permissions spreadsheet, deployed as a
+ * web app that runs as the church account. The website is static files on
+ * GitHub Pages and cannot hold a service account key, so this is the only
+ * thing that may write to the sheet.
  *
  * Its real job is refusing things. A browser form can be edited by anyone who
  * opens the developer tools, so every rule that matters is enforced here:
@@ -14,6 +14,14 @@
  *   - The allowed list is read from the site's own events.json rather than
  *     hardcoded, so it cannot drift out of step with the job's config.
  *   - Tokens are generated here, never accepted from the caller.
+ *   - Private ministry columns are never written, in either direction, so a
+ *     leader's decision cannot be undone by somebody using the website.
+ *
+ * Actions, all POST with a JSON body:
+ *   (none) or "signup"  name, email, groups        -> new person, or update by email
+ *   "load"              token                      -> that person's name and groups
+ *   "save"              token, groups              -> change their public groups
+ *   "rotate"            token                      -> issue a new link, killing the old
  *
  * Deployment steps are in docs/SIGNUP.md.
  */
@@ -38,64 +46,14 @@ var SPREADSHEET_ID = '';
 /** Token length in bytes. Matches job/src/sheet.ts. */
 var TOKEN_BYTES = 16;
 
+// ---------------------------------------------------------------------------
+// helpers
+// ---------------------------------------------------------------------------
+
 function json_(obj) {
   return ContentService
     .createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
-}
-
-function doGet() {
-  // Useful for confirming the deployment is alive without writing anything.
-  // It also checks it can actually see the sheet, since the usual mistake is a
-  // standalone script with no SPREADSHEET_ID set, which otherwise only shows
-  // up when the first real person tries to sign up.
-  var sheetOk = false;
-  var detail = '';
-  try {
-    sheetOk = sheet_().getLastColumn() > 0;
-  } catch (err) {
-    detail = String(err && err.message ? err.message : err);
-  }
-  return json_({ ok: true, service: 'glbc-signup', sheet: sheetOk, detail: detail });
-}
-
-/**
- * The ministries a person may choose for themselves.
- *
- * events.json only ever lists public ministries, because the job builds it
- * that way, so using it as the allow-list means a private ministry can never
- * become selectable by mistake. If it cannot be fetched we fail closed.
- */
-function publicMinistries_() {
-  var res = UrlFetchApp.fetch(EVENTS_JSON, { muteHttpExceptions: true });
-  if (res.getResponseCode() !== 200) {
-    throw new Error('Could not read the published calendar list.');
-  }
-  var data = JSON.parse(res.getContentText());
-  var ids = {};
-  (data.ministries || []).forEach(function (m) {
-    if (m && m.id) ids[String(m.id)] = m.name || m.id;
-  });
-  return ids;
-}
-
-function token_() {
-  var bytes = [];
-  for (var i = 0; i < TOKEN_BYTES; i++) bytes.push(Math.floor(Math.random() * 256));
-  // Utilities.getUuid is backed by a proper generator; mixing it in avoids
-  // relying on Math.random alone for something that guards a private feed.
-  var uuid = Utilities.getUuid().replace(/-/g, '');
-  var hex = bytes
-    .map(function (b) { return ('0' + b.toString(16)).slice(-2); })
-    .join('');
-  var mixed = Utilities.computeDigest(
-    Utilities.DigestAlgorithm.SHA_256,
-    hex + uuid + String(Date.now())
-  );
-  return mixed
-    .slice(0, TOKEN_BYTES)
-    .map(function (b) { return ('0' + (b & 0xff).toString(16)).slice(-2); })
-    .join('');
 }
 
 /** Works whether this script is bound to the sheet or standalone. */
@@ -131,6 +89,114 @@ function columnIndex_(headers, name) {
   return -1;
 }
 
+/**
+ * The ministries a person may choose for themselves.
+ *
+ * events.json only ever lists public ministries, because the job builds it
+ * that way, so using it as the allow-list means a private ministry can never
+ * become selectable by mistake. If it cannot be fetched we fail closed.
+ */
+function publicMinistries_() {
+  var res = UrlFetchApp.fetch(EVENTS_JSON, { muteHttpExceptions: true });
+  if (res.getResponseCode() !== 200) {
+    throw new Error('Could not read the published calendar list.');
+  }
+  var data = JSON.parse(res.getContentText());
+  var ids = {};
+  (data.ministries || []).forEach(function (m) {
+    if (m && m.id) ids[String(m.id)] = m.name || m.id;
+  });
+  return ids;
+}
+
+function token_() {
+  var uuid = Utilities.getUuid().replace(/-/g, '');
+  var noise = '';
+  for (var i = 0; i < TOKEN_BYTES; i++) noise += String(Math.random());
+  var digest = Utilities.computeDigest(
+    Utilities.DigestAlgorithm.SHA_256,
+    uuid + noise + String(Date.now())
+  );
+  return digest
+    .slice(0, TOKEN_BYTES)
+    .map(function (b) { return ('0' + (b & 0xff).toString(16)).slice(-2); })
+    .join('');
+}
+
+/** Tokens become filenames and URLs. Anything else is not worth looking up. */
+function validToken_(token) {
+  return /^[a-zA-Z0-9_-]{8,64}$/.test(String(token || ''));
+}
+
+function findByToken_(sheet, headers, token) {
+  var tokenCol = columnIndex_(headers, 'token');
+  if (tokenCol === -1) throw new Error('The People tab has no "token" column.');
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return null;
+  var rows = sheet.getRange(2, 1, lastRow - 1, headers.length).getValues();
+  for (var r = 0; r < rows.length; r++) {
+    if (String(rows[r][tokenCol] || '').trim() === token) {
+      return { row: r + 2, values: rows[r] };
+    }
+  }
+  return null;
+}
+
+/** Which public ministries this row currently has ticked. */
+function groupsOf_(headers, values, allowed) {
+  var out = [];
+  for (var i = 0; i < headers.length; i++) {
+    var key = headers[i].toLowerCase();
+    if (!allowed.hasOwnProperty(key)) continue;
+    if (String(values[i] || '').trim()) out.push(key);
+  }
+  return out;
+}
+
+/**
+ * Write only the public ministry columns.
+ *
+ * Cell by cell rather than a whole row, so private columns and anything else a
+ * leader has added are left exactly as they were.
+ */
+function writeGroups_(sheet, headers, row, groups, allowed) {
+  for (var i = 0; i < headers.length; i++) {
+    var key = headers[i].toLowerCase();
+    if (!allowed.hasOwnProperty(key)) continue;
+    sheet.getRange(row, i + 1).setValue(groups.indexOf(key) !== -1 ? 'x' : '');
+  }
+}
+
+function cleanGroups_(wanted, allowed) {
+  var groups = [];
+  for (var i = 0; i < wanted.length; i++) {
+    var g = String(wanted[i]);
+    // Silently dropping a rejected group would hand somebody a feed missing
+    // what they asked for. Refuse the whole request instead.
+    if (!allowed.hasOwnProperty(g)) return null;
+    if (groups.indexOf(g) === -1) groups.push(g);
+  }
+  return groups;
+}
+
+// ---------------------------------------------------------------------------
+// entry points
+// ---------------------------------------------------------------------------
+
+function doGet() {
+  // Confirms the deployment is alive AND that it can see the sheet, since a
+  // standalone script with no SPREADSHEET_ID would otherwise look healthy
+  // until the first real person tried to sign up.
+  var sheetOk = false;
+  var detail = '';
+  try {
+    sheetOk = sheet_().getLastColumn() > 0;
+  } catch (err) {
+    detail = String(err && err.message ? err.message : err);
+  }
+  return json_({ ok: true, service: 'glbc-signup', sheet: sheetOk, detail: detail });
+}
+
 function doPost(e) {
   var lock = LockService.getScriptLock();
   try {
@@ -144,91 +210,159 @@ function doPost(e) {
     if (!e || !e.postData || !e.postData.contents) {
       return json_({ ok: false, error: 'Empty request.' });
     }
-
     var body = JSON.parse(e.postData.contents);
-    var name = String(body.name || '').trim();
-    var email = String(body.email || '').trim();
-    var wanted = Array.isArray(body.groups) ? body.groups.map(String) : [];
+    var action = String(body.action || 'signup').toLowerCase();
 
-    if (!name) return json_({ ok: false, error: 'Please enter your name.' });
-    if (name.length > 80) return json_({ ok: false, error: 'That name is too long.' });
-    if (email && email.length > 120) return json_({ ok: false, error: 'That email is too long.' });
-    if (email && email.indexOf('@') === -1) {
-      return json_({ ok: false, error: 'That email address does not look right.' });
-    }
-    if (!wanted.length) return json_({ ok: false, error: 'Pick at least one calendar.' });
+    if (action === 'signup') return handleSignup_(body);
+    if (action === 'load') return handleLoad_(body);
+    if (action === 'save') return handleSave_(body);
+    if (action === 'rotate') return handleRotate_(body);
+    return json_({ ok: false, error: 'Unknown action.' });
+  } catch (err) {
+    return json_({ ok: false, error: String(err && err.message ? err.message : err) });
+  } finally {
+    lock.releaseLock();
+  }
+}
 
-    var allowed = publicMinistries_();
-    var groups = [];
-    for (var i = 0; i < wanted.length; i++) {
-      // Silently dropping a rejected group would hand somebody a feed missing
-      // what they asked for. Refuse the whole request and say which.
-      if (!allowed.hasOwnProperty(wanted[i])) {
-        return json_({ ok: false, error: 'That calendar is not available to sign up for.' });
+// ---------------------------------------------------------------------------
+// actions
+// ---------------------------------------------------------------------------
+
+function handleSignup_(body) {
+  var name = String(body.name || '').trim();
+  var email = String(body.email || '').trim();
+  var wanted = Array.isArray(body.groups) ? body.groups : [];
+
+  if (!name) return json_({ ok: false, error: 'Please enter your name.' });
+  if (name.length > 80) return json_({ ok: false, error: 'That name is too long.' });
+  if (email && email.length > 120) return json_({ ok: false, error: 'That email is too long.' });
+  if (email && email.indexOf('@') === -1) {
+    return json_({ ok: false, error: 'That email address does not look right.' });
+  }
+  if (!wanted.length) return json_({ ok: false, error: 'Pick at least one calendar.' });
+
+  var allowed = publicMinistries_();
+  var groups = cleanGroups_(wanted, allowed);
+  if (!groups) return json_({ ok: false, error: 'That calendar is not available to sign up for.' });
+
+  var sheet = sheet_();
+  var headers = headers_(sheet);
+  var tokenCol = columnIndex_(headers, 'token');
+  if (tokenCol === -1) throw new Error('The People tab has no "token" column.');
+
+  var emailCol = columnIndex_(headers, 'email');
+  var lastRow = sheet.getLastRow();
+  var existingRow = -1;
+  var existingToken = '';
+
+  // Signing up twice with the same address updates the existing row rather
+  // than issuing a second calendar, which would leave a stale feed on their
+  // phone that nobody can revoke because nobody knows it exists.
+  if (email && emailCol !== -1 && lastRow > 1) {
+    var rows = sheet.getRange(2, 1, lastRow - 1, headers.length).getValues();
+    for (var r = 0; r < rows.length; r++) {
+      var candidate = String(rows[r][emailCol] || '').trim().toLowerCase();
+      if (candidate && candidate === email.toLowerCase()) {
+        existingRow = r + 2;
+        existingToken = String(rows[r][tokenCol] || '').trim();
+        break;
       }
-      if (groups.indexOf(wanted[i]) === -1) groups.push(wanted[i]);
     }
+  }
 
-    var sheet = sheet_();
-    var headers = headers_(sheet);
-    var tokenCol = columnIndex_(headers, 'token');
-    if (tokenCol === -1) throw new Error('The People tab has no "token" column.');
+  var token = existingToken || token_();
+  var today = Utilities.formatDate(new Date(), 'America/New_York', 'yyyy-MM-dd');
 
-    var emailCol = columnIndex_(headers, 'email');
-    var lastRow = sheet.getLastRow();
-    var existingRow = -1;
-    var existingToken = '';
-
-    // Signing up twice with the same address updates the existing row rather
-    // than issuing a second calendar, which would leave a stale feed on their
-    // phone that nobody can revoke because nobody knows it exists.
-    if (email && emailCol !== -1 && lastRow > 1) {
-      var rows = sheet.getRange(2, 1, lastRow - 1, headers.length).getValues();
-      for (var r = 0; r < rows.length; r++) {
-        var candidate = String(rows[r][emailCol] || '').trim().toLowerCase();
-        if (candidate && candidate === email.toLowerCase()) {
-          existingRow = r + 2;
-          existingToken = String(rows[r][tokenCol] || '').trim();
-          break;
-        }
-      }
-    }
-
-    var token = existingToken || token_();
-    var today = Utilities.formatDate(new Date(), 'America/New_York', 'yyyy-MM-dd');
-
+  if (existingRow !== -1) {
+    var nameCol = columnIndex_(headers, 'name');
+    if (nameCol !== -1) sheet.getRange(existingRow, nameCol + 1).setValue(name);
+    writeGroups_(sheet, headers, existingRow, groups, allowed);
+  } else {
     var values = headers.map(function (h) {
       var key = h.toLowerCase();
       if (key === 'name') return name;
       if (key === 'email') return email;
       if (key === 'token') return token;
       if (key === 'created') return today;
-      // Every other column is a ministry. A private one is never in `allowed`,
-      // so it is left exactly as a leader set it and is never cleared here.
-      if (!allowed.hasOwnProperty(key)) return null;
+      if (!allowed.hasOwnProperty(key)) return '';
       return groups.indexOf(key) !== -1 ? 'x' : '';
     });
-
-    if (existingRow !== -1) {
-      // Write cell by cell so a null (a private column) is left untouched.
-      for (var c = 0; c < values.length; c++) {
-        if (values[c] === null) continue;
-        sheet.getRange(existingRow, c + 1).setValue(values[c]);
-      }
-    } else {
-      sheet.appendRow(values.map(function (v) { return v === null ? '' : v; }));
-    }
-
-    return json_({
-      ok: true,
-      token: token,
-      feedUrl: FEED_BASE + token + '.ics',
-      groups: groups,
-      updated: existingRow !== -1
-    });
-  } catch (err) {
-    return json_({ ok: false, error: String(err && err.message ? err.message : err) });
-  } finally {
-    lock.releaseLock();
+    sheet.appendRow(values);
   }
+
+  return json_({
+    ok: true,
+    token: token,
+    feedUrl: FEED_BASE + token + '.ics',
+    groups: groups,
+    updated: existingRow !== -1
+  });
+}
+
+function handleLoad_(body) {
+  var token = String(body.token || '').trim();
+  if (!validToken_(token)) return json_({ ok: false, error: 'That link does not look right.' });
+
+  var sheet = sheet_();
+  var headers = headers_(sheet);
+  var allowed = publicMinistries_();
+  var found = findByToken_(sheet, headers, token);
+  if (!found) {
+    return json_({ ok: false, error: 'We could not find that link. It may have been replaced.' });
+  }
+
+  var nameCol = columnIndex_(headers, 'name');
+  // Deliberately does not return the email address. The page has no use for
+  // it, and a token is a link somebody might paste around.
+  return json_({
+    ok: true,
+    name: nameCol === -1 ? '' : String(found.values[nameCol] || '').trim(),
+    groups: groupsOf_(headers, found.values, allowed),
+    feedUrl: FEED_BASE + token + '.ics'
+  });
+}
+
+function handleSave_(body) {
+  var token = String(body.token || '').trim();
+  if (!validToken_(token)) return json_({ ok: false, error: 'That link does not look right.' });
+
+  var wanted = Array.isArray(body.groups) ? body.groups : [];
+  var allowed = publicMinistries_();
+  var groups = cleanGroups_(wanted, allowed);
+  if (!groups) return json_({ ok: false, error: 'That calendar is not available to sign up for.' });
+
+  var sheet = sheet_();
+  var headers = headers_(sheet);
+  var found = findByToken_(sheet, headers, token);
+  if (!found) {
+    return json_({ ok: false, error: 'We could not find that link. It may have been replaced.' });
+  }
+
+  writeGroups_(sheet, headers, found.row, groups, allowed);
+  return json_({ ok: true, groups: groups, feedUrl: FEED_BASE + token + '.ics' });
+}
+
+/**
+ * Issue a new link and abandon the old one.
+ *
+ * This is what makes a leaked link recoverable. The previous feed stops
+ * existing on the next sync, so anyone holding it gets nothing.
+ */
+function handleRotate_(body) {
+  var token = String(body.token || '').trim();
+  if (!validToken_(token)) return json_({ ok: false, error: 'That link does not look right.' });
+
+  var sheet = sheet_();
+  var headers = headers_(sheet);
+  var found = findByToken_(sheet, headers, token);
+  if (!found) {
+    return json_({ ok: false, error: 'We could not find that link. It may already have been replaced.' });
+  }
+
+  var tokenCol = columnIndex_(headers, 'token');
+  var fresh = token_();
+  sheet.getRange(found.row, tokenCol + 1).setValue(fresh);
+
+  return json_({ ok: true, token: fresh, feedUrl: FEED_BASE + fresh + '.ics' });
 }

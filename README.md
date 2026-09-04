@@ -22,8 +22,8 @@ The remaining work is the pages people interact with, then reminders.
 | 2. Public site page | done — TV mode, add to home screen, cached fallback |
 | 3. Hourly workflow | live |
 | 4. Membership sheet and personal feeds | done |
-| 5. Signup page | built, waiting on the Apps Script deployment |
-| 6. Preferences page | |
+| 5. Signup page | live |
+| 6. Preferences page | built, needs the endpoint redeployed |
 | 7. Admin form | |
 | 8. TV display for the 85 inch screen | |
 | 9. Reminder engine to GroupMe | |
@@ -57,6 +57,7 @@ cd job && npm run check
 ```
 site/index.html      calendar page, reads events.json
 site/signup.html     pick your groups, get your personal link and QR
+site/prefs.html      change your groups later, or replace a leaked link
 site/apps-script/    the endpoint that writes to the membership sheet
 job/src/             the hourly job
 job/config/          ministries.json — ids are locked, see CLAUDE.md section 3

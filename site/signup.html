@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
 <title>Get your calendar — Greater Life Baptist Church</title>
 <meta name="description" content="Pick the ministries you care about and get one calendar link for your phone.">
 <link rel="manifest" href="./manifest.webmanifest">
@@ -130,6 +131,7 @@ footer a{color:var(--clay)}
     <a class="btn ghost" id="btnGoogle" href="#">Add on Android</a>
     <a class="btn ghost" id="btnIcs" href="#">Outlook or other</a>
   </div>
+  <p class="fineprint" id="changeLater"></p>
   <p class="fineprint">
     Scan the code with your phone camera, or tap a button on the phone itself.
     Keep this link private: anyone who has it can see your calendar. It refreshes
@@ -211,6 +213,12 @@ function showResult(feedUrl, updated){
   } else {
     box.hidden = true;
   }
+  // Their own preferences link. The token goes in the fragment so it is never
+  // sent to a server or leaked in a referrer header.
+  const prefs = "./prefs.html#" + encodeURIComponent(feedUrl.split("/f/")[1].replace(/.ics$/, ""));
+  $("changeLater").innerHTML =
+    "Changed your mind later? <a href=\"" + prefs + "\" style=\"color:#F0A202;font-weight:700\">Change what is included</a>, " +
+    "using the same link on your phone. Worth bookmarking.";
   $("result").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 

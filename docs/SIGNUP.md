@@ -1,4 +1,4 @@
-# Signup page and its endpoint
+# Signup and preferences pages, and their endpoint
 
 The website is static files on GitHub Pages. It can read things, which is how
 the calendar works, but it cannot hold a service account key, so it cannot
@@ -20,6 +20,36 @@ developer tools:
   phone that nobody can revoke because nobody knows it exists.
 - **Private columns are never written**, even when updating an existing person.
   A leader's decision stays a leader's decision.
+
+## The two pages
+
+| Page | Address | What it does |
+|---|---|---|
+| Signup | `/signup` | Pick your ministries, get your link and a QR code |
+| Preferences | `/prefs#<your token>` | Change what is included, or replace a leaked link |
+
+Both also work with a `.html` extension. The preferences link is handed out at
+the end of signup rather than published anywhere, since it needs the token to
+do anything.
+
+The token sits in the URL **fragment**, after the `#`, not in a query string.
+A fragment is never sent to a server and never appears in a referrer header, so
+it stays between the reader and their own browser.
+
+## What the endpoint does
+
+| Action | Needs | Effect |
+|---|---|---|
+| `signup` | name, groups | New person, or updates an existing one matched by email |
+| `load` | token | Returns that person's name and current groups |
+| `save` | token, groups | Changes their public groups |
+| `rotate` | token | Issues a new link and abandons the old one |
+
+`rotate` is what makes a leaked link recoverable. The old feed stops existing
+at the next sync, so anyone still holding it gets nothing.
+
+`load` deliberately does not return the email address. The page has no use for
+it, and a token is a link somebody might paste around.
 
 ## Deploying it
 

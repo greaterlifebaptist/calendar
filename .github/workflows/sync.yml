@@ -151,6 +151,16 @@ jobs:
           # repo README ends up served instead of the calendar.
           touch _site/.nojekyll
 
+          # Pages does not strip .html, so /signup would 404. These printed and
+          # QR-coded addresses want to read as /signup, not /signup.html, and
+          # both keep working.
+          for page in signup prefs; do
+            if [ -f "_site/$page.html" ]; then
+              mkdir -p "_site/$page"
+              cp "_site/$page.html" "_site/$page/index.html"
+            fi
+          done
+
           # The CNAME file appears only once a custom domain actually resolves.
           # Shipping it earlier makes Pages redirect to a hostname that does not
           # exist yet, so the site cannot be tested at all before DNS is done.
