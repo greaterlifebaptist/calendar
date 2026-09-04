@@ -34,7 +34,7 @@
  * not take looks identical to one that did. Open the /exec URL and read the
  * version back.
  */
-var VERSION = 3;
+var VERSION = 4;
 
 var SITE = 'https://calendars.greaterlifebaptistchurch.com';
 var EVENTS_JSON = SITE + '/events.json';
@@ -208,7 +208,11 @@ function doGet() {
     ok: true,
     service: 'glbc-signup',
     version: VERSION,
-    actions: ['signup', 'load', 'save', 'rotate', 'admin.hello', 'admin.list', 'admin.save', 'admin.delete'],
+    actions: [
+      'signup', 'load', 'save', 'rotate',
+      'admin.hello', 'admin.list', 'admin.save', 'admin.delete',
+      'admin.people', 'admin.setgroups'
+    ],
     adminReady: !!adminPasscode_(),
     sheet: sheetOk,
     detail: detail
@@ -239,6 +243,8 @@ function doPost(e) {
     if (action === 'admin.list')   return handleAdminList_(body);
     if (action === 'admin.save')   return handleAdminSave_(body);
     if (action === 'admin.delete') return handleAdminDelete_(body);
+    if (action === 'admin.people')    return handleAdminPeople_(body);
+    if (action === 'admin.setgroups') return handleAdminSetGroups_(body);
     return json_({ ok: false, error: 'Unknown action.' });
   } catch (err) {
     return json_({ ok: false, error: String(err && err.message ? err.message : err) });
@@ -634,4 +640,93 @@ function handleAdminHello_(body) {
       return { id: m.id, name: m.name, visibility: m.visibility, color: m.color };
     })
   });
+}
+
+// ---------------------------------------------------------------------------
+// Admin: who receives which calendars
+// ---------------------------------------------------------------------------
+//
+// The signup page can only ever grant PUBLIC ministries. Putting somebody into
+// youth-leaders or worship is a leader's decision, and until now the only way
+// to make it was editing a cell in the spreadsheet.
+//
+// These two actions move that into the admin form. They are gated by the same
+// shared passcode, which means anyone who can add somebody to Youth Leaders can
+// also add them to Worship. That is a deliberate simplification while only two
+// or three trusted people hold the passcode, and it is the thing to revisit
+// before a pastor's calendar exists. See docs/ADMIN.md.
+//
+// A person is addressed by their token. It is never shown in the admin page,
+// but it does reach that browser, so a passcode holder could read one from the
+// page source. That grants nothing they do not already have: the passcode
+// already lets them list private calendar contents directly.
+
+/** Every ministry id, public and private, as an allow-list for writes. */
+function allMinistryIds_() {
+  var ids = {};
+  allMinistries_().forEach(function (m) { ids[m.id] = m.name || m.id; });
+  return ids;
+}
+
+function handleAdminPeople_(body) {
+  var bad = checkPasscode_(body.passcode);
+  if (bad) return json_({ ok: false, error: bad });
+
+  var sheet = sheet_();
+  var headers = headers_(sheet);
+  var all = allMinistryIds_();
+  var tokenCol = columnIndex_(headers, 'token');
+  var nameCol = columnIndex_(headers, 'name');
+  var emailCol = columnIndex_(headers, 'email');
+  if (tokenCol === -1) throw new Error('The People tab has no "token" column.');
+
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return json_({ ok: true, people: [] });
+
+  var rows = sheet.getRange(2, 1, lastRow - 1, headers.length).getValues();
+  var people = [];
+
+  for (var r = 0; r < rows.length; r++) {
+    var token = String(rows[r][tokenCol] || '').trim();
+    // A row with no token is half typed, not a subscriber.
+    if (!token || !validToken_(token)) continue;
+    people.push({
+      handle: token,
+      name: nameCol === -1 ? '' : String(rows[r][nameCol] || '').trim(),
+      email: emailCol === -1 ? '' : String(rows[r][emailCol] || '').trim(),
+      groups: groupsOf_(headers, rows[r], all)
+    });
+  }
+
+  people.sort(function (a, b) {
+    return String(a.name).toLowerCase() < String(b.name).toLowerCase() ? -1 : 1;
+  });
+  return json_({ ok: true, people: people });
+}
+
+/**
+ * Set somebody's calendars, private ones included.
+ *
+ * Unlike the preferences page, which may only touch public columns, an admin
+ * writes every ministry column. That is the entire point of this action.
+ */
+function handleAdminSetGroups_(body) {
+  var bad = checkPasscode_(body.passcode);
+  if (bad) return json_({ ok: false, error: bad });
+
+  var token = String(body.handle || '').trim();
+  if (!validToken_(token)) return json_({ ok: false, error: 'Unknown person.' });
+
+  var all = allMinistryIds_();
+  var wanted = Array.isArray(body.groups) ? body.groups : [];
+  var groups = cleanGroups_(wanted, all);
+  if (!groups) return json_({ ok: false, error: 'That is not a calendar we know about.' });
+
+  var sheet = sheet_();
+  var headers = headers_(sheet);
+  var found = findByToken_(sheet, headers, token);
+  if (!found) return json_({ ok: false, error: 'That person is no longer in the sheet.' });
+
+  writeGroups_(sheet, headers, found.row, groups, all);
+  return json_({ ok: true, handle: token, groups: groups });
 }

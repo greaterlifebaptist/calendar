@@ -84,6 +84,26 @@ button.danger:hover{border-color:var(--clay)}
 .tag.trip{background:#E3F0E9;color:#1B5E45}
 .tag.pin{background:#FFF1CE;color:#8A6A08}
 
+.tabs{display:flex;gap:0;margin-top:20px;border-bottom:2px solid var(--rule)}
+.tabs button{background:none;border:none;cursor:pointer;padding:10px 2px;margin-right:26px;font-family:var(--display);font-size:1.06rem;font-weight:600;color:var(--ink-soft);border-bottom:3px solid transparent;margin-bottom:-2px}
+.tabs button[aria-selected="true"]{color:var(--pine);border-bottom-color:var(--sun)}
+
+.search{margin-bottom:12px}
+.person{border:1.5px solid var(--rule);border-radius:10px;padding:12px 14px;margin-bottom:9px;background:#fff}
+.person .who{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;margin-bottom:9px}
+.person .who b{font-family:var(--display);font-size:1.06rem;font-weight:600}
+.person .who span{font-size:.8rem;color:var(--ink-soft)}
+.person .who .st{margin-left:auto;font-size:.78rem;font-weight:700}
+.person .who .st.ok{color:var(--pine)}
+.person .who .st.err{color:var(--clay)}
+.groups{display:flex;flex-wrap:wrap;gap:6px}
+.gp{display:inline-flex;align-items:center;gap:6px;border:1.5px solid var(--rule);background:#fff;border-radius:100px;padding:6px 13px;cursor:pointer;font-family:var(--body);font-size:.82rem;font-weight:700;color:var(--ink-soft)}
+.gp .dot{width:9px;height:9px;border-radius:50%;opacity:.35}
+.gp[aria-pressed="true"]{color:#fff}
+.gp[aria-pressed="true"] .dot{opacity:1;background:#fff!important}
+.gp.priv{border-style:dashed}
+.gp:disabled{opacity:.5;cursor:default}
+.privnote{font-size:.78rem;color:var(--ink-soft);margin:2px 0 12px}
 .notice{margin-top:18px;padding:13px 15px;border-radius:9px;font-size:.87rem;background:#FFF6E0;border:1.5px solid #F2DFAE;color:#6B5307}
 .notice.warn{background:#FFF6F2;border-color:#F3D3C6;color:#8C2F10}
 .notice b{display:block;font-family:var(--display);font-size:1rem;margin-bottom:2px}
@@ -122,6 +142,12 @@ footer a{color:var(--clay)}
 <!-- form -->
 <main id="app" hidden>
 
+  <div class="tabs" role="tablist">
+    <button type="button" role="tab" id="tabEvents" aria-selected="true">Events</button>
+    <button type="button" role="tab" id="tabPeople" aria-selected="false">Who gets what</button>
+  </div>
+
+<div id="paneEvents">
   <section class="card">
     <fieldset>
       <legend>What and where</legend>
@@ -234,6 +260,26 @@ footer a{color:var(--clay)}
       <div class="list" id="list"></div>
     </fieldset>
   </section>
+</div>
+
+<div id="panePeople" hidden>
+  <section class="card">
+    <fieldset style="margin:0">
+      <legend>Who gets which calendars</legend>
+      <p class="lede" style="margin:0 0 12px;font-size:.86rem">
+        People choose the public calendars themselves when they sign up. The
+        private ones, shown with a dashed outline, can only be granted here.
+        Changes take effect on their existing link at the next sync, so there is
+        nothing for them to redo on their phone.
+      </p>
+      <label class="search">
+        <span class="lab">Search</span>
+        <input type="text" id="peopleSearch" placeholder="Name or email" autocomplete="off">
+      </label>
+      <div id="people"></div>
+    </fieldset>
+  </section>
+</div>
 
 </main>
 
@@ -565,6 +611,124 @@ $("title").addEventListener("input", () => {
 });
 
 // ---------------------------------------------------------------------------
+// who gets which calendars
+// ---------------------------------------------------------------------------
+
+let PEOPLE = [];
+let peopleLoaded = false;
+
+function showTab(which){
+  const people = which === "people";
+  $("tabEvents").setAttribute("aria-selected", String(!people));
+  $("tabPeople").setAttribute("aria-selected", String(people));
+  $("paneEvents").hidden = people;
+  $("panePeople").hidden = !people;
+  if (people && !peopleLoaded) loadPeople();
+}
+
+$("tabEvents").addEventListener("click", () => showTab("events"));
+$("tabPeople").addEventListener("click", () => showTab("people"));
+
+async function loadPeople(){
+  const box = $("people");
+  box.innerHTML = '<p class="lede" style="font-size:.86rem;margin:0">Loading…</p>';
+  try {
+    const out = await call({ action:"admin.people", passcode:PASS });
+    PEOPLE = out.people || [];
+    peopleLoaded = true;
+    renderPeople();
+  } catch (err) {
+    box.innerHTML = '<p class="lede" style="font-size:.86rem;margin:0;color:#D14E2B">' +
+      esc((err && err.fromServer && err.message) || "Could not load the list.") + '</p>';
+  }
+}
+
+function renderPeople(){
+  const box = $("people");
+  const q = $("peopleSearch").value.trim().toLowerCase();
+  const list = q
+    ? PEOPLE.filter(p => (p.name + " " + p.email).toLowerCase().includes(q))
+    : PEOPLE;
+
+  if (!PEOPLE.length){
+    box.innerHTML = '<p class="lede" style="font-size:.86rem;margin:0">Nobody has signed up yet.</p>';
+    return;
+  }
+  if (!list.length){
+    box.innerHTML = '<p class="lede" style="font-size:.86rem;margin:0">Nobody matches that.</p>';
+    return;
+  }
+
+  box.innerHTML = "";
+  list.forEach(person => {
+    const card = document.createElement("div");
+    card.className = "person";
+    card.innerHTML =
+      '<div class="who"><b>' + esc(person.name || "(no name)") + '</b>' +
+      (person.email ? '<span>' + esc(person.email) + '</span>' : "") +
+      '<span class="st"></span></div><div class="groups"></div>';
+
+    const groups = card.querySelector(".groups");
+    const st = card.querySelector(".st");
+    const chosen = new Set(person.groups);
+
+    MINISTRIES.forEach(m => {
+      const priv = m.visibility === "private";
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "gp" + (priv ? " priv" : "");
+      b.setAttribute("aria-pressed", String(chosen.has(m.id)));
+      if (chosen.has(m.id)){ b.style.background = m.color; b.style.borderColor = m.color; }
+      b.innerHTML = '<span class="dot" style="background:' + m.color + '"></span>' + esc(m.name);
+
+      b.addEventListener("click", async () => {
+        const on = b.getAttribute("aria-pressed") === "true";
+        const next = new Set(chosen);
+        on ? next.delete(m.id) : next.add(m.id);
+
+        // Reflect it straight away, then put it back if the write fails. A
+        // toggle that appears to work and quietly did not is the worst outcome
+        // when the thing being toggled is access to a private calendar.
+        const paint = (set) => {
+          groups.querySelectorAll(".gp").forEach((el, i) => {
+            const id = MINISTRIES[i].id;
+            const active = set.has(id);
+            el.setAttribute("aria-pressed", String(active));
+            el.style.background = active ? MINISTRIES[i].color : "";
+            el.style.borderColor = active ? MINISTRIES[i].color : "";
+          });
+        };
+        paint(next);
+        groups.querySelectorAll(".gp").forEach(el => { el.disabled = true; });
+        st.className = "st";
+        st.textContent = "Saving…";
+
+        try {
+          await call({ action:"admin.setgroups", passcode:PASS, handle:person.handle, groups:[...next] });
+          chosen.clear(); next.forEach(g => chosen.add(g));
+          person.groups = [...next];
+          st.className = "st ok";
+          st.textContent = "Saved";
+          setTimeout(() => { if (st.textContent === "Saved") st.textContent = ""; }, 2500);
+        } catch (err) {
+          paint(chosen);
+          st.className = "st err";
+          st.textContent = (err && err.fromServer && err.message) || "Could not save";
+        } finally {
+          groups.querySelectorAll(".gp").forEach(el => { el.disabled = false; });
+        }
+      });
+
+      groups.appendChild(b);
+    });
+
+    box.appendChild(card);
+  });
+}
+
+$("peopleSearch").addEventListener("input", () => { if (peopleLoaded) renderPeople(); });
+
+// ---------------------------------------------------------------------------
 // gate
 // ---------------------------------------------------------------------------
 
@@ -586,6 +750,9 @@ async function unlock(pass, quiet){
     $("notice").hidden = true;
     setType("event");
     syncAllDay(); syncRepeat();
+    peopleLoaded = false;
+    PEOPLE = [];
+    showTab("events");
     refreshList();
     return true;
   } catch (err) {

@@ -59,11 +59,12 @@ property:
 
 ### Checking
 
-Open the `/exec` URL. You want `version` 3 or higher and `adminReady: true`:
+Open the `/exec` URL. You want `version` 4 or higher and `adminReady: true`:
 
 ```json
-{"ok":true,"service":"glbc-signup","version":3,
- "actions":["signup","load","save","rotate","admin.hello","admin.list","admin.save","admin.delete"],
+{"ok":true,"service":"glbc-signup","version":4,
+ "actions":["signup","load","save","rotate","admin.hello","admin.list",
+  "admin.save","admin.delete","admin.people","admin.setgroups"],
  "sheet":true,"adminReady":true,"detail":""}
 ```
 
@@ -90,6 +91,27 @@ Practical measures already in place: a wrong passcode costs the guesser a
 deliberate delay, the comparison does not leak how much of it was right, and
 the passcode is held in the browser tab only until it is closed.
 
+## Who gets which calendars
+
+The second tab lists everybody who has signed up and which calendars they
+receive. Public ones they chose themselves; the private ones, shown with a
+dashed outline, can only be granted here.
+
+Tapping a chip saves immediately. If the save fails the chip goes back to
+where it was and says why, because a chip that looks granted but is not is
+the worst possible outcome when the thing being granted is a private calendar.
+
+Changes land on the person's existing link at the next sync. Their link never
+changes, so there is nothing for them to redo on their phone.
+
+This is the simplification we chose deliberately: **one passcode grants every
+private calendar**. Whoever can add somebody to Youth Leaders can also add
+them to Worship. That is fine while two or three trusted people hold it, and
+it is the thing to revisit before a pastor's calendar exists.
+
+The sheet remains the backstop. Protected ranges on the private columns still
+control who can edit them directly, and are worth setting regardless.
+
 ## Things it deliberately will not do
 
 - **Edit one occurrence of a repeating event.** The list shows a series once,
@@ -99,6 +121,8 @@ the passcode is held in the browser tab only until it is closed.
   here. Google Calendar's trash is the safety net, plus the nightly snapshot in
   [BACKUP.md](BACKUP.md).
 - **Invite anybody.** No attendees, no email. Nothing in this system sends mail.
+- **Delete a person.** Removing somebody entirely is still a sheet edit, on
+  purpose: it destroys their link, and that should take more than a stray tap.
 
 ## Later
 

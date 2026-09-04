@@ -25,7 +25,7 @@ The remaining work is the pages people interact with, then reminders.
 | 4. Membership sheet and personal feeds | done |
 | 5. Signup page | live |
 | 6. Preferences page | live |
-| 7. Admin form | built, see docs/ADMIN.md to switch on |
+| 7. Admin form | built — events and membership, see docs/ADMIN.md |
 | 8. TV display for the 85 inch screen | done |
 | 9. Reminder engine to GroupMe | |
 
@@ -178,13 +178,14 @@ production.
 |---|---|
 | `/` | agenda, pinned rail, month grid, ministry filters |
 | `/?ministry=youth` | opens filtered to one or more ministries, comma separated |
-| `/?display=tv` | TV mode |
+| `/tv` | the overflow-room wall display |
+| `/signup` | pick your groups, get a personal link |
+| `/prefs#token` | change your groups later |
+| `/admin` | leaders: add events, and grant private calendars |
 
-**TV mode** is for the wall tablets replacing the paper calendar cards. Large
-type, two columns on a wide screen, no filters or tabs or subscribe panel, a
-running clock, a refresh every fifteen minutes, and a screen wake lock so the
-tablet does not sleep. It re-fetches rather than reloading, because a reload
-during a network blip would leave a blank wall.
+**The TV display** is its own page, built for the 85 inch screen in the
+overflow room. See [docs/TV.md](docs/TV.md). The old `/?display=tv` address
+redirects to it.
 
 **When the data cannot be loaded** the page falls back in this order:
 
