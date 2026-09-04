@@ -36,6 +36,12 @@ export type Config = {
     signupEndpoint?: string;
   };
   reminderDefaults: Record<EventType, string[]>;
+  recurringSeries: { frequentFollowUp: string[] };
+  reminderSchedule: {
+    sendHour: number;
+    digest: { weekday: number; hour: number };
+    maxPerRun: number;
+  };
   ministries: Ministry[];
   channels: Record<string, Channel>;
 };
@@ -97,6 +103,7 @@ export type CalEvent = RawEvent & Classified & {
 
 /** Re-exported so consumers get Person from one place. */
 export type { Person } from './sheet.ts';
+export type { ReminderState, PlannedReminder } from './remind.ts';
 
 /** The shape written to public/events.json and read by the website. */
 export type EventsJson = {

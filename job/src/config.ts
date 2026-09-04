@@ -99,8 +99,19 @@ export function requireEnv(name: string): string {
 const flag = (name: string): boolean => process.argv.slice(2).includes('--' + name);
 const envOn = (name: string): boolean => /^(1|true|yes)$/i.test(process.env[name] ?? '');
 
-/** Log what would be sent instead of sending it. Required before going live. */
-export const DRY_RUN = (): boolean => envOn('DRY_RUN') || flag('dry-run');
+/**
+ * Log what would be sent instead of sending it.
+ *
+ * Dry run is the DEFAULT, and stays the default until somebody deliberately
+ * sets REMINDERS_LIVE. Configuring a GroupMe bot is not consent to start
+ * messaging people, and the bot secret has to exist well before the first real
+ * send so it can be tested. Making its presence the trigger would mean the
+ * moment of going live is a side effect of setup rather than a decision.
+ */
+export const DRY_RUN = (): boolean => {
+  if (envOn('DRY_RUN') || flag('dry-run')) return true;
+  return !envOn('REMINDERS_LIVE');
+};
 
 /** Run the whole pipeline off local sample data, with no Google credentials. */
 export const USE_FIXTURES = (): boolean => envOn('FIXTURES') || flag('fixtures');

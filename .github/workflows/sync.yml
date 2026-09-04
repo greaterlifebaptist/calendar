@@ -55,7 +55,11 @@ jobs:
           GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
           SHEET_ID: ${{ secrets.SHEET_ID }}
           GROUPME_BOT_YOUTH_PARENTS: ${{ secrets.GROUPME_BOT_YOUTH_PARENTS }}
-          DRY_RUN: ${{ inputs.dry_run || '' }}
+          # Reminders stay a dry run until this repository variable is set to
+          # "true". Having a bot configured is setup, not consent to start
+          # messaging parents.
+          REMINDERS_LIVE: ${{ vars.REMINDERS_LIVE }}
+          DRY_RUN: ${{ inputs.dry_run && 'true' || '' }}
         run: npm start
 
       # Two things are true at once: scheduled workflows are disabled after 60
@@ -68,7 +72,7 @@ jobs:
         run: |
           git config user.name 'glbc-calendar-bot'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add public
+          git add public job/state
 
           if git diff --cached --quiet; then
             echo 'No output changes at all.'

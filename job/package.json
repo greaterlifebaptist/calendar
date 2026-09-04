@@ -14,7 +14,8 @@
     "test": "node --test \"test/**/*.test.ts\"",
     "check": "npm run typecheck && npm test",
     "restore": "node scripts/restore.mjs",
-    "person": "node scripts/person.mjs"
+    "person": "node scripts/person.mjs",
+    "preview:reminders": "node scripts/reminders-preview.mjs"
   },
   "dependencies": {
     "google-auth-library": "^9.14.1"

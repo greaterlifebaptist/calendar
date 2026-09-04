@@ -32,6 +32,15 @@
       "1d"
     ]
   },
+  "reminderSchedule": {
+    "$comment": "The job runs hourly but reminders go out once a day, at sendHour local time, so nobody gets the same nudge 24 times. The digest is a weekly look ahead; weekday 0 is Sunday. maxPerRun is a blast guard: a run wanting more than this sends nothing and fails loudly, because the one unrecoverable failure here is texting thirty parents at six in the morning.",
+    "sendHour": 9,
+    "digest": {
+      "weekday": 0,
+      "hour": 19
+    },
+    "maxPerRun": 12
+  },
   "ministries": [
     {
       "id": "church",

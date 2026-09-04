@@ -7,7 +7,7 @@
 
 import {
   loadConfig, loadDotEnv, activeMinistries, pendingMinistries,
-  USE_FIXTURES, ROOT, outputDir,
+  USE_FIXTURES, ROOT, outputDir, DRY_RUN,
 } from './config.ts';
 import { fetchAll } from './fetch.ts';
 import { normalizeAll, dedupe, byStart } from './normalize.ts';
@@ -15,9 +15,13 @@ import { publish } from './publish.ts';
 import { writeBackup } from './backup.ts';
 import { readPeople, duplicateTokens } from './sheet.ts';
 import { writePersonalFeeds } from './personal.ts';
+import {
+  planReminders, planDigest, sendReminders,
+  loadState, saveState, pruneState, statePath,
+} from './remind.ts';
 import { addMonths, startOfMonth } from './time.ts';
 import { join } from 'node:path';
-import type { CalEvent, Config } from './types.ts';
+import type { CalEvent, Config, Ministry } from './types.ts';
 
 /** How far ahead to read. Deep enough for next summer's trip to be pinned. */
 const HORIZON_MONTHS = 18;
@@ -53,6 +57,70 @@ async function publishPersonalFeeds(cfg: Config, masters: CalEvent[]) {
     log('  [warn] the People tab has no rows with a token, so no personal feeds exist');
   }
   return writePersonalFeeds(cfg, sheet.people, masters, outputDir());
+}
+
+/**
+ * Work out what the ladder owes, and send it unless anything says not to.
+ *
+ * Returns a message when the run should be treated as failed, so a reminder
+ * problem goes red and opens an issue rather than passing quietly.
+ */
+async function runReminders(
+  cfg: Config,
+  ministries: Ministry[],
+  instances: CalEvent[],
+  masters: CalEvent[],
+  now: Date,
+): Promise<string | null> {
+  const path = statePath(ROOT);
+  const state = loadState(path);
+  const plan = planReminders({ cfg, ministries, instances, masters, state, now });
+  const digest = plan.skipped ? [] : planDigest({ cfg, ministries, instances, masters, state, now });
+  const all = [...plan.due, ...digest];
+
+  log('');
+  log('Reminders');
+
+  if (plan.skipped && !all.length) {
+    log('  ' + plan.skipped);
+    return null;
+  }
+
+  if (plan.seeding) {
+    // First ever run. Record everything as already handled and send nothing,
+    // so switching this on does not fire a backlog at thirty parents.
+    const seeded: Record<string, string> = {};
+    for (const r of all) seeded[r.key] = now.toISOString();
+    saveState(path, { sent: seeded, seededAt: now.toISOString() });
+    log('  first run: recorded ' + all.length + ' reminder(s) as already handled,');
+    log('  and sent nothing. From the next run on, only new ones go out.');
+    return null;
+  }
+
+  if (!all.length) {
+    log('  nothing due');
+    return null;
+  }
+
+  // A run wanting a pile of messages is a bug until proven otherwise.
+  if (all.length > cfg.reminderSchedule.maxPerRun) {
+    log('  [FAIL] ' + all.length + ' reminders wanted, limit is ' +
+      cfg.reminderSchedule.maxPerRun + '. Sending none.');
+    for (const r of all) log('    would have sent: ' + r.title + ' (' + r.ruleId + ')');
+    return 'Reminder blast guard tripped: ' + all.length + ' messages wanted in one run.';
+  }
+
+  const dryRun = DRY_RUN();
+  log('  ' + all.length + ' due' + (dryRun ? ', DRY RUN so nothing will be sent' : ''));
+
+  const live: import('./remind.ts').ReminderState = state ?? { sent: {} };
+  const outcome = await sendReminders(cfg, all, live, { dryRun, now, log });
+
+  if (!dryRun) saveState(path, pruneState(live, now));
+
+  log('  sent ' + outcome.sent + ', failed ' + outcome.failed.length);
+  for (const f of outcome.failed) log('    [FAIL] ' + f);
+  return outcome.failed.length ? 'Reminder delivery failed: ' + outcome.failed.join('; ') : null;
 }
 
 export async function run(): Promise<number> {
@@ -123,10 +191,16 @@ export async function run(): Promise<number> {
   }
   log('  backup       ' + backup.events + ' raw events from ' + backup.calendars + ' calendars');
 
+  // ---- reminders ----
+  // Last, and behind every guard in remind.ts. Everything above this point
+  // is recoverable by re-running; a wrong message to thirty parents is not.
+  const reminderProblem = await runReminders(cfg, ministries, cleanInstances, masters, now);
+  if (reminderProblem) problems.push(reminderProblem);
+
   const hardFailures = results.filter((r) => r.error);
-  if (hardFailures.length) {
+  if (hardFailures.length || reminderProblem) {
     log('');
-    log('FAILED for ' + hardFailures.length + ' calendar(s):');
+    log('FAILED:');
     for (const p of problems) log('  - ' + p);
     return 1;
   }

@@ -9,13 +9,14 @@ first. Google, GitHub and DNS setup is in [docs/SETUP.md](docs/SETUP.md), and
 the agreed design for the overflow-room TV is in [docs/TV.md](docs/TV.md).
 Backups and how to restore from one are in [docs/BACKUP.md](docs/BACKUP.md).
 Deploying the signup endpoint is in [docs/SIGNUP.md](docs/SIGNUP.md), and the
-admin form in [docs/ADMIN.md](docs/ADMIN.md).
+admin form in [docs/ADMIN.md](docs/ADMIN.md). Reminders, and how to switch
+them on safely, are in [docs/REMINDERS.md](docs/REMINDERS.md).
 This file covers only how to run what exists.
 
 ## Status
 
-The job, the website, the hourly deploy, backups and personal feeds are live.
-The remaining work is the pages people interact with, then reminders.
+Everything in the phase 1 plan is built. Reminders are the only piece not yet
+switched on, deliberately: they are a dry run until somebody says otherwise.
 
 | Step | State |
 |---|---|
@@ -27,7 +28,7 @@ The remaining work is the pages people interact with, then reminders.
 | 6. Preferences page | live |
 | 7. Admin form | built — events and membership, see docs/ADMIN.md |
 | 8. TV display for the 85 inch screen | done |
-| 9. Reminder engine to GroupMe | |
+| 9. Reminder engine to GroupMe | built, dry run until switched on |
 
 ## Run it
 
@@ -81,6 +82,8 @@ public/              job output, served by GitHub Pages
 3. Writes `events.json` and one `.ics` per public ministry, plus `all.ics`.
 4. Snapshots every calendar verbatim into `backup/`, private ones included,
    which the workflow pushes to a separate private repository.
+5. Works out which reminders the ladder owes, and sends them only if reminders
+   have been switched on. See [docs/REMINDERS.md](docs/REMINDERS.md).
 
 Files are only rewritten when their bytes change, so the hourly commit stays
 quiet when nothing happened.
@@ -146,8 +149,8 @@ Set these as GitHub Actions secrets. Never commit them.
 |---|---|
 | `GOOGLE_SERVICE_ACCOUNT_JSON` | GCP console. Grant it edit rights on each calendar and the Sheet. |
 | `SHEET_ID` | the Sheet URL |
-| `GROUPME_BOT_YOUTH_PARENTS` | dev.groupme.com/bots |
-| `ADMIN_PASSCODE` | chosen |
+| `GROUPME_BOT_YOUTH_PARENTS` | dev.groupme.com/bots. Having it does not start sending; see docs/REMINDERS.md. |
+
 
 Calendar ids are not secrets and live in `job/config/ministries.json`. The
 calendars are not public, so an id grants nothing without the service account
@@ -259,3 +262,15 @@ A sheet that cannot be read fails the run rather than publishing. That means
 the site keeps serving its previous copy for an hour and an issue is opened,
 which is better than quietly serving stale personal feeds to people who should
 have been removed from them.
+
+## Reminders
+
+Off by default, and they stay off until a repository variable says otherwise.
+Read every message the ladder would send, without sending any:
+
+```bash
+cd job && npm run preview:reminders
+```
+
+Full detail, including each guard and why it exists, is in
+[docs/REMINDERS.md](docs/REMINDERS.md).
