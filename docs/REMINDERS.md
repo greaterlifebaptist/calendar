@@ -77,20 +77,40 @@ It ignores the hour and nothing else. Dry run, the dedupe state and the blast
 guard all still apply, so ticking it cannot cause a send that would not have
 happened at 9am anyway.
 
-Locally the same thing is :
+Locally the same thing is `--send-now`:
 
-
+```bash
+cd job && npm start -- --send-now
+```
 
 ## Turning it on
 
-1. **Make a GroupMe bot on a private test group.** Create a group with only
-   yourself in it, then a bot at <https://dev.groupme.com/bots> attached to it.
-   Leave the callback URL blank: we only ever send.
-2. Add the bot id as the repo secret `GROUPME_BOT_YOUTH_PARENTS`.
-3. Let it run for a few days. Every run logs what it would have sent, so the
-   Actions log becomes the record to review.
-4. When you are satisfied, add the repository **variable** `REMINDERS_LIVE`
-   with the value `true`. That is the moment it starts sending.
+**1. Make the test group.** In GroupMe, start a new group with only yourself
+in it. Call it something like "GLBC Calendar Bot Test".
+
+**2. Make the bot.** Go to <https://dev.groupme.com/bots>, signed in with the
+same GroupMe account, and press **Create Bot**.
+
+  | Field | Value |
+  |---|---|
+  | Group | the test group you just made |
+  | Name | `GLBC Calendar` |
+  | Callback URL | **leave blank** — we only ever send, never receive |
+  | Avatar URL | optional |
+
+  Submit, then copy the **Bot ID**.
+
+**3. Add it as a secret.** In the repo: Settings, Secrets and variables,
+Actions, **Secrets** tab, New repository secret. Name
+`GROUPME_BOT_YOUTH_PARENTS`, value the bot id. Nothing starts sending yet.
+
+**4. Dry run it.** Actions, Calendar sync, **Run workflow**, tick **send_now**,
+leave **dry_run** ticked. The log shows every message it would have sent.
+
+**5. Send to yourself.** Add the repository **variable** `REMINDERS_LIVE` =
+`true`. The bot still points at your test group, so the next run delivers real
+messages to you and nobody else. Watch it on the ordinary hourly schedule for a
+few days.
 
 To go live for real parents, make a **second** bot in the real group and swap
 the secret. Keep the test bot so there is always somewhere safe to test.
