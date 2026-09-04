@@ -117,11 +117,18 @@ export type IcsInput = {
   recurrenceId?: DtValue;
 };
 
-function vevent(input: IcsInput, tz: string, stamp: string): string[] {
+function vevent(input: IcsInput, tz: string): string[] {
   const ev = input.event;
   const l = new Lines();
   const start = dtStart(ev, tz);
   const end = dtEnd(ev, tz);
+
+  // DTSTAMP is when this event's information was last revised, not when the
+  // job happened to run. Reading the clock here would rewrite every feed on
+  // every hourly run and bury real edits in a stream of no-op commits. The
+  // last fallback is the event's own start, never the clock.
+  const revised = ev.updated ?? ev.created ?? ev.startInstant;
+  const stamp = icsUtc(new Date(revised));
 
   l.raw('BEGIN:VEVENT');
   l.add('UID', ev.iCalUID || ev.id + '@greaterlifebaptistchurch.com');
@@ -163,7 +170,6 @@ export type CalendarMeta = { name: string; description?: string };
 /** Wrap VEVENTs in a VCALENDAR with the timezone definition. */
 export function buildIcs(inputs: IcsInput[], cfg: Config, meta: CalendarMeta): string {
   const tz = cfg.timezone;
-  const stamp = icsUtc(new Date());
   const rows: string[] = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
@@ -177,7 +183,7 @@ export function buildIcs(inputs: IcsInput[], cfg: Config, meta: CalendarMeta): s
   ];
   if (meta.description) rows.push(fold('X-WR-CALDESC:' + escapeText(meta.description)));
   rows.push(...VTIMEZONE_NY);
-  for (const input of inputs) rows.push(...vevent(input, tz, stamp));
+  for (const input of inputs) rows.push(...vevent(input, tz));
   rows.push('END:VCALENDAR');
   return rows.join(CRLF) + CRLF;
 }

@@ -164,3 +164,15 @@ test('parsed fields come back in the DESCRIPTION for subscribers', () => {
   assert.ok(desc.includes('Contact: Bro. Spencer'));
   assert.ok(ics.includes('URL:https://ex.org/f'));
 });
+
+test('a feed is byte-identical across runs, so the hourly cron stays quiet', async () => {
+  const events = [
+    cal({}),
+    cal({ id: 'b', iCalUID: 'b@google.com', updated: '2026-08-20T12:00:00Z' }),
+    // No created/updated at all: the fallback must not read the clock either.
+    cal({ id: 'c', iCalUID: 'c@google.com', created: undefined, updated: undefined }),
+  ];
+  const first = build(events);
+  await new Promise((r) => setTimeout(r, 1100));
+  assert.equal(build(events), first, 'feed contents drifted between runs');
+});
