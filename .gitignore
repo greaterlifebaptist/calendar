@@ -24,3 +24,7 @@ _site/
 # Raw calendar snapshots, including private ministries. Pushed to a separate
 # private repository by the workflow, never to this public one.
 backup/
+
+# Output of a fixture run. Never published; keeps npm run dev from
+# clobbering the real data in public/.
+.dev-site/

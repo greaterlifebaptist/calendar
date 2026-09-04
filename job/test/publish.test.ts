@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { loadConfig, activeMinistries, PUBLIC_DIR } from '../src/config.ts';
+import { loadConfig, activeMinistries, outputDir } from '../src/config.ts';
 import { fetchAll } from '../src/fetch.ts';
 import { normalizeAll, dedupe, byStart } from '../src/normalize.ts';
 import { publish, toPublicEvent } from '../src/publish.ts';
@@ -22,8 +22,8 @@ async function runPipeline() {
   const masters = results.flatMap((r) => normalizeAll(r.masters, TZ, NOW));
   publish({ cfg, ministries, instances: dedupe(instances).sort(byStart), masters, generated: NOW });
   return {
-    events: JSON.parse(readFileSync(join(PUBLIC_DIR, 'events.json'), 'utf8')) as EventsJson,
-    feedsDir: join(PUBLIC_DIR, 'feeds'),
+    events: JSON.parse(readFileSync(join(outputDir(), 'events.json'), 'utf8')) as EventsJson,
+    feedsDir: join(outputDir(), 'feeds'),
   };
 }
 
@@ -151,7 +151,7 @@ test('with nothing scheduled anywhere, no ministry is offered at all', () => {
   const ministries = activeMinistries(cfg);
   publish({ cfg, ministries, instances: [], masters: [], generated: NOW });
   const events = JSON.parse(
-    readFileSync(join(PUBLIC_DIR, 'events.json'), 'utf8'),
+    readFileSync(join(outputDir(), 'events.json'), 'utf8'),
   ) as EventsJson;
   assert.equal(events.events.length, 0);
   assert.equal(
@@ -178,7 +178,7 @@ test('only past events does not count as being in use', () => {
   );
   publish({ cfg, ministries, instances: [past], masters: [past], generated: NOW });
   const events = JSON.parse(
-    readFileSync(join(PUBLIC_DIR, 'events.json'), 'utf8'),
+    readFileSync(join(outputDir(), 'events.json'), 'utf8'),
   ) as EventsJson;
   assert.equal(events.ministries.length, 0, 'a finished event should not keep a ministry listed');
 });

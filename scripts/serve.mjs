@@ -15,7 +15,9 @@ import { join, extname, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = join(fileURLToPath(import.meta.url), '..', '..');
-const ROOTS = [join(ROOT, 'site'), join(ROOT, 'public')];
+// site/ first, then a fixture run's output if there is one, then the real
+// published data. Mirrors how GitHub Pages assembles the deploy.
+const ROOTS = [join(ROOT, 'site'), join(ROOT, '.dev-site'), join(ROOT, 'public')];
 const PORT = Number(process.argv[2] ?? 4173);
 
 const TYPES = {

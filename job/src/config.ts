@@ -12,6 +12,17 @@ export const ROOT = resolve(here, '..', '..');
 export const JOB_DIR = resolve(here, '..');
 export const PUBLIC_DIR = join(ROOT, 'public');
 
+/**
+ * Where the job writes its output.
+ *
+ * A fixture run must not clobber public/, which holds the real published data
+ * and is committed. Otherwise `npm run dev` leaves sample events staged for
+ * commit and every later pull conflicts on generated files.
+ */
+export function outputDir(): string {
+  return USE_FIXTURES() ? join(ROOT, '.dev-site') : PUBLIC_DIR;
+}
+
 /** Load .env from the repo root if present. Never required in CI. */
 export function loadDotEnv(): void {
   for (const candidate of [join(ROOT, '.env'), join(JOB_DIR, '.env')]) {

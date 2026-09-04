@@ -11,7 +11,7 @@
 import { mkdirSync, writeFileSync, readFileSync, existsSync, readdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import type { CalEvent, Config, EventsJson, Ministry, PublicEvent } from './types.ts';
-import { PUBLIC_DIR } from './config.ts';
+import { outputDir } from './config.ts';
 import { buildIcs, ministryCalendarName, toIcsInputs } from './ics.ts';
 import { isoDate, isoLocal } from './time.ts';
 
@@ -92,8 +92,9 @@ export function publish(input: PublishInput): PublishResult {
   const tz = cfg.timezone;
   const generated = input.generated ?? new Date();
 
-  const feedsDir = join(PUBLIC_DIR, 'feeds');
-  ensureDir(PUBLIC_DIR);
+  const root = outputDir();
+  const feedsDir = join(root, 'feeds');
+  ensureDir(root);
   ensureDir(feedsDir);
 
   // A cancelled occurrence only exists so the .ics can carry an EXDATE.
@@ -128,7 +129,7 @@ export function publish(input: PublishInput): PublishResult {
     ministries: listed.map((m) => ({ id: m.id, name: m.name, color: m.color })),
     events: publicInstances.map((e) => toPublicEvent(e, tz)),
   };
-  const eventsJsonPath = join(PUBLIC_DIR, 'events.json');
+  const eventsJsonPath = join(root, 'events.json');
   writeIfChanged(eventsJsonPath, JSON.stringify(events, null, 2) + '\n');
 
   // ---- per-ministry bundle feeds ----
