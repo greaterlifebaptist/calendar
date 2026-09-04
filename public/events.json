@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-04T16:00:00.000Z",
+  "generated": "2026-09-04T15:46:05.549Z",
   "timezone": "America/New_York",
   "feeds": {
     "base": "https://calendars.greaterlifebaptistchurch.com/feeds/",
@@ -15,213 +15,32 @@
       "id": "youth",
       "name": "Greater Generation",
       "color": "#6B9A12"
+    },
+    {
+      "id": "children",
+      "name": "Children",
+      "color": "#EE7B21"
+    },
+    {
+      "id": "youngadults",
+      "name": "Ignite Young Adults",
+      "color": "#D14E2B"
+    },
+    {
+      "id": "seniors",
+      "name": "Best Life",
+      "color": "#8A6A08"
+    },
+    {
+      "id": "mens",
+      "name": "Man Church",
+      "color": "#2C7EA1"
+    },
+    {
+      "id": "womens",
+      "name": "Soul Sisters",
+      "color": "#A0447F"
     }
   ],
-  "events": [
-    {
-      "uid": "svc-thu@google.com",
-      "ministry": "church",
-      "type": "routine",
-      "title": "Thursday night service",
-      "start": "2026-09-03T19:00:00",
-      "end": "2026-09-03T20:30:00",
-      "location": "Sanctuary"
-    },
-    {
-      "uid": "svc-sun@google.com",
-      "ministry": "church",
-      "type": "routine",
-      "title": "Sunday morning worship",
-      "start": "2026-09-06T11:00:00",
-      "end": "2026-09-06T12:15:00",
-      "location": "Sanctuary"
-    },
-    {
-      "uid": "yth-wed@google.com",
-      "ministry": "youth",
-      "type": "routine",
-      "title": "Youth group",
-      "start": "2026-09-09T18:30:00",
-      "end": "2026-09-09T20:00:00",
-      "location": "Youth building"
-    },
-    {
-      "uid": "revival1@google.com",
-      "ministry": "church",
-      "type": "event",
-      "title": "Revival — Night 1",
-      "start": "2026-09-10T19:00:00",
-      "end": "2026-09-10T20:30:00",
-      "location": "Sanctuary",
-      "notes": "Preaching: Bro. Daniel Hicks. Special singing before the message."
-    },
-    {
-      "uid": "revival2@google.com",
-      "ministry": "church",
-      "type": "event",
-      "title": "Revival — Night 2 (Youth Night)",
-      "start": "2026-09-11T19:00:00",
-      "end": "2026-09-11T20:30:00",
-      "location": "Sanctuary",
-      "notes": "Teens sit together up front.\nPizza in the fellowship hall afterward."
-    },
-    {
-      "uid": "money-count@google.com",
-      "ministry": "church",
-      "type": "event",
-      "title": "Money counters meeting",
-      "start": "2026-09-13T13:00:00",
-      "end": "2026-09-13T14:00:00",
-      "location": "Church office",
-      "notes": "The word \"money\" would otherwise read as a deadline. The EVENT: prefix says it is not."
-    },
-    {
-      "uid": "yth-carwash@google.com",
-      "ministry": "youth",
-      "type": "event",
-      "title": "Youth fundraiser car wash",
-      "start": "2026-09-19T09:00:00",
-      "end": "2026-09-19T13:00:00",
-      "location": "Church parking lot",
-      "notes": "Bring towels and buckets. Rain date is the following Saturday.",
-      "cost": "donations only"
-    },
-    {
-      "uid": "yth-raffle-money@google.com",
-      "ministry": "youth",
-      "type": "deadline",
-      "title": "raffle money and unsold tickets due",
-      "start": "2026-09-20",
-      "allDay": true,
-      "notes": "Turn in to Bro. Spencer. Everything comes back, sold or not."
-    },
-    {
-      "uid": "yth-admin-form@google.com",
-      "ministry": "youth",
-      "type": "event",
-      "title": "See You at the Pole",
-      "start": "2026-09-23T07:00:00",
-      "pinned": true,
-      "end": "2026-09-23T07:30:00",
-      "location": "Midland Middle School flagpole",
-      "notes": "Meet at the flagpole before first bell."
-    },
-    {
-      "uid": "fifth-sunday@google.com",
-      "ministry": "church",
-      "type": "event",
-      "title": "Fifth Sunday singing & dinner on the grounds",
-      "start": "2026-09-27T11:00:00",
-      "end": "2026-09-27T14:00:00",
-      "location": "Pavilion"
-    },
-    {
-      "uid": "yth-drawing@google.com",
-      "ministry": "youth",
-      "type": "event",
-      "title": "Gun raffle drawing",
-      "start": "2026-09-27T12:30:00",
-      "end": "2026-09-27T13:00:00",
-      "location": "Fellowship hall",
-      "notes": "Right after morning service. Winner's choice of the three prizes."
-    },
-    {
-      "uid": "yth-forms@google.com",
-      "ministry": "youth",
-      "type": "deadline",
-      "title": "Permission forms due - Pigeon Forge",
-      "start": "2026-09-30",
-      "allDay": true,
-      "notes": "Signed form and medical release. No form, no seat on the van.",
-      "contact": "Bro. Spencer",
-      "link": "https://example.org/glbc/forms/pigeon-forge",
-      "linkText": "Permission form"
-    },
-    {
-      "uid": "deacons@google.com",
-      "ministry": "church",
-      "type": "event",
-      "title": "Deacons meeting",
-      "start": "2026-10-05T18:00:00",
-      "end": "2026-10-05T19:00:00",
-      "location": "Church office"
-    },
-    {
-      "uid": "workday@google.com",
-      "ministry": "church",
-      "type": "event",
-      "title": "Church workday",
-      "start": "2026-10-17",
-      "allDay": true,
-      "location": "Church grounds",
-      "notes": "Bring a rake and a weed eater if you have one."
-    },
-    {
-      "uid": "yth-lockin@google.com",
-      "ministry": "youth",
-      "type": "event",
-      "title": "Fall lock-in",
-      "start": "2026-11-13T20:00:00",
-      "end": "2026-11-14T08:00:00",
-      "location": "Fellowship hall",
-      "notes": "Drop off Friday 8pm, pick up Saturday 8am. Bring a sleeping bag.",
-      "cost": "$10"
-    },
-    {
-      "uid": "svc-sun_20261227T150000Z@google.com",
-      "ministry": "church",
-      "type": "event",
-      "title": "Sunday morning worship — combined singing service",
-      "start": "2026-12-27T10:30:00",
-      "end": "2026-12-27T12:00:00",
-      "location": "Sanctuary"
-    },
-    {
-      "uid": "yth-planning@google.com",
-      "ministry": "youth",
-      "type": "trip",
-      "title": "Leaders planning retreat",
-      "start": "2027-01-16",
-      "allDay": true,
-      "end": "2027-01-17",
-      "notes": "Leaders only. Should not clutter the pinned rail for parents."
-    },
-    {
-      "uid": "yth-deposit@google.com",
-      "ministry": "youth",
-      "type": "deadline",
-      "title": "Trip deposit $75",
-      "start": "2027-02-14",
-      "pinned": true,
-      "allDay": true,
-      "notes": "Non-refundable. Locks in your spot and the group rate on cabins.",
-      "cost": "$75"
-    },
-    {
-      "uid": "homecoming@google.com",
-      "ministry": "church",
-      "type": "event",
-      "title": "Homecoming",
-      "start": "2027-05-16T10:00:00",
-      "pinned": true,
-      "end": "2027-05-16T14:00:00",
-      "location": "Church grounds",
-      "notes": "Dinner on the grounds and afternoon singing. Invite family early, folks travel in.",
-      "contact": "Sis. Wanda in the office"
-    },
-    {
-      "uid": "yth-trip@google.com",
-      "ministry": "youth",
-      "type": "trip",
-      "title": "Youth trip - Pigeon Forge, TN",
-      "start": "2027-07-12",
-      "pinned": true,
-      "allDay": true,
-      "end": "2027-07-17",
-      "location": "Pigeon Forge, Tennessee",
-      "notes": "Six days. Dollywood, Ober Mountain, and evening services at the cabin.",
-      "cost": "$310 total",
-      "contact": "Bro. Spencer"
-    }
-  ]
+  "events": []
 }
