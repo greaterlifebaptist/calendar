@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex, nofollow">
+<title>Add an event — Greater Life Baptist Church</title>
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ivory:#FFFCF4; --card:#FFFFFF; --ink:#241F1B; --ink-soft:#6B625A;
+  --rule:#EBE3D5; --sun:#F0A202; --clay:#D14E2B; --pine:#1B5E45;
+  --display:"Zilla Slab",Georgia,serif;
+  --body:"Public Sans",system-ui,-apple-system,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;padding:0}
+body{background:var(--ivory);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.wrap{max-width:780px;margin:0 auto;padding:0 20px 80px}
+
+.masthead{padding:28px 0 14px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--clay);margin:0 0 7px;font-weight:600}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(1.8rem,5.5vw,2.4rem);line-height:1.05;margin:0;color:var(--pine)}
+h1 em{font-style:normal;color:var(--sun)}
+.lede{margin:10px 0 0;color:var(--ink-soft);font-size:.92rem;max-width:52ch}
+
+.card{background:var(--card);border:1.5px solid var(--rule);border-radius:11px;padding:18px 19px;margin-top:20px}
+label{display:block;margin-bottom:14px}
+label > span.lab{display:block;font-size:.84rem;font-weight:700;margin-bottom:5px}
+label .hint{font-weight:400;color:var(--ink-soft)}
+input[type=text],input[type=date],input[type=time],input[type=password],input[type=number],textarea,select{
+  width:100%;font-family:var(--body);font-size:1rem;padding:10px 12px;
+  border:1.5px solid var(--rule);border-radius:8px;background:#fff;color:var(--ink)
+}
+textarea{min-height:88px;resize:vertical;line-height:1.5}
+input:focus,textarea:focus,select:focus{outline:2px solid var(--sun);outline-offset:1px;border-color:var(--sun)}
+.row{display:flex;gap:12px;flex-wrap:wrap}
+.row > label{flex:1;min-width:150px}
+
+.seg{display:flex;flex-wrap:wrap;gap:7px}
+.seg button{
+  font-family:var(--body);font-size:.86rem;font-weight:700;cursor:pointer;
+  border:1.5px solid var(--rule);background:#fff;color:var(--ink-soft);
+  border-radius:100px;padding:8px 15px
+}
+.seg button[aria-pressed="true"]{background:var(--pine);border-color:var(--pine);color:#fff}
+.seg button:hover{border-color:var(--sun)}
+.seg .why{width:100%;font-size:.78rem;color:var(--ink-soft);margin-top:3px}
+
+.check{display:flex;align-items:flex-start;gap:10px;margin-bottom:14px;cursor:pointer}
+.check input{width:19px;height:19px;margin:1px 0 0;accent-color:var(--pine);flex:0 0 auto}
+.check .lab{font-weight:700;font-size:.9rem}
+.check .hint{display:block;font-weight:400;font-size:.82rem;color:var(--ink-soft)}
+
+fieldset{border:none;margin:0 0 6px;padding:0}
+legend{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-soft);font-weight:600;padding:0;margin-bottom:11px}
+.sep{border:none;border-top:1px solid var(--rule);margin:18px 0}
+
+.actions{display:flex;flex-wrap:wrap;gap:11px;align-items:center;margin-top:6px}
+button.primary{font-family:var(--body);font-size:.95rem;font-weight:700;border:none;border-radius:9px;padding:12px 22px;background:var(--pine);color:#fff;cursor:pointer}
+button.primary[disabled]{opacity:.45;cursor:default}
+button.ghost{font-family:var(--body);font-size:.88rem;font-weight:700;border:1.5px solid var(--rule);background:#fff;color:var(--ink-soft);border-radius:8px;padding:11px 16px;cursor:pointer}
+button.danger{color:var(--clay);border-color:#F0D2C7}
+button.danger:hover{border-color:var(--clay)}
+.status{font-size:.88rem;color:var(--ink-soft)}
+.status.err{color:var(--clay);font-weight:700}
+.status.ok{color:var(--pine);font-weight:700}
+
+.list{margin-top:8px;display:flex;flex-direction:column;gap:7px;max-height:340px;overflow:auto}
+.item{display:flex;gap:11px;align-items:flex-start;border:1.5px solid var(--rule);border-radius:9px;padding:10px 12px;background:#fff;cursor:pointer;text-align:left;font-family:var(--body);width:100%}
+.item:hover{border-color:var(--sun)}
+.item .when{flex:0 0 84px;font-family:var(--mono);font-size:.72rem;color:var(--ink-soft);font-weight:600;padding-top:2px}
+.item .t{flex:1;min-width:0}
+.item .t b{display:block;font-family:var(--display);font-size:1rem;font-weight:600;line-height:1.2}
+.item .t .meta{font-size:.76rem;color:var(--ink-soft);margin-top:2px}
+.tag{display:inline-block;font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;padding:2px 6px;border-radius:4px;background:#F1EDE2;color:var(--ink-soft);font-weight:700;margin-right:4px}
+.tag.deadline{background:#FFE6DD;color:#9C3A18}
+.tag.trip{background:#E3F0E9;color:#1B5E45}
+.tag.pin{background:#FFF1CE;color:#8A6A08}
+
+.notice{margin-top:18px;padding:13px 15px;border-radius:9px;font-size:.87rem;background:#FFF6E0;border:1.5px solid #F2DFAE;color:#6B5307}
+.notice.warn{background:#FFF6F2;border-color:#F3D3C6;color:#8C2F10}
+.notice b{display:block;font-family:var(--display);font-size:1rem;margin-bottom:2px}
+footer{margin-top:26px;font-size:.82rem;color:var(--ink-soft)}
+footer a{color:var(--clay)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="masthead">
+  <p class="eyebrow">Greater Life Baptist Church · Leaders only</p>
+  <h1>Add an <em>event</em></h1>
+  <p class="lede" id="lede">Fill this in and it goes straight onto the church calendar. Nothing else to do.</p>
+</header>
+
+<div class="notice" id="notice" hidden></div>
+
+<!-- gate -->
+<section class="card" id="gate" hidden>
+  <label>
+    <span class="lab">Passcode</span>
+    <input type="password" id="passcode" autocomplete="current-password">
+  </label>
+  <label class="check">
+    <input type="checkbox" id="remember" checked>
+    <span><span class="lab">Stay signed in on this device</span>
+    <span class="hint">Kept in this browser only, and forgotten when you close it.</span></span>
+  </label>
+  <div class="actions">
+    <button type="button" class="primary" id="unlock">Continue</button>
+    <span class="status" id="gateStatus"></span>
+  </div>
+</section>
+
+<!-- form -->
+<main id="app" hidden>
+
+  <section class="card">
+    <fieldset>
+      <legend>What and where</legend>
+
+      <label>
+        <span class="lab">Which calendar</span>
+        <select id="ministry"></select>
+      </label>
+
+      <label>
+        <span class="lab">Title</span>
+        <input type="text" id="title" maxlength="200" placeholder="Youth trip to Pigeon Forge">
+      </label>
+
+      <label>
+        <span class="lab">Location <span class="hint">optional</span></span>
+        <input type="text" id="location" maxlength="200" placeholder="Fellowship hall">
+      </label>
+    </fieldset>
+
+    <hr class="sep">
+
+    <fieldset>
+      <legend>When</legend>
+
+      <label class="check">
+        <input type="checkbox" id="allDay">
+        <span><span class="lab">All day, or spans several days</span>
+        <span class="hint">Leave off for anything with a start time.</span></span>
+      </label>
+
+      <div class="row">
+        <label><span class="lab">Starts</span><input type="date" id="startDate"></label>
+        <label id="startTimeWrap"><span class="lab">Time</span><input type="time" id="startTime" step="300"></label>
+      </div>
+      <div class="row">
+        <label><span class="lab">Ends <span class="hint">optional</span></span><input type="date" id="endDate"></label>
+        <label id="endTimeWrap"><span class="lab">Time</span><input type="time" id="endTime" step="300"></label>
+      </div>
+
+      <label>
+        <span class="lab">Repeats</span>
+        <select id="repeat">
+          <option value="">Does not repeat</option>
+          <option value="WEEKLY">Every week</option>
+          <option value="WEEKLY2">Every two weeks</option>
+          <option value="MONTHLY">Every month, same date</option>
+          <option value="MONTHLYNTH">Every month, same weekday</option>
+          <option value="DAILY">Every day</option>
+        </select>
+      </label>
+      <div class="row" id="repeatCountWrap" hidden>
+        <label>
+          <span class="lab">How many times <span class="hint">counting the first</span></span>
+          <input type="number" id="repeatCount" min="2" max="60" value="4">
+        </label>
+      </div>
+    </fieldset>
+
+    <hr class="sep">
+
+    <fieldset>
+      <legend>How it should behave</legend>
+
+      <div class="seg" id="typeSeg">
+        <button type="button" data-type="event" aria-pressed="true">Event</button>
+        <button type="button" data-type="deadline" aria-pressed="false">Deadline</button>
+        <button type="button" data-type="trip" aria-pressed="false">Trip</button>
+        <button type="button" data-type="routine" aria-pressed="false">Routine</button>
+        <p class="why" id="typeWhy"></p>
+      </div>
+
+      <label class="check" style="margin-top:14px">
+        <input type="checkbox" id="pinned">
+        <span><span class="lab">Pin it</span>
+        <span class="hint" id="pinHint">Keeps it in the "plan ahead" section even when it is months away.</span></span>
+      </label>
+    </fieldset>
+
+    <hr class="sep">
+
+    <fieldset>
+      <legend>Details <span style="text-transform:none;letter-spacing:0;font-family:var(--body);font-weight:400">— all optional</span></legend>
+      <label>
+        <span class="lab">Notes</span>
+        <textarea id="notes" maxlength="2000" placeholder="Signed form and medical release. No form, no seat on the van."></textarea>
+      </label>
+      <div class="row">
+        <label><span class="lab">Cost</span><input type="text" id="cost" maxlength="60" placeholder="$75"></label>
+        <label><span class="lab">Contact</span><input type="text" id="contact" maxlength="80" placeholder="Bro. Spencer"></label>
+      </div>
+      <label>
+        <span class="lab">Link</span>
+        <input type="text" id="link" maxlength="300" placeholder="https://example.org/permission-form">
+      </label>
+    </fieldset>
+
+    <div class="actions">
+      <button type="button" class="primary" id="save">Add to the calendar</button>
+      <button type="button" class="ghost" id="clear" hidden>Start a new one</button>
+      <button type="button" class="ghost danger" id="del" hidden>Delete</button>
+      <span class="status" id="status"></span>
+    </div>
+  </section>
+
+  <section class="card">
+    <fieldset style="margin:0">
+      <legend>What is already on this calendar</legend>
+      <p class="lede" style="margin:0 0 10px;font-size:.85rem">Tap one to edit it. A repeating event shows once; editing it changes the whole series.</p>
+      <div class="list" id="list"></div>
+    </fieldset>
+  </section>
+
+</main>
+
+<footer>
+  <p><a href="./">Back to the calendar</a></p>
+</footer>
+
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
+const KEY = "glbc.admin.pass";
+
+let ENDPOINT = "";
+let MINISTRIES = [];
+let PASS = "";
+let editingId = null;
+
+const TYPE_WHY = {
+  event:    "Reminders a week before and the day before.",
+  deadline: "Treated as something owed. Reminders a month, a week, a day before, and on the day.",
+  trip:     "Reminders a month, a week and a day before. Pinned automatically when it is far out.",
+  routine:  "No reminders at all. For a standing fixture people already know about.",
+};
+
+function notice(head, body, kind){
+  const el = $("notice");
+  el.hidden = false;
+  el.className = kind === "warn" ? "notice warn" : "notice";
+  el.innerHTML = "<b>" + esc(head) + "</b>" + esc(body);
+}
+
+async function call(payload){
+  const res = await fetch(ENDPOINT, {
+    method: "POST",
+    headers: { "content-type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(payload),
+  });
+  const out = await res.json();
+  if (!out.ok){
+    const e = new Error(out.error || "Something went wrong.");
+    e.fromServer = true;
+    throw e;
+  }
+  return out;
+}
+
+function say(el, msg, kind){
+  el.className = "status" + (kind ? " " + kind : "");
+  el.textContent = msg;
+}
+
+function fail(el, err){
+  say(el, (err && err.fromServer && err.message)
+    ? err.message
+    : "Could not reach the church server. Check your connection and try again.", "err");
+}
+
+// ---------------------------------------------------------------------------
+// form state
+// ---------------------------------------------------------------------------
+
+function currentType(){
+  const on = document.querySelector('#typeSeg button[aria-pressed="true"]');
+  return on ? on.dataset.type : "event";
+}
+
+function setType(type){
+  document.querySelectorAll("#typeSeg button").forEach(b => {
+    b.setAttribute("aria-pressed", String(b.dataset.type === type));
+  });
+  $("typeWhy").textContent = TYPE_WHY[type] || "";
+  // Routine is never pinned, so do not offer a control that does nothing.
+  const routine = type === "routine";
+  $("pinned").disabled = routine;
+  if (routine) $("pinned").checked = false;
+  $("pinHint").textContent = routine
+    ? "A routine fixture is never pinned."
+    : "Keeps it in the \"plan ahead\" section even when it is months away.";
+}
+
+function syncAllDay(){
+  const allDay = $("allDay").checked;
+  $("startTimeWrap").hidden = allDay;
+  $("endTimeWrap").hidden = allDay;
+}
+
+function syncRepeat(){
+  $("repeatCountWrap").hidden = !$("repeat").value;
+}
+
+function buildRrule(){
+  const kind = $("repeat").value;
+  if (!kind) return "";
+  const count = Math.max(2, Math.min(60, Number($("repeatCount").value) || 4));
+  const start = $("startDate").value;
+  if (kind === "WEEKLY")   return "RRULE:FREQ=WEEKLY;COUNT=" + count;
+  if (kind === "WEEKLY2")  return "RRULE:FREQ=WEEKLY;INTERVAL=2;COUNT=" + count;
+  if (kind === "MONTHLY")  return "RRULE:FREQ=MONTHLY;COUNT=" + count;
+  if (kind === "DAILY")    return "RRULE:FREQ=DAILY;COUNT=" + count;
+  if (kind === "MONTHLYNTH"){
+    // "the second Tuesday", worked out from the date they picked.
+    if (!start) return "RRULE:FREQ=MONTHLY;COUNT=" + count;
+    const d = new Date(start + "T00:00:00");
+    const nth = Math.floor((d.getDate() - 1) / 7) + 1;
+    const day = ["SU","MO","TU","WE","TH","FR","SA"][d.getDay()];
+    return "RRULE:FREQ=MONTHLY;BYDAY=" + nth + day + ";COUNT=" + count;
+  }
+  return "";
+}
+
+function readRrule(rule){
+  if (!rule) return { kind:"", count:4 };
+  const up = rule.toUpperCase();
+  const count = Number((/COUNT=(\d+)/.exec(up) || [])[1]) || 4;
+  if (/FREQ=DAILY/.test(up))   return { kind:"DAILY", count };
+  if (/FREQ=WEEKLY/.test(up))  return { kind: /INTERVAL=2/.test(up) ? "WEEKLY2" : "WEEKLY", count };
+  if (/FREQ=MONTHLY/.test(up)) return { kind: /BYDAY=/.test(up) ? "MONTHLYNTH" : "MONTHLY", count };
+  return { kind:"", count };
+}
+
+/** Pull cost/link/contact back out so editing does not duplicate them. */
+function splitDescription(text){
+  const keep = [];
+  const out = { notes:"", cost:"", link:"", contact:"" };
+  for (const line of String(text || "").split(/\r?\n/)){
+    const m = /^\s*(cost|link|contact)\s*:\s*(.+?)\s*$/i.exec(line);
+    if (m){ out[m[1].toLowerCase()] = m[2]; continue; }
+    keep.push(line);
+  }
+  out.notes = keep.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+  return out;
+}
+
+function clearForm(){
+  editingId = null;
+  ["title","location","startDate","startTime","endDate","endTime","notes","cost","contact","link"]
+    .forEach(id => { $(id).value = ""; });
+  $("allDay").checked = false;
+  $("pinned").checked = false;
+  $("repeat").value = "";
+  $("repeatCount").value = 4;
+  setType("event");
+  syncAllDay(); syncRepeat();
+  $("save").textContent = "Add to the calendar";
+  $("clear").hidden = true;
+  $("del").hidden = true;
+  say($("status"), "");
+  window.scrollTo({ top:0, behavior:"smooth" });
+}
+
+function loadIntoForm(ev){
+  editingId = ev.id;
+  $("title").value = ev.title === "(no title)" ? "" : ev.title;
+  $("location").value = ev.location || "";
+  $("allDay").checked = !!ev.allDay;
+
+  if (ev.allDay){
+    $("startDate").value = ev.start;
+    // Google's all-day end is exclusive; show the last real day.
+    if (ev.end && ev.end !== ev.start){
+      const d = new Date(ev.end + "T00:00:00");
+      d.setDate(d.getDate() - 1);
+      const iso = d.toISOString().slice(0,10);
+      $("endDate").value = iso === ev.start ? "" : iso;
+    } else $("endDate").value = "";
+    $("startTime").value = ""; $("endTime").value = "";
+  } else {
+    $("startDate").value = (ev.start || "").slice(0,10);
+    $("startTime").value = (ev.start || "").slice(11,16);
+    const endDay = (ev.end || "").slice(0,10);
+    $("endDate").value = endDay && endDay !== (ev.start||"").slice(0,10) ? endDay : "";
+    $("endTime").value = (ev.end || "").slice(11,16);
+  }
+
+  const parts = splitDescription(ev.description);
+  $("notes").value = parts.notes;
+  $("cost").value = parts.cost;
+  $("contact").value = parts.contact;
+  $("link").value = parts.link;
+
+  const r = readRrule(ev.rrule);
+  $("repeat").value = r.kind;
+  $("repeatCount").value = r.count;
+
+  setType(ev.type || "event");
+  $("pinned").checked = !!ev.pinned;
+  syncAllDay(); syncRepeat();
+
+  $("save").textContent = "Save changes";
+  $("clear").hidden = false;
+  $("del").hidden = false;
+  say($("status"), "Editing an event that is already on the calendar.");
+  window.scrollTo({ top:0, behavior:"smooth" });
+}
+
+// ---------------------------------------------------------------------------
+// list
+// ---------------------------------------------------------------------------
+
+function fmtWhen(ev){
+  if (!ev.start) return "";
+  if (ev.allDay){
+    const d = new Date(ev.start + "T00:00:00");
+    return d.toLocaleDateString("en-US",{month:"short",day:"numeric"}) + "\nall day";
+  }
+  const d = new Date(ev.start);
+  return d.toLocaleDateString("en-US",{month:"short",day:"numeric"}) + "\n" +
+         d.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}).replace(":00","");
+}
+
+async function refreshList(){
+  const box = $("list");
+  box.innerHTML = '<p class="lede" style="font-size:.85rem;margin:0">Loading…</p>';
+  try {
+    const out = await call({ action:"admin.list", passcode:PASS, ministry:$("ministry").value });
+    if (!out.events.length){
+      box.innerHTML = '<p class="lede" style="font-size:.85rem;margin:0">Nothing on this calendar yet.</p>';
+      return;
+    }
+    box.innerHTML = "";
+    out.events.forEach(ev => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "item";
+      b.innerHTML =
+        '<span class="when">' + esc(fmtWhen(ev)).replace("\n","<br>") + '</span>' +
+        '<span class="t"><b>' + esc(ev.title) + '</b><span class="meta">' +
+          (ev.type && ev.type !== "event" ? '<span class="tag ' + esc(ev.type) + '">' + esc(ev.type) + '</span>' : "") +
+          (ev.pinned ? '<span class="tag pin">pinned</span>' : "") +
+          (ev.rrule ? '<span class="tag">repeats</span>' : "") +
+          esc(ev.location || "") +
+        '</span></span>';
+      b.addEventListener("click", () => loadIntoForm(ev));
+      box.appendChild(b);
+    });
+  } catch (err) {
+    box.innerHTML = '<p class="lede" style="font-size:.85rem;margin:0;color:#D14E2B">' +
+      esc((err && err.fromServer && err.message) || "Could not load the list.") + '</p>';
+  }
+}
+
+// ---------------------------------------------------------------------------
+// save and delete
+// ---------------------------------------------------------------------------
+
+$("save").addEventListener("click", async () => {
+  const allDay = $("allDay").checked;
+  if (!$("title").value.trim()) return say($("status"), "Give the event a title.", "err");
+  if (!$("startDate").value)    return say($("status"), "Give the event a date.", "err");
+  if (!allDay && !$("startTime").value) return say($("status"), "Give the event a start time.", "err");
+
+  $("save").disabled = true;
+  say($("status"), editingId ? "Saving…" : "Adding…");
+
+  try {
+    const out = await call({
+      action: "admin.save",
+      passcode: PASS,
+      ministry: $("ministry").value,
+      id: editingId || "",
+      event: {
+        title: $("title").value.trim(),
+        location: $("location").value.trim(),
+        allDay,
+        startDate: $("startDate").value,
+        startTime: allDay ? "" : $("startTime").value,
+        endDate: $("endDate").value,
+        endTime: allDay ? "" : $("endTime").value,
+        rrule: buildRrule(),
+        type: currentType(),
+        pinned: $("pinned").checked,
+        notes: $("notes").value.trim(),
+        cost: $("cost").value.trim(),
+        contact: $("contact").value.trim(),
+        link: $("link").value.trim(),
+      },
+    });
+    say($("status"), (out.updated ? "Saved. " : "Added. ") +
+      "It appears on the website within the hour.", "ok");
+    editingId = out.id;
+    $("save").textContent = "Save changes";
+    $("clear").hidden = false;
+    $("del").hidden = false;
+    refreshList();
+  } catch (err) {
+    fail($("status"), err);
+  } finally {
+    $("save").disabled = false;
+  }
+});
+
+$("del").addEventListener("click", async () => {
+  if (!editingId) return;
+  if (!confirm("Delete \"" + $("title").value + "\" from the calendar?\n\nThis cannot be undone from here.")) return;
+  $("del").disabled = true;
+  say($("status"), "Deleting…");
+  try {
+    await call({ action:"admin.delete", passcode:PASS, ministry:$("ministry").value, id:editingId });
+    clearForm();
+    say($("status"), "Deleted.", "ok");
+    refreshList();
+  } catch (err) {
+    fail($("status"), err);
+  } finally {
+    $("del").disabled = false;
+  }
+});
+
+$("clear").addEventListener("click", clearForm);
+$("allDay").addEventListener("change", syncAllDay);
+$("repeat").addEventListener("change", syncRepeat);
+$("ministry").addEventListener("change", () => { clearForm(); refreshList(); });
+document.querySelectorAll("#typeSeg button").forEach(b => {
+  b.addEventListener("click", () => setType(b.dataset.type));
+});
+
+// Guessing the type from the title, the same way the job would, but only as a
+// suggestion and only until somebody chooses for themselves.
+let typeTouched = false;
+document.querySelectorAll("#typeSeg button").forEach(b =>
+  b.addEventListener("click", () => { typeTouched = true; }));
+$("title").addEventListener("input", () => {
+  if (typeTouched || editingId) return;
+  const t = $("title").value;
+  const deadline = /\b(due|deadline|deposit|forms?|rsvp|sign[- ]?up|signups?|last day|turn in|money)\b/i.test(t);
+  setType(deadline ? "deadline" : ($("allDay").checked && $("endDate").value ? "trip" : "event"));
+});
+
+// ---------------------------------------------------------------------------
+// gate
+// ---------------------------------------------------------------------------
+
+async function unlock(pass, quiet){
+  const el = $("gateStatus");
+  if (!quiet) say(el, "Checking…");
+  try {
+    const out = await call({ action:"admin.hello", passcode:pass });
+    PASS = pass;
+    MINISTRIES = out.ministries || [];
+    if ($("remember").checked){
+      try { sessionStorage.setItem(KEY, pass); } catch {}
+    }
+    $("ministry").innerHTML = MINISTRIES
+      .map(m => '<option value="' + esc(m.id) + '">' + esc(m.name) +
+        (m.visibility === "private" ? " (private)" : "") + '</option>').join("");
+    $("gate").hidden = true;
+    $("app").hidden = false;
+    $("notice").hidden = true;
+    setType("event");
+    syncAllDay(); syncRepeat();
+    refreshList();
+    return true;
+  } catch (err) {
+    if (!quiet) fail(el, err);
+    try { sessionStorage.removeItem(KEY); } catch {}
+    return false;
+  }
+}
+
+$("unlock").addEventListener("click", () => unlock($("passcode").value, false));
+$("passcode").addEventListener("keydown", e => { if (e.key === "Enter") unlock($("passcode").value, false); });
+
+async function start(){
+  let cfg;
+  try {
+    const res = await fetch("./events.json?t=" + Date.now(), { cache:"no-store" });
+    cfg = await res.json();
+  } catch {
+    notice("Could not load the site configuration", "Check your connection and reload.", "warn");
+    return;
+  }
+  ENDPOINT = cfg.signup || "";
+  if (!ENDPOINT){
+    notice("Not switched on yet", "The endpoint this form writes through has not been set up. See docs/SIGNUP.md.");
+    return;
+  }
+
+  let saved = "";
+  try { saved = sessionStorage.getItem(KEY) || ""; } catch {}
+  if (saved && await unlock(saved, true)) return;
+  $("gate").hidden = false;
+}
+
+start();
+</script>
+</body>
+</html>

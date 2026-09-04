@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Greater Life Baptist Church — What's Coming Up</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+/* Built for an 85 inch screen at fifteen to twenty feet. Everything is sized
+   off the viewport so it holds up on a smaller panel too. */
+:root{
+  --ivory:#FFFCF4; --card:#FFFFFF; --ink:#241F1B; --ink-soft:#6B625A;
+  --rule:#E7DECC; --sun:#F0A202; --clay:#D14E2B; --pine:#1B5E45;
+  --display:"Zilla Slab",Georgia,serif;
+  --body:"Public Sans",system-ui,-apple-system,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+  --gap:1.1vw;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;padding:0;height:100%;overflow:hidden}
+body{
+  background:var(--ivory);color:var(--ink);font-family:var(--body);
+  font-size:clamp(16px,1.9vw,44px);line-height:1.35;
+  -webkit-font-smoothing:antialiased;
+}
+
+.screen{height:100vh;display:flex;flex-direction:column;padding:1.4vw 1.6vw}
+
+/* ---------- masthead ---------- */
+.top{display:flex;align-items:flex-end;gap:1.5vw;flex:0 0 auto;padding-bottom:1vw}
+.ribbon{position:absolute;top:0;left:0;right:0;display:flex;height:.55vh}
+.ribbon span{flex:1}
+.brand{flex:1;min-width:0}
+.brand .eyebrow{font-family:var(--mono);font-size:.62em;letter-spacing:.2em;text-transform:uppercase;color:var(--clay);margin:0 0 .15em;font-weight:600}
+.brand h1{font-family:var(--display);font-weight:700;font-size:2.1em;line-height:.95;letter-spacing:-.02em;margin:0;color:var(--pine)}
+.brand h1 em{font-style:normal;color:var(--sun)}
+.clock{text-align:right;font-family:var(--mono);font-size:.85em;color:var(--ink-soft);line-height:1.35;flex:0 0 auto}
+.clock b{display:block;font-family:var(--display);font-size:1.9em;color:var(--ink);font-weight:700;line-height:1}
+
+/* ---------- the two columns ---------- */
+.body{flex:1;display:flex;gap:var(--gap);min-height:0}
+.left{flex:2;min-width:0;position:relative;display:flex;flex-direction:column}
+.right{flex:1;min-width:0;display:flex;flex-direction:column;gap:var(--gap)}
+
+/* ---------- rolling four weeks ---------- */
+.dows{display:grid;grid-template-columns:repeat(7,1fr);gap:.35vw;flex:0 0 auto;margin-bottom:.35vw}
+.dow{font-family:var(--mono);font-size:.62em;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);text-align:center;padding-bottom:.2em}
+.weeks{flex:1;display:grid;grid-template-rows:repeat(4,1fr);gap:.35vw;min-height:0}
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:.35vw;min-height:0}
+.day{
+  background:var(--card);border:.12vw solid var(--rule);border-radius:.5vw;
+  padding:.4vw .45vw;min-height:0;overflow:hidden;display:flex;flex-direction:column;
+  transition:box-shadow .35s ease,border-color .35s ease,transform .35s ease;
+}
+.day.other{background:#FBF7ED;border-color:#F0E9DA}
+.day.today{border-color:var(--sun);border-width:.22vw}
+.day.lit{border-color:var(--pine);border-width:.22vw;box-shadow:0 0 0 .3vw rgba(27,94,69,.14)}
+.day .n{font-family:var(--mono);font-size:.6em;color:var(--ink-soft);font-weight:600;flex:0 0 auto;display:flex;align-items:baseline;gap:.4em}
+.day.today .n{color:#8A6A08}
+.day .n .mon{font-size:.85em;letter-spacing:.08em;text-transform:uppercase}
+.day .evs{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;gap:.18vw;margin-top:.2vw}
+.chip{
+  font-size:.56em;line-height:1.2;border-radius:.28vw;padding:.18em .4em;color:#fff;
+  font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:0 0 auto;
+}
+.chip.dl{background:var(--clay)!important}
+.more{font-size:.58em;color:var(--ink-soft);font-weight:700;padding-left:.2em}
+
+/* ---------- spotlight ---------- */
+.spot{
+  position:absolute;inset:0;z-index:5;
+  background:var(--pine);border-radius:.7vw;color:#EAF3EE;
+  padding:1.6vw 1.8vw;display:flex;flex-direction:column;
+  opacity:0;transform:scale(.22);transform-origin:50% 50%;
+  transition:opacity .5s ease,transform .55s cubic-bezier(.22,.9,.3,1);
+  pointer-events:none;overflow:hidden;
+}
+.spot.on{opacity:1;transform:scale(1)}
+.spot .when{font-family:var(--mono);font-size:.75em;letter-spacing:.16em;text-transform:uppercase;color:var(--sun);font-weight:600;flex:0 0 auto}
+.spot .big{font-family:var(--display);font-size:2.4em;font-weight:700;line-height:1;margin:.15em 0 .5em;color:#fff;flex:0 0 auto}
+.spot .list{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;gap:.8vw}
+.spot .item{border-left:.35vw solid var(--sun);padding-left:.9vw}
+.spot .item h3{font-family:var(--display);font-size:1.65em;margin:0 0 .1em;color:#fff;font-weight:600;line-height:1.15}
+.spot .item .meta{font-size:.85em;color:#B9D2C6;display:flex;flex-wrap:wrap;gap:.2em 1.1em}
+.spot .item .meta .who{font-weight:700}
+.spot .item p{margin:.25em 0 0;font-size:.82em;color:#CFE2D8;line-height:1.35}
+.spot .item.deadline{border-left-color:#FF9878}
+.spot .item.deadline h3{color:#FFD9CC}
+
+/* ---------- the standing rail ---------- */
+.rail{
+  flex:1;background:var(--card);border:.12vw solid var(--rule);border-radius:.7vw;
+  padding:.9vw 1vw;display:flex;flex-direction:column;min-height:0;overflow:hidden;
+}
+.rail h2{font-family:var(--mono);font-size:.62em;letter-spacing:.18em;text-transform:uppercase;color:var(--clay);margin:0 0 .7vw;font-weight:600;flex:0 0 auto}
+.rail .items{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;gap:.6vw}
+.row{display:flex;gap:.8vw;align-items:flex-start;flex:0 0 auto}
+.row .date{
+  flex:0 0 auto;width:3.6em;text-align:center;border-radius:.35vw;padding:.25em 0 .35em;color:#fff;
+  font-family:var(--mono);font-size:.6em;line-height:1.15;
+}
+.row .date b{display:block;font-family:var(--display);font-size:1.85em;font-weight:700;line-height:1}
+.row .txt{min-width:0;flex:1}
+.row .txt h3{font-family:var(--display);font-size:1.02em;margin:0;line-height:1.12;font-weight:600;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.row .txt .meta{font-size:.66em;color:var(--ink-soft);margin-top:.1em;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+.row .cd{display:inline-block;font-family:var(--mono);font-size:.58em;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:var(--sun);color:#3D2A00;padding:.15em .5em;border-radius:.25vw;margin-top:.25em}
+.row .cd.urgent{background:var(--clay);color:#fff}
+.rail .none{color:var(--ink-soft);font-size:.85em}
+
+/* ---------- QR ---------- */
+.qrbox{
+  flex:0 0 auto;background:var(--pine);border-radius:.7vw;padding:.9vw 1vw;
+  display:flex;gap:1vw;align-items:center;color:#EAF3EE;
+}
+.qrbox .qr{background:#fff;border-radius:.4vw;padding:.45vw;line-height:0;flex:0 0 auto}
+.qrbox .qr canvas,.qrbox .qr img{display:block;width:7.5vw;height:7.5vw}
+.qrbox .say{min-width:0}
+.qrbox .say b{display:block;font-family:var(--display);font-size:1.25em;color:#fff;line-height:1.1;margin-bottom:.15em}
+.qrbox .say span{font-size:.78em;color:#B9D2C6;line-height:1.3;display:block}
+
+.stale{position:absolute;bottom:1vw;left:1.6vw;font-family:var(--mono);font-size:.6em;color:var(--clay);font-weight:600}
+
+@media(prefers-reduced-motion:reduce){
+  .spot{transition:opacity .4s ease;transform:none!important}
+  .spot.on{transform:none}
+  .day{transition:none}
+}
+</style>
+</head>
+<body>
+<div class="ribbon" id="ribbon"></div>
+<div class="screen">
+
+  <div class="top">
+    <div class="brand">
+      <p class="eyebrow">Greater Life Baptist Church · Midland, Georgia</p>
+      <h1>What's <em>Coming Up</em></h1>
+    </div>
+    <div class="clock" id="clock"></div>
+  </div>
+
+  <div class="body">
+    <div class="left">
+      <div class="dows" id="dows"></div>
+      <div class="weeks" id="weeks"></div>
+      <div class="spot" id="spot"></div>
+    </div>
+
+    <div class="right">
+      <div class="rail">
+        <h2 id="railHead">Coming up</h2>
+        <div class="items" id="rail"></div>
+      </div>
+      <div class="qrbox">
+        <div class="qr" id="qr"></div>
+        <div class="say">
+          <b>Put this on your phone</b>
+          <span id="qrSay">Scan to pick the calendars you care about.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stale" id="stale" hidden></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+/* ---------------------------------------------------------------------------
+   Wall display for the overflow room.
+
+   Two rules shape this, both from watching how people actually use a screen
+   in a foyer:
+
+   1. The grid is never hidden for long. Somebody looking for their own date
+      must be able to find it without waiting for a rotation to reach it, so
+      the spotlight pauses on the plain grid between every item.
+   2. Only days worth stopping for are spotlighted. Visiting all 28 days
+      would take five minutes to come back around and most of them are empty.
+--------------------------------------------------------------------------- */
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
+
+const PARAMS   = new URLSearchParams(location.search);
+const WEEKS    = 4;
+const REFRESH  = 15 * 60 * 1000;
+const STALE_MS = 24 * 60 * 60 * 1000;
+const CACHE    = "glbc.events.v1";
+
+/* Timings, all tunable. The grid hold is the one that matters: without it the
+   screen is never showing the plain overview. */
+const HOLD_GRID = 4200;
+const HOLD_SPOT = 9000;
+const ZOOM_MS   = 600;
+
+const DOW  = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const MONS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+let DATA = null;
+let ACTIVE = null;
+let cycleTimer = null;
+let reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+const parse = s => new Date(String(s).length === 10 ? s + "T00:00:00" : s);
+const dayKey = d => d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+const startOfToday = () => { const d = new Date(); d.setHours(0,0,0,0); return d; };
+
+function ministry(id){
+  return (DATA.ministries || []).find(m => m.id === id) || { id, name:id, color:"#6B625A" };
+}
+
+/** Sunday of the current week: the grid always starts with the week we are in. */
+function gridStart(){
+  const d = startOfToday();
+  d.setDate(d.getDate() - d.getDay());
+  return d;
+}
+
+function visibleEvents(){
+  const ids = ACTIVE;
+  return (DATA.events || []).filter(e => !ids || ids.has(e.ministry));
+}
+
+/** Every day an event touches, so a trip fills all of its days. */
+function eventsByDay(){
+  const map = new Map();
+  for (const e of visibleEvents()){
+    const s = parse(e.start);
+    const en = parse(e.end || e.start);
+    const cur = new Date(s.getFullYear(), s.getMonth(), s.getDate());
+    const last = new Date(en.getFullYear(), en.getMonth(), en.getDate());
+    let guard = 0;
+    while (cur <= last && guard++ < 400){
+      const k = dayKey(cur);
+      if (!map.has(k)) map.set(k, []);
+      map.get(k).push(e);
+      cur.setDate(cur.getDate() + 1);
+    }
+  }
+  return map;
+}
+
+function timeLabel(e){
+  if (e.allDay){
+    if (!e.end || e.end === e.start) return "All day";
+    const s = parse(e.start), en = parse(e.end);
+    return MONS[s.getMonth()] + " " + s.getDate() + " – " + MONS[en.getMonth()] + " " + en.getDate();
+  }
+  const t = d => d.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}).replace(":00","");
+  return e.end ? t(parse(e.start)) + " – " + t(parse(e.end)) : t(parse(e.start));
+}
+
+function daysUntil(d){
+  return Math.round((new Date(d.getFullYear(),d.getMonth(),d.getDate()) - startOfToday()) / 86400000);
+}
+
+function countdown(n, type){
+  const due = type === "deadline";
+  if (n < 0)   return due ? "Past due" : "On now";
+  if (n === 0) return due ? "Due today" : "Today";
+  if (n === 1) return due ? "Due tomorrow" : "Tomorrow";
+  if (n < 45)  return (due ? "Due in " : "In ") + n + " days";
+  return (due ? "Due in " : "In ") + Math.round(n/30) + " months";
+}
+
+// ---------------------------------------------------------------------------
+// the grid
+// ---------------------------------------------------------------------------
+
+function renderGrid(){
+  $("dows").innerHTML = DOW.map(d => '<div class="dow">' + d + '</div>').join("");
+
+  const byDay = eventsByDay();
+  const start = gridStart();
+  const today = dayKey(new Date());
+  const weeks = $("weeks");
+  weeks.innerHTML = "";
+
+  for (let w = 0; w < WEEKS; w++){
+    const row = document.createElement("div");
+    row.className = "week";
+    for (let i = 0; i < 7; i++){
+      const d = new Date(start);
+      d.setDate(start.getDate() + w*7 + i);
+      const k = dayKey(d);
+      const list = (byDay.get(k) || []).slice().sort((a,b) => parse(a.start) - parse(b.start));
+
+      const cell = document.createElement("div");
+      cell.className = "day"
+        + (d.getMonth() !== new Date().getMonth() ? " other" : "")
+        + (k === today ? " today" : "");
+      cell.dataset.day = k;
+
+      const first = d.getDate() === 1 || (w === 0 && i === 0);
+      cell.innerHTML = '<div class="n">' +
+        (first ? '<span class="mon">' + MONS[d.getMonth()] + '</span>' : "") +
+        '<span>' + d.getDate() + '</span></div><div class="evs"></div>';
+
+      const box = cell.querySelector(".evs");
+      list.slice(0, 2).forEach(e => {
+        const chip = document.createElement("div");
+        chip.className = "chip" + (e.type === "deadline" ? " dl" : "");
+        chip.style.background = ministry(e.ministry).color;
+        chip.textContent = e.title;
+        box.appendChild(chip);
+      });
+      if (list.length > 2){
+        const more = document.createElement("div");
+        more.className = "more";
+        more.textContent = "+" + (list.length - 2) + " more";
+        box.appendChild(more);
+      }
+      row.appendChild(cell);
+    }
+    weeks.appendChild(row);
+  }
+  return byDay;
+}
+
+// ---------------------------------------------------------------------------
+// the standing rail: never rotates, so the thing people most need to see is
+// never something they have to wait for
+// ---------------------------------------------------------------------------
+
+function renderRail(){
+  const today = startOfToday();
+  const all = visibleEvents()
+    .filter(e => parse(e.end || e.start) >= today)
+    .sort((a,b) => parse(a.start) - parse(b.start));
+
+  // Deadlines first, then anything pinned, then whatever is next. The rail is
+  // for what somebody would be sorry to miss, not for everything.
+  const urgent = all.filter(e => e.type === "deadline" || e.pinned);
+  const list = (urgent.length ? urgent : all).slice(0, 5);
+
+  $("railHead").textContent = urgent.length ? "Don't forget" : "Coming up";
+  const box = $("rail");
+
+  if (!list.length){
+    box.innerHTML = '<p class="none">Nothing scheduled yet.</p>';
+    return;
+  }
+
+  box.innerHTML = list.map(e => {
+    const d = parse(e.start);
+    const m = ministry(e.ministry);
+    const n = daysUntil(d);
+    const urgentNow = e.type === "deadline" && n <= 7;
+    return '<div class="row">' +
+      '<div class="date" style="background:' + (e.type === "deadline" ? "#D14E2B" : m.color) + '">' +
+        MONS[d.getMonth()].toUpperCase() + '<b>' + d.getDate() + '</b></div>' +
+      '<div class="txt"><h3>' + esc(e.title) + '</h3>' +
+        '<div class="meta">' + esc(m.name) + ' · ' + esc(timeLabel(e)) +
+        (e.location ? ' · ' + esc(e.location) : "") + '</div>' +
+        (e.type === "deadline" || n <= 14
+          ? '<span class="cd' + (urgentNow ? " urgent" : "") + '">' + countdown(n, e.type) + '</span>'
+          : "") +
+      '</div></div>';
+  }).join("");
+
+  // Trim to what actually fits. A row half cut off at the bottom of the rail
+  // looks broken, and on a wall nobody can scroll to see the rest of it.
+  while (box.children.length > 1 && box.scrollHeight > box.clientHeight){
+    box.removeChild(box.lastElementChild);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// the spotlight
+// ---------------------------------------------------------------------------
+
+/** Days inside the window worth stopping on. Routine fixtures are skipped. */
+function featuredDays(byDay){
+  const start = gridStart();
+  const end = new Date(start);
+  end.setDate(start.getDate() + WEEKS*7 - 1);
+  const today = startOfToday();
+
+  const out = [];
+  for (let i = 0; i < WEEKS*7; i++){
+    const d = new Date(start);
+    d.setDate(start.getDate() + i);
+    if (d < today) continue;
+    const list = (byDay.get(dayKey(d)) || []).filter(e => e.type !== "routine");
+    if (list.length) out.push({ date: d, key: dayKey(d), events: list });
+  }
+  return out;
+}
+
+function showSpot(day){
+  const spot = $("spot");
+  const cell = document.querySelector('.day[data-day="' + day.key + '"]');
+  const left = document.querySelector(".left");
+
+  // Grow out of the day being talked about, so the eye is led there.
+  if (cell && !reduced){
+    const c = cell.getBoundingClientRect();
+    const l = left.getBoundingClientRect();
+    spot.style.transformOrigin =
+      ((c.left + c.width/2 - l.left) / l.width * 100) + "% " +
+      ((c.top + c.height/2 - l.top) / l.height * 100) + "%";
+  }
+  if (cell) cell.classList.add("lit");
+
+  const d = day.date;
+  const sorted = day.events.slice().sort((a,b) => parse(a.start) - parse(b.start));
+  spot.innerHTML =
+    '<div class="when">' + DOW[d.getDay()] + " · " + MONS[d.getMonth()] + " " + d.getDate() + '</div>' +
+    '<div class="big">' + esc(countdown(daysUntil(d), "event")) + '</div>' +
+    '<div class="list">' + sorted.slice(0, 4).map(e => {
+      const m = ministry(e.ministry);
+      return '<div class="item' + (e.type === "deadline" ? " deadline" : "") + '">' +
+        '<h3>' + esc(e.title) + '</h3>' +
+        '<div class="meta"><span class="who" style="color:' +
+          (e.type === "deadline" ? "#FFB4A0" : "#EAF3EE") + '">' + esc(m.name) + '</span>' +
+        '<span>' + esc(timeLabel(e)) + '</span>' +
+        (e.location ? '<span>' + esc(e.location) + '</span>' : "") + '</div>' +
+        (e.notes ? '<p>' + esc(e.notes.split("\n")[0]) + '</p>' : "") +
+        '</div>';
+    }).join("") + '</div>';
+
+  spot.classList.add("on");
+}
+
+function hideSpot(){
+  $("spot").classList.remove("on");
+  document.querySelectorAll(".day.lit").forEach(c => c.classList.remove("lit"));
+}
+
+function runCycle(days){
+  clearTimeout(cycleTimer);
+  hideSpot();
+  if (!days.length) return;
+
+  let i = 0;
+  const step = () => {
+    // Hold on the plain grid first. This pause is the whole reason somebody
+    // can walk up, find their own date, and leave without waiting.
+    hideSpot();
+    cycleTimer = setTimeout(() => {
+      showSpot(days[i % days.length]);
+      i++;
+      cycleTimer = setTimeout(step, HOLD_SPOT + ZOOM_MS);
+    }, HOLD_GRID);
+  };
+  step();
+}
+
+// ---------------------------------------------------------------------------
+// chrome
+// ---------------------------------------------------------------------------
+
+function renderClock(){
+  const now = new Date();
+  $("clock").innerHTML =
+    now.toLocaleDateString("en-US",{weekday:"long"}) +
+    "<b>" + now.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}) + "</b>" +
+    now.toLocaleDateString("en-US",{month:"long",day:"numeric"});
+}
+
+function renderRibbon(){
+  $("ribbon").innerHTML = (DATA.ministries || [])
+    .map(m => '<span style="background:' + m.color + '"></span>').join("");
+}
+
+function renderQr(){
+  const url = location.origin + "/signup";
+  const box = $("qr");
+  box.innerHTML = "";
+  if (window.QRCode){
+    try { new QRCode(box, { text:url, width:220, height:220, correctLevel: QRCode.CorrectLevel.M }); }
+    catch { box.hidden = true; }
+  } else {
+    box.hidden = true;
+  }
+}
+
+function renderStale(){
+  const el = $("stale");
+  const g = DATA.generated ? parse(DATA.generated) : null;
+  if (g && Date.now() - g.getTime() > STALE_MS){
+    el.hidden = false;
+    el.textContent = "Last updated " + g.toLocaleDateString("en-US",{month:"long",day:"numeric"}) +
+      " — this display may be out of date";
+  } else {
+    el.hidden = true;
+  }
+}
+
+function renderAll(){
+  renderRibbon();
+  const byDay = renderGrid();
+  renderRail();
+  renderStale();
+  runCycle(featuredDays(byDay));
+}
+
+// ---------------------------------------------------------------------------
+
+function applyFilter(){
+  const want = PARAMS.get("ministry");
+  if (!want){ ACTIVE = null; return; }
+  const ids = new Set((DATA.ministries || []).map(m => m.id));
+  const picked = new Set(want.split(",").map(s => s.trim()).filter(id => ids.has(id)));
+  ACTIVE = picked.size ? picked : null;
+}
+
+async function load(){
+  let json = null;
+  try {
+    const res = await fetch("./events.json?t=" + Date.now(), { cache:"no-store" });
+    if (!res.ok) throw new Error();
+    json = await res.json();
+    if (!json || !Array.isArray(json.events)) throw new Error();
+    try { localStorage.setItem(CACHE, JSON.stringify(json)); } catch {}
+  } catch {
+    // A blank wall is worse than a stale one, and the staleness is labelled.
+    try {
+      const raw = localStorage.getItem(CACHE);
+      if (raw) json = JSON.parse(raw);
+    } catch {}
+  }
+  if (!json) return;
+  DATA = json;
+  applyFilter();
+  renderAll();
+}
+
+function keepAwake(){
+  if (!("wakeLock" in navigator)) return;
+  const hold = async () => {
+    try { if (document.visibilityState === "visible") await navigator.wakeLock.request("screen"); }
+    catch {}
+  };
+  hold();
+  document.addEventListener("visibilitychange", hold);
+}
+
+renderClock();
+setInterval(renderClock, 20000);
+renderQr();
+keepAwake();
+load();
+
+// Refetch rather than reload: a reload during a network blip leaves a blank
+// wall until the network returns.
+setInterval(load, REFRESH);
+
+// The day has to roll over on a screen that runs for months.
+let lastDay = dayKey(new Date());
+setInterval(() => {
+  const now = dayKey(new Date());
+  if (now !== lastDay){ lastDay = now; if (DATA) renderAll(); }
+}, 60000);
+</script>
+</body>
+</html>

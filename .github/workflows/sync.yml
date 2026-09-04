@@ -154,7 +154,7 @@ jobs:
           # Pages does not strip .html, so /signup would 404. These printed and
           # QR-coded addresses want to read as /signup, not /signup.html, and
           # both keep working.
-          for page in signup prefs; do
+          for page in signup prefs tv admin; do
             if [ -f "_site/$page.html" ]; then
               mkdir -p "_site/$page"
               cp "_site/$page.html" "_site/$page/index.html"

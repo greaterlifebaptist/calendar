@@ -1,7 +1,9 @@
-# TV display — agreed design
+# TV display
 
-Not built yet. This records the design so it is not relitigated later. It comes
-after the reminder engine, which is the primary need in CLAUDE.md section 1.
+**Built.** Live at `/tv`, or `/tv?ministry=youth,church` to narrow it.
+The old `/?display=tv` address redirects here.
+
+What follows is the design it was built to.
 
 ## The screen
 
@@ -9,12 +11,12 @@ An 85 inch TV in the overflow room, already used for live streaming. People
 stand around it before and after service and at special events. Viewing
 distance is roughly fifteen to twenty feet, landscape.
 
-That distance drives everything. What exists today at `?display=tv` is tuned
-for a tablet at arm's length and is far too small for this. Body text wants to
-be around 32 to 40 pixels at 1080p, headlines much larger.
+That distance drives everything. Body text sits around 36px at 1080p and rail
+headlines around 40px, which is roughly the minimum that reads at twenty feet
+on a screen this size.
 
 Wall tablets come later and may want a different, possibly interactive,
-variant. Build for the TV first.
+variant.
 
 ## Layout
 
@@ -86,6 +88,18 @@ stands watching the men's calendar for twenty seconds.
 
 `?ministry=` should still filter, so a future tablet in the youth building can
 show youth and church-wide only.
+
+## Verified
+
+- Four rolling weeks, always starting with the current week.
+- Sixty seven / thirty three split, rail never rotates.
+- Only days carrying a non-routine event are spotlighted.
+- The spotlight grows out of the day cell it is describing, and that cell is
+  outlined while it is up.
+- Type sized for an 85 inch screen: rail headlines around 40px at 1080p,
+  which is roughly the minimum that reads at twenty feet.
+- The rail trims itself to the rows that actually fit, because a row cut in
+  half at the bottom of a wall display looks broken and nobody can scroll it.
 
 ## Later
 

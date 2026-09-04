@@ -8,7 +8,8 @@ Design decisions and their reasoning live in [CLAUDE.md](CLAUDE.md). Read that
 first. Google, GitHub and DNS setup is in [docs/SETUP.md](docs/SETUP.md), and
 the agreed design for the overflow-room TV is in [docs/TV.md](docs/TV.md).
 Backups and how to restore from one are in [docs/BACKUP.md](docs/BACKUP.md).
-Deploying the signup endpoint is in [docs/SIGNUP.md](docs/SIGNUP.md).
+Deploying the signup endpoint is in [docs/SIGNUP.md](docs/SIGNUP.md), and the
+admin form in [docs/ADMIN.md](docs/ADMIN.md).
 This file covers only how to run what exists.
 
 ## Status
@@ -23,9 +24,9 @@ The remaining work is the pages people interact with, then reminders.
 | 3. Hourly workflow | live |
 | 4. Membership sheet and personal feeds | done |
 | 5. Signup page | live |
-| 6. Preferences page | built, needs the endpoint redeployed |
-| 7. Admin form | |
-| 8. TV display for the 85 inch screen | |
+| 6. Preferences page | live |
+| 7. Admin form | built, see docs/ADMIN.md to switch on |
+| 8. TV display for the 85 inch screen | done |
 | 9. Reminder engine to GroupMe | |
 
 ## Run it
@@ -58,6 +59,8 @@ cd job && npm run check
 site/index.html      calendar page, reads events.json
 site/signup.html     pick your groups, get your personal link and QR
 site/prefs.html      change your groups later, or replace a leaked link
+site/tv.html         the overflow-room wall display
+site/admin.html      add and edit events without touching Google Calendar
 site/apps-script/    the endpoint that writes to the membership sheet
 job/src/             the hourly job
 job/config/          ministries.json — ids are locked, see CLAUDE.md section 3

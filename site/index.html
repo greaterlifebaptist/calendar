@@ -584,6 +584,9 @@ $("nextM").addEventListener("click", () => { cursor.setMonth(cursor.getMonth()+1
 --------------------------------------------------------------------------- */
 const PARAMS = new URLSearchParams(location.search);
 const TV = (PARAMS.get("display") || "").toLowerCase() === "tv";
+// The wall display is its own page now, built for an 85 inch screen rather
+// than the tablet this mode assumed. Keep the old address working.
+if (TV) location.replace("./tv.html" + (PARAMS.get("ministry") ? "?ministry=" + encodeURIComponent(PARAMS.get("ministry")) : ""));
 const CACHE_KEY = "glbc.events.v1";
 const DISMISS_KEY = "glbc.install.dismissed";
 const REFRESH_MS = 15 * 60 * 1000;

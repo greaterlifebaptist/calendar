@@ -34,7 +34,7 @@
  * not take looks identical to one that did. Open the /exec URL and read the
  * version back.
  */
-var VERSION = 2;
+var VERSION = 3;
 
 var SITE = 'https://calendars.greaterlifebaptistchurch.com';
 var EVENTS_JSON = SITE + '/events.json';
@@ -208,7 +208,8 @@ function doGet() {
     ok: true,
     service: 'glbc-signup',
     version: VERSION,
-    actions: ['signup', 'load', 'save', 'rotate'],
+    actions: ['signup', 'load', 'save', 'rotate', 'admin.hello', 'admin.list', 'admin.save', 'admin.delete'],
+    adminReady: !!adminPasscode_(),
     sheet: sheetOk,
     detail: detail
   });
@@ -234,6 +235,10 @@ function doPost(e) {
     if (action === 'load') return handleLoad_(body);
     if (action === 'save') return handleSave_(body);
     if (action === 'rotate') return handleRotate_(body);
+    if (action === 'admin.hello')  return handleAdminHello_(body);
+    if (action === 'admin.list')   return handleAdminList_(body);
+    if (action === 'admin.save')   return handleAdminSave_(body);
+    if (action === 'admin.delete') return handleAdminDelete_(body);
     return json_({ ok: false, error: 'Unknown action.' });
   } catch (err) {
     return json_({ ok: false, error: String(err && err.message ? err.message : err) });
@@ -382,4 +387,251 @@ function handleRotate_(body) {
   sheet.getRange(found.row, tokenCol + 1).setValue(fresh);
 
   return json_({ ok: true, token: fresh, feedUrl: FEED_BASE + fresh + '.ics' });
+}
+
+// ---------------------------------------------------------------------------
+// Admin: writing events to the church calendars
+// ---------------------------------------------------------------------------
+//
+// Gated by a passcode held in Script Properties, never in the page. This is
+// deliberately not real authentication, and CLAUDE.md says so: it is a shared
+// secret protecting a form that can only touch church calendars. Do not extend
+// it to anything genuinely sensitive without proper sign-in first.
+//
+// Set the passcode once: Project Settings > Script Properties >
+//   ADMIN_PASSCODE = something long
+//
+// Calendar writes go through the REST API with this script's own OAuth token.
+// CalendarApp is touched in calendarExists_() purely so Apps Script grants the
+// calendar scope; the REST call is what supports extendedProperties, which
+// CalendarApp cannot set and which is how the admin form records the event
+// type explicitly instead of relying on the title.
+
+var CAL_API = 'https://www.googleapis.com/calendar/v3/calendars/';
+
+function adminPasscode_() {
+  return String(PropertiesService.getScriptProperties().getProperty('ADMIN_PASSCODE') || '');
+}
+
+function checkPasscode_(given) {
+  var want = adminPasscode_();
+  if (!want) {
+    return 'No passcode is set. Add ADMIN_PASSCODE in Project Settings > Script Properties.';
+  }
+  var got = String(given || '');
+  // Compare every character regardless, so the time taken says nothing about
+  // how much of the passcode was right.
+  var same = got.length === want.length;
+  var n = Math.max(got.length, want.length);
+  for (var i = 0; i < n; i++) {
+    if (got.charAt(i) !== want.charAt(i)) same = false;
+  }
+  if (!same) {
+    Utilities.sleep(1200); // slow down anyone working through guesses
+    return 'That passcode is not right.';
+  }
+  return null;
+}
+
+/** All ministries, private included: an admin may schedule for any of them. */
+function allMinistries_() {
+  var res = UrlFetchApp.fetch(SITE + '/ministries.json', { muteHttpExceptions: true });
+  if (res.getResponseCode() !== 200) {
+    throw new Error('Could not read the ministry list from the site.');
+  }
+  return JSON.parse(res.getContentText()).ministries || [];
+}
+
+function findMinistry_(id) {
+  var list = allMinistries_();
+  for (var i = 0; i < list.length; i++) {
+    if (list[i].id === id) return list[i];
+  }
+  return null;
+}
+
+/** Touching CalendarApp here is what makes Apps Script grant the calendar scope. */
+function calendarExists_(calendarId) {
+  try {
+    return !!CalendarApp.getCalendarById(calendarId);
+  } catch (err) {
+    return false;
+  }
+}
+
+function calFetch_(url, method, payload) {
+  var opts = {
+    method: method,
+    muteHttpExceptions: true,
+    headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() },
+    contentType: 'application/json'
+  };
+  if (payload) opts.payload = JSON.stringify(payload);
+  var res = UrlFetchApp.fetch(url, opts);
+  var code = res.getResponseCode();
+  var text = res.getContentText();
+  if (code < 200 || code >= 300) {
+    throw new Error('Calendar API ' + code + ': ' + text.slice(0, 300));
+  }
+  return text ? JSON.parse(text) : {};
+}
+
+/** Rebuild the description from the notes plus the optional parsed fields. */
+function buildDescription_(ev) {
+  var parts = [];
+  if (ev.notes) parts.push(String(ev.notes).trim());
+  var tail = [];
+  if (ev.cost) tail.push('cost: ' + String(ev.cost).trim());
+  if (ev.contact) tail.push('contact: ' + String(ev.contact).trim());
+  if (ev.link) tail.push('link: ' + String(ev.link).trim());
+  if (tail.length) parts.push(tail.join('\n'));
+  return parts.join('\n\n');
+}
+
+var VALID_TYPES = { deadline: 1, trip: 1, routine: 1, event: 1 };
+
+/**
+ * Turn the form into a Calendar API event resource.
+ *
+ * The type and pinned flag go into extendedProperties, which is the explicit
+ * path the classifier honours above everything else. That is the whole point
+ * of the form: nobody has to phrase a title a particular way.
+ */
+function toResource_(ev) {
+  var title = String(ev.title || '').trim();
+  if (!title) throw new Error('Give the event a title.');
+  if (title.length > 200) throw new Error('That title is too long.');
+
+  var type = String(ev.type || 'event').toLowerCase();
+  if (!VALID_TYPES[type]) throw new Error('Unknown event type.');
+
+  var res = {
+    summary: title,
+    description: buildDescription_(ev),
+    location: String(ev.location || '').trim(),
+    extendedProperties: {
+      shared: {
+        glbcType: type,
+        glbcPinned: ev.pinned ? 'true' : 'false'
+      }
+    }
+  };
+
+  if (ev.allDay) {
+    if (!ev.startDate) throw new Error('Give the event a date.');
+    // Google's all-day end is exclusive, so a one-day event ends the next day.
+    var endDate = ev.endDate || ev.startDate;
+    var d = new Date(endDate + 'T00:00:00');
+    d.setDate(d.getDate() + 1);
+    res.start = { date: ev.startDate };
+    res.end = { date: Utilities.formatDate(d, 'America/New_York', 'yyyy-MM-dd') };
+  } else {
+    if (!ev.startDate || !ev.startTime) throw new Error('Give the event a date and a start time.');
+    var startIso = ev.startDate + 'T' + ev.startTime + ':00';
+    var endIso = (ev.endDate || ev.startDate) + 'T' + (ev.endTime || ev.startTime) + ':00';
+    if (new Date(endIso) < new Date(startIso)) throw new Error('The end is before the start.');
+    res.start = { dateTime: startIso, timeZone: 'America/New_York' };
+    res.end = { dateTime: endIso, timeZone: 'America/New_York' };
+  }
+
+  if (ev.rrule) {
+    var rule = String(ev.rrule).trim().toUpperCase();
+    if (rule.indexOf('RRULE:') !== 0) rule = 'RRULE:' + rule;
+    if (!/^RRULE:FREQ=(DAILY|WEEKLY|MONTHLY|YEARLY)/.test(rule)) {
+      throw new Error('That repeat rule does not look right.');
+    }
+    res.recurrence = [rule];
+  }
+
+  return res;
+}
+
+function handleAdminSave_(body) {
+  var bad = checkPasscode_(body.passcode);
+  if (bad) return json_({ ok: false, error: bad });
+
+  var m = findMinistry_(String(body.ministry || ''));
+  if (!m) return json_({ ok: false, error: 'Pick a calendar.' });
+  if (!m.calendarId) return json_({ ok: false, error: 'That ministry has no calendar set up.' });
+  if (!calendarExists_(m.calendarId)) {
+    return json_({ ok: false, error: 'This account cannot reach that calendar.' });
+  }
+
+  var resource = toResource_(body.event || {});
+  var base = CAL_API + encodeURIComponent(m.calendarId) + '/events';
+  var saved;
+
+  if (body.id) {
+    saved = calFetch_(base + '/' + encodeURIComponent(body.id), 'put', resource);
+  } else {
+    saved = calFetch_(base, 'post', resource);
+  }
+
+  return json_({
+    ok: true,
+    id: saved.id,
+    ministry: m.id,
+    title: saved.summary,
+    updated: !!body.id
+  });
+}
+
+function handleAdminList_(body) {
+  var bad = checkPasscode_(body.passcode);
+  if (bad) return json_({ ok: false, error: bad });
+
+  var m = findMinistry_(String(body.ministry || ''));
+  if (!m) return json_({ ok: false, error: 'Pick a calendar.' });
+  if (!m.calendarId) return json_({ ok: false, error: 'That ministry has no calendar set up.' });
+
+  // Unexpanded, so a series shows as one editable thing rather than every
+  // occurrence. Editing a single occurrence of a series is a job for Google
+  // Calendar; this form deals in the series itself.
+  var url = CAL_API + encodeURIComponent(m.calendarId) + '/events' +
+    '?singleEvents=false&maxResults=250&showDeleted=false' +
+    '&timeMin=' + encodeURIComponent(new Date(Date.now() - 7 * 86400000).toISOString());
+  var data = calFetch_(url, 'get');
+
+  var items = (data.items || []).map(function (e) {
+    var shared = (e.extendedProperties && e.extendedProperties.shared) || {};
+    return {
+      id: e.id,
+      title: e.summary || '(no title)',
+      start: (e.start && (e.start.dateTime || e.start.date)) || '',
+      end: (e.end && (e.end.dateTime || e.end.date)) || '',
+      allDay: !!(e.start && e.start.date),
+      location: e.location || '',
+      description: e.description || '',
+      type: shared.glbcType || '',
+      pinned: shared.glbcPinned === 'true',
+      rrule: (e.recurrence || []).filter(function (r) { return r.indexOf('RRULE') === 0; })[0] || ''
+    };
+  }).sort(function (a, b) { return a.start < b.start ? -1 : 1; });
+
+  return json_({ ok: true, ministry: m.id, events: items });
+}
+
+function handleAdminDelete_(body) {
+  var bad = checkPasscode_(body.passcode);
+  if (bad) return json_({ ok: false, error: bad });
+
+  var m = findMinistry_(String(body.ministry || ''));
+  if (!m || !m.calendarId) return json_({ ok: false, error: 'Pick a calendar.' });
+  if (!body.id) return json_({ ok: false, error: 'Nothing to delete.' });
+
+  calFetch_(CAL_API + encodeURIComponent(m.calendarId) + '/events/' + encodeURIComponent(body.id), 'delete');
+  return json_({ ok: true, deleted: body.id });
+}
+
+/** Confirms a passcode and hands back the calendars that can be written to. */
+function handleAdminHello_(body) {
+  var bad = checkPasscode_(body.passcode);
+  if (bad) return json_({ ok: false, error: bad });
+  var list = allMinistries_().filter(function (m) { return !!m.calendarId; });
+  return json_({
+    ok: true,
+    ministries: list.map(function (m) {
+      return { id: m.id, name: m.name, visibility: m.visibility, color: m.color };
+    })
+  });
 }

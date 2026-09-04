@@ -11,7 +11,7 @@
 import { mkdirSync, writeFileSync, readFileSync, existsSync, readdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import type { CalEvent, Config, EventsJson, Ministry, PublicEvent } from './types.ts';
-import { outputDir } from './config.ts';
+import { outputDir, calendarIdFor } from './config.ts';
 import { buildIcs, ministryCalendarName, toIcsInputs } from './ics.ts';
 import { isoDate, isoLocal } from './time.ts';
 
@@ -136,6 +136,33 @@ export function publish(input: PublishInput): PublishResult {
   };
   const eventsJsonPath = join(root, 'events.json');
   writeIfChanged(eventsJsonPath, JSON.stringify(events, null, 2) + '\n');
+
+  // ---- ministries.json ----
+  // Every ministry, private ones included, for the admin form. It is the one
+  // place that needs to schedule onto a private calendar, and it is gated by a
+  // passcode rather than by this file being hard to find.
+  //
+  // The calendar ids are here too. They are not credentials: the calendars are
+  // not public, so reading one requires the service account to have been shared
+  // onto it. They already sit in the public repo, so this adds no exposure and
+  // keeps one source of truth rather than a copy inside the script.
+  writeIfChanged(
+    join(root, 'ministries.json'),
+    JSON.stringify(
+      {
+        generated: generated.toISOString(),
+        ministries: ministries.map((m) => ({
+          id: m.id,
+          name: m.name,
+          visibility: m.visibility,
+          color: m.color,
+          calendarId: calendarIdFor(m) ?? '',
+        })),
+      },
+      null,
+      2,
+    ) + '\n',
+  );
 
   // ---- per-ministry bundle feeds ----
   const feedPaths: string[] = [];
