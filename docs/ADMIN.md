@@ -22,9 +22,17 @@ proper fields on the website rather than as a wall of description text.
 **It offers the private calendars too.** Youth Leaders and Worship are in the
 dropdown, which the public signup page will never do.
 
-It also guesses the type from the title as you type, the same way the job
-would, and stops guessing the moment you choose for yourself. So the common
-case is: type a title, pick a date, save.
+It also fills in what it reasonably can. The type is guessed from the title as
+you type, the same way the job would, and it stops guessing the moment you
+choose for yourself. The end date follows the start, and the end time lands an
+hour later, until you set either yourself. Times are offered in quarter hours
+rather than as a free-typed field, so they are the same on every phone.
+
+Each calendar can suggest a **contact**, filled in automatically when you pick
+that calendar. Set them in `job/config/ministries.json`, the `contact` field on
+each ministry. Leave it blank for none.
+
+So the common case is: type a title, pick a date, save.
 
 ## Turning it on
 
@@ -34,18 +42,31 @@ Three steps, and the middle one is the easy one to miss.
 signup. Paste in the current `site/apps-script/Code.gs`, then Deploy > Manage
 deployments > pencil > Version: **New version** > Deploy.
 
-**2. Authorise the new calendar permission.** The script now writes to
-calendars, which is a permission it did not previously hold, and Google will
-not grant it silently.
+**2. Declare and authorise the calendar permission.**
 
-  1. In the Apps Script editor, pick any function from the dropdown at the top,
-     for example `doGet`, and press **Run**.
-  2. Approve the consent screen when it appears. It will now mention seeing and
-     editing your calendars, which is the point.
-  3. Redeploy as in step 1 if you had not already.
+Apps Script normally works out for itself which permissions a script needs, by
+reading the code. That inference is not reliable here, and when it comes up
+short the symptom is a save failing with:
 
-  Skip this and every save fails with a permission error, even though the
-  deployment looks healthy.
+> Calendar API 403: Request had insufficient authentication scopes.
+
+The fix is to stop relying on the guess and state the permissions outright.
+
+  1. In the Apps Script editor: **Project Settings**, then tick
+     **Show "appsscript.json" manifest file in editor**.
+  2. Go back to the **Editor**. `appsscript.json` is now in the file list.
+  3. Replace its contents with
+     [`site/apps-script/appsscript.json`](../site/apps-script/appsscript.json)
+     from this repo, and save.
+  4. Pick any function from the dropdown at the top, `doGet` will do, and press
+     **Run**.
+  5. Approve the consent screen. It will now mention seeing and editing your
+     calendars, which is the point. If no consent screen appears, the
+     permissions were already granted.
+  6. Redeploy: **Deploy** > **Manage deployments** > pencil > **New version**.
+
+  The manifest also pins "execute as me" and "anyone can access", so those
+  cannot drift on a later deploy.
 
 **3. Set the passcode.** This is what `adminReady: false` means, and nothing
 else. It is not a GitHub secret and not in the repo; it lives in the script.
@@ -69,17 +90,22 @@ else. It is not a GitHub secret and not in the repo; it lives in the script.
 
 ### Checking
 
-Open the `/exec` URL. You want `version` 5 or higher and `adminReady: true`:
+Open the `/exec` URL. You want `version` 6 or higher, with `adminReady`,
+`sheet` and `calendar` all `true`:
 
 ```json
-{"ok":true,"service":"glbc-signup","version":5,
+{"ok":true,"service":"glbc-signup","version":6,
  "actions":["signup","load","save","rotate","admin.hello","admin.list",
   "admin.save","admin.delete","admin.people","admin.setgroups"],
- "sheet":true,"adminReady":true,"detail":""}
+ "sheet":true,"adminReady":true,"calendar":true,"detail":""}
 ```
 
 `adminReady: false` means the passcode has not been set, and every admin action
 will refuse until it is.
+
+`calendar: false` means step 2 has not taken, and saving an event will fail
+with a 403. It is checked here so that shows up now rather than the first time
+somebody tries to add something.
 
 ## About that passcode
 

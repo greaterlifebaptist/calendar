@@ -159,12 +159,12 @@ footer a{color:var(--clay)}
 
       <label>
         <span class="lab">Title</span>
-        <input type="text" id="title" maxlength="200" placeholder="Youth trip to Pigeon Forge">
+        <input type="text" id="title" maxlength="200" placeholder="Example: Youth trip to Pigeon Forge">
       </label>
 
       <label>
         <span class="lab">Location <span class="hint">optional</span></span>
-        <input type="text" id="location" maxlength="200" placeholder="Fellowship hall">
+        <input type="text" id="location" maxlength="200" placeholder="Example: Fellowship hall">
       </label>
     </fieldset>
 
@@ -181,11 +181,11 @@ footer a{color:var(--clay)}
 
       <div class="row">
         <label><span class="lab">Starts</span><input type="date" id="startDate"></label>
-        <label id="startTimeWrap"><span class="lab">Time</span><input type="time" id="startTime" step="300"></label>
+        <label id="startTimeWrap"><span class="lab">Time</span><select id="startTime"></select></label>
       </div>
       <div class="row">
         <label><span class="lab">Ends <span class="hint">optional</span></span><input type="date" id="endDate"></label>
-        <label id="endTimeWrap"><span class="lab">Time</span><input type="time" id="endTime" step="300"></label>
+        <label id="endTimeWrap"><span class="lab">Time</span><select id="endTime"></select></label>
       </div>
 
       <label>
@@ -233,15 +233,15 @@ footer a{color:var(--clay)}
       <legend>Details <span style="text-transform:none;letter-spacing:0;font-family:var(--body);font-weight:400">— all optional</span></legend>
       <label>
         <span class="lab">Notes</span>
-        <textarea id="notes" maxlength="2000" placeholder="Signed form and medical release. No form, no seat on the van."></textarea>
+        <textarea id="notes" maxlength="2000" placeholder="Example: Signed form and medical release. No form, no seat on the van."></textarea>
       </label>
       <div class="row">
-        <label><span class="lab">Cost</span><input type="text" id="cost" maxlength="60" placeholder="$75"></label>
-        <label><span class="lab">Contact</span><input type="text" id="contact" maxlength="80" placeholder="Bro. Spencer"></label>
+        <label><span class="lab">Cost</span><input type="text" id="cost" maxlength="60"></label>
+        <label><span class="lab">Contact</span><input type="text" id="contact" maxlength="80" placeholder="Example: Bro. Spencer"></label>
       </div>
       <label>
         <span class="lab">Link</span>
-        <input type="text" id="link" maxlength="300" placeholder="https://example.org/permission-form">
+        <input type="text" id="link" maxlength="300" placeholder="Example: https://example.org/permission-form">
       </label>
     </fieldset>
 
@@ -343,6 +343,12 @@ function fail(el, err){
 // form state
 // ---------------------------------------------------------------------------
 
+/** The contact this ministry usually points people at, if one is configured. */
+function contactFor(id){
+  const m = MINISTRIES.find(x => x.id === id);
+  return (m && m.contact) || "";
+}
+
 function currentType(){
   const on = document.querySelector('#typeSeg button[aria-pressed="true"]');
   return on ? on.dataset.type : "event";
@@ -360,6 +366,52 @@ function setType(type){
   $("pinHint").textContent = routine
     ? "A routine fixture is never pinned."
     : "Keeps it in the \"plan ahead\" section even when it is months away.";
+}
+
+/* Quarter hours only. A dropdown rather than a time field, so the choices are
+   the same on every phone and "an hour later" is exact rather than whatever
+   somebody typed. */
+const SLOT_MINUTES = 15;
+
+function fillTimeOptions(){
+  const opts = ['<option value="">--</option>'];
+  for (let m = 0; m < 24 * 60; m += SLOT_MINUTES){
+    const h = Math.floor(m / 60), mm = m % 60;
+    const value = String(h).padStart(2,"0") + ":" + String(mm).padStart(2,"0");
+    const hour12 = h % 12 === 0 ? 12 : h % 12;
+    const label = hour12 + ":" + String(mm).padStart(2,"0") + " " + (h < 12 ? "AM" : "PM");
+    opts.push('<option value="' + value + '">' + label + '</option>');
+  }
+  $("startTime").innerHTML = opts.join("");
+  $("endTime").innerHTML = opts.join("");
+}
+
+/** Nearest quarter hour at or after a "HH:MM", so loaded events still fit. */
+function snapTime(value){
+  if (!value) return "";
+  const [h, m] = value.split(":").map(Number);
+  if (Number.isNaN(h)) return "";
+  const total = Math.round((h * 60 + m) / SLOT_MINUTES) * SLOT_MINUTES;
+  const capped = Math.min(total, 24 * 60 - SLOT_MINUTES);
+  return String(Math.floor(capped / 60)).padStart(2,"0") + ":" +
+         String(capped % 60).padStart(2,"0");
+}
+
+function plusHour(value){
+  if (!value) return "";
+  const [h, m] = value.split(":").map(Number);
+  const total = Math.min(h * 60 + m + 60, 24 * 60 - SLOT_MINUTES);
+  return String(Math.floor(total / 60)).padStart(2,"0") + ":" +
+         String(total % 60).padStart(2,"0");
+}
+
+// Only fill the end in for somebody who has not set it themselves.
+let endDateTouched = false;
+let endTimeTouched = false;
+
+function syncEnds(){
+  if (!endDateTouched && $("startDate").value) $("endDate").value = $("startDate").value;
+  if (!endTimeTouched && $("startTime").value) $("endTime").value = plusHour($("startTime").value);
 }
 
 function syncAllDay(){
@@ -421,6 +473,9 @@ function clearForm(){
     .forEach(id => { $(id).value = ""; });
   $("allDay").checked = false;
   $("pinned").checked = false;
+  endDateTouched = false;
+  endTimeTouched = false;
+  $("contact").value = contactFor($("ministry").value);
   $("repeat").value = "";
   $("repeatCount").value = 4;
   setType("event");
@@ -450,11 +505,14 @@ function loadIntoForm(ev){
     $("startTime").value = ""; $("endTime").value = "";
   } else {
     $("startDate").value = (ev.start || "").slice(0,10);
-    $("startTime").value = (ev.start || "").slice(11,16);
+    $("startTime").value = snapTime((ev.start || "").slice(11,16));
     const endDay = (ev.end || "").slice(0,10);
     $("endDate").value = endDay && endDay !== (ev.start||"").slice(0,10) ? endDay : "";
-    $("endTime").value = (ev.end || "").slice(11,16);
+    $("endTime").value = snapTime((ev.end || "").slice(11,16));
   }
+
+  endDateTouched = true;
+  endTimeTouched = true;
 
   const parts = splitDescription(ev.description);
   $("notes").value = parts.notes;
@@ -591,6 +649,10 @@ $("del").addEventListener("click", async () => {
 });
 
 $("clear").addEventListener("click", clearForm);
+$("startDate").addEventListener("change", syncEnds);
+$("startTime").addEventListener("change", syncEnds);
+$("endDate").addEventListener("input", () => { endDateTouched = true; });
+$("endTime").addEventListener("change", () => { endTimeTouched = true; });
 $("allDay").addEventListener("change", syncAllDay);
 $("repeat").addEventListener("change", syncRepeat);
 $("ministry").addEventListener("change", () => { clearForm(); refreshList(); });
@@ -748,8 +810,10 @@ async function unlock(pass, quiet){
     $("gate").hidden = true;
     $("app").hidden = false;
     $("notice").hidden = true;
+    fillTimeOptions();
     setType("event");
     syncAllDay(); syncRepeat();
+    $("contact").value = contactFor($("ministry").value);
     peopleLoaded = false;
     PEOPLE = [];
     showTab("events");

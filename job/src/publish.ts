@@ -157,6 +157,7 @@ export function publish(input: PublishInput): PublishResult {
           visibility: m.visibility,
           color: m.color,
           calendarId: calendarIdFor(m) ?? '',
+          contact: m.contact ?? '',
         })),
       },
       null,

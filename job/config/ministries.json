@@ -1,5 +1,5 @@
 {
-  "$comment": "IDs are LOCKED (CLAUDE.md section 3). They appear in URLs, feed filenames and QR codes. Display names may change freely; ids never do. A ministry with a blank calendarId is skipped entirely: no feed, no filter pill. Paste the id to bring it online.",
+  "$comment": "IDs are LOCKED (CLAUDE.md section 3). They appear in URLs, feed filenames and QR codes. Display names may change freely; ids never do. A ministry with a blank calendarId is skipped entirely: no feed, no filter pill. Paste the id to bring it online. contact is the person the admin form suggests for that ministry; leave blank for none.",
   "timezone": "America/New_York",
   "site": {
     "feedBase": "https://calendars.greaterlifebaptistchurch.com/feeds/",
@@ -42,7 +42,8 @@
       "calendarIdEnv": "CAL_CHURCH",
       "notify": [],
       "reminders": null,
-      "calendarId": "08edfaf4977f2441b6cc09b06664b0dd7f2182d7b9d6c2b513b18e1b0571d9ba@group.calendar.google.com"
+      "calendarId": "08edfaf4977f2441b6cc09b06664b0dd7f2182d7b9d6c2b513b18e1b0571d9ba@group.calendar.google.com",
+      "contact": ""
     },
     {
       "id": "youth",
@@ -55,7 +56,8 @@
         "youth-parents"
       ],
       "reminders": null,
-      "calendarId": "04cc8182f2139f35a05e34fe7e0eef8bcc31213876b29a53827d381bdb79db6f@group.calendar.google.com"
+      "calendarId": "04cc8182f2139f35a05e34fe7e0eef8bcc31213876b29a53827d381bdb79db6f@group.calendar.google.com",
+      "contact": ""
     },
     {
       "id": "youth-leaders",
@@ -66,7 +68,8 @@
       "calendarIdEnv": "CAL_YOUTH_LEADERS",
       "notify": [],
       "reminders": null,
-      "calendarId": "c867f60e7cdbbc54e17206d894626575f35a5d23727d0725dd8d137614d74a97@group.calendar.google.com"
+      "calendarId": "c867f60e7cdbbc54e17206d894626575f35a5d23727d0725dd8d137614d74a97@group.calendar.google.com",
+      "contact": ""
     },
     {
       "id": "children",
@@ -77,7 +80,8 @@
       "calendarIdEnv": "CAL_CHILDREN",
       "notify": [],
       "reminders": null,
-      "calendarId": "9c4da1865b4da67c68c6ed2518444e6fcddee7f701f9ed89daf0b3037e65801f@group.calendar.google.com"
+      "calendarId": "9c4da1865b4da67c68c6ed2518444e6fcddee7f701f9ed89daf0b3037e65801f@group.calendar.google.com",
+      "contact": ""
     },
     {
       "id": "youngadults",
@@ -88,7 +92,8 @@
       "calendarIdEnv": "CAL_YOUNGADULTS",
       "notify": [],
       "reminders": null,
-      "calendarId": "78667ba96b8fbff31b1a5afe19e6d4bb32c1e6c46682ab2bc2fda4e9495a46f7@group.calendar.google.com"
+      "calendarId": "78667ba96b8fbff31b1a5afe19e6d4bb32c1e6c46682ab2bc2fda4e9495a46f7@group.calendar.google.com",
+      "contact": ""
     },
     {
       "id": "seniors",
@@ -99,7 +104,8 @@
       "calendarIdEnv": "CAL_SENIORS",
       "notify": [],
       "reminders": null,
-      "calendarId": "f73e5f90cc4f78f19347e222ecb634414b538e17405a2a6dceebe5d3acd5d90a@group.calendar.google.com"
+      "calendarId": "f73e5f90cc4f78f19347e222ecb634414b538e17405a2a6dceebe5d3acd5d90a@group.calendar.google.com",
+      "contact": ""
     },
     {
       "id": "mens",
@@ -110,7 +116,8 @@
       "calendarIdEnv": "CAL_MENS",
       "notify": [],
       "reminders": null,
-      "calendarId": "fa9ce46f7f64be0a373fef3ecb944d10af149314c9ad1b8026f4736e8a3b7cc5@group.calendar.google.com"
+      "calendarId": "fa9ce46f7f64be0a373fef3ecb944d10af149314c9ad1b8026f4736e8a3b7cc5@group.calendar.google.com",
+      "contact": ""
     },
     {
       "id": "womens",
@@ -121,7 +128,8 @@
       "calendarIdEnv": "CAL_WOMENS",
       "notify": [],
       "reminders": null,
-      "calendarId": "148766a415e4c583b091421797f5cfa7452915fe707ca3a39152e9efd6ee9e0e@group.calendar.google.com"
+      "calendarId": "148766a415e4c583b091421797f5cfa7452915fe707ca3a39152e9efd6ee9e0e@group.calendar.google.com",
+      "contact": ""
     },
     {
       "id": "worship",
@@ -132,7 +140,8 @@
       "calendarIdEnv": "CAL_WORSHIP",
       "notify": [],
       "reminders": null,
-      "calendarId": "9021e8c138cd0f101aa900af6cdec4c61e87af24755e784598e19bde501e5783@group.calendar.google.com"
+      "calendarId": "9021e8c138cd0f101aa900af6cdec4c61e87af24755e784598e19bde501e5783@group.calendar.google.com",
+      "contact": ""
     }
   ],
   "channels": {

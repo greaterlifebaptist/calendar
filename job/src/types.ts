@@ -14,6 +14,8 @@ export type Ministry = {
   calendarId: string;
   /** Env var that overrides calendarId, for repointing without a deploy. */
   calendarIdEnv: string;
+  /** Suggested contact for this ministry, offered by the admin form. */
+  contact?: string;
   notify: string[];
   reminders: Partial<Record<EventType, string[]>> | null;
 };

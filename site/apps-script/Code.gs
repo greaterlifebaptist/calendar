@@ -34,7 +34,7 @@
  * not take looks identical to one that did. Open the /exec URL and read the
  * version back.
  */
-var VERSION = 5;
+var VERSION = 6;
 
 var SITE = 'https://calendars.greaterlifebaptistchurch.com';
 var EVENTS_JSON = SITE + '/events.json';
@@ -204,6 +204,26 @@ function doGet() {
   } catch (err) {
     detail = String(err && err.message ? err.message : err);
   }
+
+  // Calendar access is a separate grant from sheet access and fails
+  // separately. Reporting it here means a missing scope shows up now rather
+  // than as a 403 the first time somebody tries to save an event.
+  var calendarOk = false;
+  try {
+    var probe = UrlFetchApp.fetch(
+      'https://www.googleapis.com/calendar/v3/users/me/calendarList?maxResults=1',
+      {
+        muteHttpExceptions: true,
+        headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() }
+      }
+    );
+    calendarOk = probe.getResponseCode() === 200;
+    if (!calendarOk && !detail) {
+      detail = 'Calendar scope not granted. See docs/ADMIN.md.';
+    }
+  } catch (err) {
+    if (!detail) detail = String(err && err.message ? err.message : err);
+  }
   return json_({
     ok: true,
     service: 'glbc-signup',
@@ -214,6 +234,7 @@ function doGet() {
       'admin.people', 'admin.setgroups'
     ],
     adminReady: !!adminPasscode_(),
+    calendar: calendarOk,
     sheet: sheetOk,
     detail: detail
   });
@@ -589,10 +610,6 @@ function handleAdminSave_(body) {
   var m = findMinistry_(String(body.ministry || ''));
   if (!m) return json_({ ok: false, error: 'Pick a calendar.' });
   if (!m.calendarId) return json_({ ok: false, error: 'That ministry has no calendar set up.' });
-  if (!calendarExists_(m.calendarId)) {
-    return json_({ ok: false, error: 'This account cannot reach that calendar.' });
-  }
-
   var resource = toResource_(body.event || {});
   var base = CAL_API + encodeURIComponent(m.calendarId) + '/events';
   var saved;
@@ -667,7 +684,10 @@ function handleAdminHello_(body) {
   return json_({
     ok: true,
     ministries: list.map(function (m) {
-      return { id: m.id, name: m.name, visibility: m.visibility, color: m.color };
+      return {
+        id: m.id, name: m.name, visibility: m.visibility,
+        color: m.color, contact: m.contact || ''
+      };
     })
   });
 }
