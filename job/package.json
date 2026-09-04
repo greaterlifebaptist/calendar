@@ -1,0 +1,24 @@
+{
+  "name": "glbc-calendar-job",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Reads the church Google Calendars and publishes events.json, .ics feeds and GroupMe reminders.",
+  "engines": {
+    "node": ">=22.6.0"
+  },
+  "scripts": {
+    "start": "node src/index.ts",
+    "dev": "node src/index.ts --fixtures",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test \"test/**/*.test.ts\"",
+    "check": "npm run typecheck && npm test"
+  },
+  "dependencies": {
+    "google-auth-library": "^9.14.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.2",
+    "@types/node": "^22.7.4"
+  }
+}

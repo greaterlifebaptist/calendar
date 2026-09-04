@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Church Calendar — Greater Life Baptist Church</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ivory:#FFFCF4;
+  --card:#FFFFFF;
+  --ink:#241F1B;
+  --ink-soft:#6B625A;
+  --rule:#EBE3D5;
+  --sun:#F0A202;
+  --clay:#D14E2B;
+  --pine:#1B5E45;
+  --plum:#7A3E6E;
+  --display:"Zilla Slab",Georgia,serif;
+  --body:"Public Sans",system-ui,-apple-system,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--ivory);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{max-width:900px;margin:0 auto;padding:0 20px 80px}
+
+/* ---------- masthead ---------- */
+.masthead{padding:34px 0 22px;position:relative}
+.ribbon{display:flex;height:6px;border-radius:100px;overflow:hidden;margin-bottom:22px}
+.ribbon span{flex:1}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--clay);margin:0 0 9px;font-weight:600}
+.masthead h1{font-family:var(--display);font-weight:700;font-size:clamp(2.1rem,7.5vw,3.3rem);line-height:1;letter-spacing:-.02em;margin:0;color:var(--pine)}
+.masthead h1 em{font-style:normal;color:var(--sun)}
+.masthead p{margin:13px 0 0;color:var(--ink-soft);max-width:48ch;font-size:.95rem}
+
+/* ---------- filters ---------- */
+.filters{padding:24px 0 4px;border-top:1px solid var(--rule);margin-top:24px}
+.filters-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.filters-head h2{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-soft);margin:0;font-weight:600}
+.linkbtn{background:none;border:none;padding:0;cursor:pointer;font-family:var(--body);font-size:.82rem;font-weight:600;color:var(--clay);text-decoration:underline;text-underline-offset:3px}
+.pills{display:flex;flex-wrap:wrap;gap:8px}
+.pill{display:inline-flex;align-items:center;gap:7px;border:1.5px solid var(--rule);background:var(--card);border-radius:100px;padding:7px 15px 7px 11px;cursor:pointer;font-size:.87rem;font-weight:600;color:var(--ink-soft);transition:.14s}
+.pill:hover{border-color:currentColor}
+.pill input{position:absolute;opacity:0;width:0;height:0}
+.dot{width:10px;height:10px;border-radius:50%;flex:0 0 auto;opacity:.3;transition:opacity .14s}
+.pill.on .dot{opacity:1}
+.pill input:focus-visible + .dot{outline:2px solid var(--sun);outline-offset:3px}
+
+/* ---------- tabs ---------- */
+.views{display:flex;margin:28px 0 4px;border-bottom:2px solid var(--rule)}
+.tab{background:none;border:none;cursor:pointer;padding:9px 2px;margin-right:28px;font-family:var(--display);font-size:1.08rem;font-weight:600;color:var(--ink-soft);border-bottom:3px solid transparent;margin-bottom:-2px}
+.tab[aria-selected="true"]{color:var(--pine);border-bottom-color:var(--sun)}
+.tab:focus-visible{outline:2px solid var(--sun);outline-offset:2px}
+
+/* ---------- pinned ---------- */
+.pinned{margin-top:26px;background:linear-gradient(180deg,#FFF6E0 0%,#FFFCF4 100%);border:1.5px solid #F2DFAE;border-radius:11px;padding:16px 17px 6px}
+.pinned-head{display:flex;align-items:center;gap:8px;margin-bottom:13px}
+.pinned-head h2{font-family:var(--mono);font-size:11px;letter-spacing:.15em;text-transform:uppercase;margin:0;color:#8A6A08;font-weight:600}
+.pinned-head .sub{font-size:.8rem;color:var(--ink-soft);margin-left:auto}
+.pinrow{display:flex;gap:14px;align-items:flex-start;padding-bottom:14px;margin-bottom:2px;border-bottom:1px dashed #F0DEB4}
+.pinned .pinrow:last-child{border-bottom:none;padding-bottom:12px}
+.pinrow .when{flex:0 0 66px;font-family:var(--mono);font-size:11.5px;font-weight:600;line-height:1.35;color:var(--ink-soft);padding-top:2px}
+.pinrow .when b{display:block;font-family:var(--display);font-size:1.05rem;color:var(--ink)}
+.pinrow .body h3{font-family:var(--display);font-size:1.06rem;margin:0 0 2px;line-height:1.25}
+.pinrow .body .meta{font-size:.81rem;color:var(--ink-soft)}
+.away{display:inline-block;font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;background:var(--sun);color:#3D2A00;padding:2px 7px;border-radius:4px;margin-top:6px}
+
+/* ---------- agenda ---------- */
+.agenda{margin-top:26px}
+.month-head{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--clay);font-weight:600;margin:32px 0 14px;padding-bottom:7px;border-bottom:2px solid var(--rule)}
+.month-head:first-child{margin-top:0}
+.entry{display:flex;gap:15px;margin-bottom:13px;align-items:flex-start}
+.datechip{flex:0 0 60px;text-align:center;padding:8px 0 9px;border-radius:9px;color:#fff}
+.datechip .dow{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;opacity:.82;display:block}
+.datechip .dnum{font-family:var(--display);font-size:1.55rem;font-weight:700;line-height:1.05;display:block}
+.card{flex:1;background:var(--card);border:1.5px solid var(--rule);border-radius:9px;padding:13px 16px;min-width:0}
+.card h3{font-family:var(--display);font-size:1.16rem;font-weight:600;margin:0 0 3px;line-height:1.24}
+.meta{font-size:.83rem;color:var(--ink-soft);display:flex;flex-wrap:wrap;gap:4px 13px;margin-top:5px}
+.meta .who{font-weight:700}
+.card p.note{margin:8px 0 0;font-size:.88rem;color:var(--ink-soft)}
+.card a.cta{display:inline-block;margin-top:9px;font-size:.85rem;font-weight:700;color:var(--clay);text-decoration:underline;text-underline-offset:3px}
+.pinmark{float:right;font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:#8A6A08;background:#FFF1CE;padding:2px 7px;border-radius:4px;margin-left:8px}
+
+.entry.deadline .datechip{background:var(--clay)!important}
+.entry.deadline .card{background:#FFF6F2;border-color:#F3D3C6}
+.due{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--clay);margin-bottom:5px}
+.due::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--clay)}
+
+.morebtn{width:100%;margin-top:20px;padding:13px;background:var(--card);border:1.5px dashed var(--rule);border-radius:9px;cursor:pointer;font-family:var(--body);font-size:.88rem;font-weight:600;color:var(--ink-soft)}
+.morebtn:hover{border-color:var(--sun);color:var(--pine)}
+.empty{text-align:center;padding:52px 20px;color:var(--ink-soft);border:1.5px dashed var(--rule);border-radius:11px;margin-top:26px}
+.empty strong{display:block;font-family:var(--display);font-size:1.2rem;color:var(--ink);margin-bottom:6px}
+
+/* ---------- month grid ---------- */
+.gridnav{display:flex;align-items:center;gap:12px;margin:26px 0 14px}
+.gridnav h3{font-family:var(--display);font-size:1.4rem;margin:0;color:var(--pine);flex:1}
+.navbtn{background:var(--card);border:1.5px solid var(--rule);border-radius:7px;width:36px;height:36px;cursor:pointer;color:var(--pine);font-size:1.1rem}
+.navbtn:hover{border-color:var(--sun)}
+.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--rule);border:1.5px solid var(--rule);border-radius:10px;overflow:hidden}
+.gh{background:var(--ivory);padding:8px 4px;text-align:center;font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-soft)}
+.gd{background:var(--card);min-height:80px;padding:5px}
+.gd.off{background:#FDFAF2}
+.gd .n{font-family:var(--mono);font-size:11px;color:var(--ink-soft);display:block;margin-bottom:3px}
+.gd.today .n{background:var(--sun);color:#3D2A00;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-weight:600}
+.ev{font-size:10.5px;line-height:1.28;padding:2px 5px;border-radius:4px;margin-bottom:2px;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
+.ev.dl{background:var(--clay)!important;font-weight:700}
+
+/* ---------- subscribe ---------- */
+.subscribe{margin-top:44px;background:var(--pine);border-radius:13px;padding:24px 22px;color:#EAF3EE}
+.subscribe h2{font-family:var(--display);font-size:1.4rem;margin:0 0 6px;color:#fff}
+.subscribe p{margin:0 0 16px;font-size:.89rem;color:#B9D2C6;max-width:44ch}
+.btns{display:flex;flex-wrap:wrap;gap:9px}
+.btn{display:inline-block;padding:10px 17px;border-radius:8px;font-size:.87rem;font-weight:700;text-decoration:none;background:var(--sun);color:#3D2A00}
+.btn.ghost{background:transparent;border:1.5px solid #47806A;color:#EAF3EE}
+.btn:hover{opacity:.9}
+.fineprint{margin-top:15px;font-size:.78rem;color:#8FB3A2}
+
+footer{margin-top:34px;font-size:.82rem;color:var(--ink-soft)}
+footer .stamp{font-family:var(--mono);font-size:10.5px;letter-spacing:.05em}
+
+@media(max-width:560px){
+  .datechip{flex-basis:50px}
+  .gd{min-height:56px}
+  .ev{font-size:0;padding:0;height:5px;margin-bottom:2px;border-radius:2px}
+  .pinrow .when{flex-basis:56px}
+}
+@media(prefers-reduced-motion:no-preference){
+  .entry{animation:rise .32s ease both}
+  @keyframes rise{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="masthead">
+  <div class="ribbon" id="ribbon"></div>
+  <p class="eyebrow">Greater Life Baptist Church · Midland, Georgia</p>
+  <h1>What's <em>Coming Up</em></h1>
+  <p>Services Thursday at 7 PM and Sunday at 11 AM. Everything else — trips, revivals, fundraisers, and due dates — is below.</p>
+</header>
+
+<section class="filters">
+  <div class="filters-head">
+    <h2>Show me</h2>
+    <button class="linkbtn" id="toggleAll" type="button">Select all</button>
+  </div>
+  <div class="pills" id="pills"></div>
+</section>
+
+<div class="views" role="tablist">
+  <button class="tab" role="tab" aria-selected="true" data-view="agenda">Coming up</button>
+  <button class="tab" role="tab" aria-selected="false" data-view="month">Month</button>
+</div>
+
+<div id="agendaView">
+  <section class="pinned" id="pinned" hidden></section>
+  <div class="agenda" id="agenda"></div>
+  <button class="morebtn" id="moreBtn" type="button" hidden></button>
+</div>
+
+<div id="monthView" hidden>
+  <div class="gridnav">
+    <h3 id="gridLabel"></h3>
+    <button class="navbtn" id="prevM" type="button" aria-label="Previous month">&lsaquo;</button>
+    <button class="navbtn" id="nextM" type="button" aria-label="Next month">&rsaquo;</button>
+  </div>
+  <div class="grid" id="grid"></div>
+</div>
+
+<section class="subscribe">
+  <h2>Put this on your phone</h2>
+  <p>Events show up in the calendar app you already use. Nothing to install.</p>
+  <div class="btns">
+    <a class="btn" href="#" id="btnApple">iPhone &amp; iPad</a>
+    <a class="btn ghost" href="#" id="btnGoogle">Android &amp; Google</a>
+    <a class="btn ghost" href="#" id="btnIcs">Outlook or other</a>
+  </div>
+  <p class="fineprint">Subscribed calendars refresh on your phone's own schedule, so they can run a few hours behind. We always announce changes in GroupMe.</p>
+</section>
+
+<footer>
+  <p class="stamp" id="stamp"></p>
+</footer>
+
+</div>
+
+<script>
+/* Sample data — in production the nightly job writes events.json,
+   merging one .ics feed per ministry. */
+const SAMPLE = {
+  generated: "2026-08-24T19:00:00-04:00",
+  feeds: {
+    base: "https://calendars.greaterlifebaptistchurch.com/feeds/",
+    all:  "all.ics"
+  },
+  ministries: [
+    { id:"church", name:"Church-wide", color:"#1B5E45" },
+    { id:"youth",  name:"Youth",       color:"#6B9A12" },
+    { id:"kids",   name:"Kids",        color:"#EE7B21" },
+    { id:"mens",   name:"Men's",       color:"#2C7EA1" },
+    { id:"ladies", name:"Ladies",      color:"#A0447F" }
+  ],
+  events: [
+    { uid:"e1", ministry:"youth", type:"deadline", pinned:true,
+      title:"Permission forms due — Pigeon Forge", start:"2026-08-30", allDay:true,
+      notes:"Signed form and medical release. No form, no seat on the van.",
+      link:"#", linkText:"Open the permission form" },
+    { uid:"e2", ministry:"church", type:"service", title:"Revival — Night 1",
+      start:"2026-09-06T19:00:00", end:"2026-09-06T20:30:00", location:"Sanctuary",
+      notes:"Preaching: Bro. Daniel Hicks. Special singing before the message." },
+    { uid:"e3", ministry:"church", type:"service", title:"Revival — Night 2 (Youth Night)",
+      start:"2026-09-07T19:00:00", end:"2026-09-07T20:30:00", location:"Sanctuary",
+      notes:"Teens sit together up front. Pizza in the fellowship hall afterward." },
+    { uid:"e4", ministry:"church", type:"service", title:"Revival — Night 3",
+      start:"2026-09-08T19:00:00", end:"2026-09-08T20:30:00", location:"Sanctuary" },
+    { uid:"e5", ministry:"mens", type:"event", title:"Men's breakfast",
+      start:"2026-09-12T07:30:00", end:"2026-09-12T09:00:00", location:"Fellowship hall",
+      notes:"Bring a friend. Eggs and grits on the house." },
+    { uid:"e6", ministry:"youth", type:"deadline", title:"Raffle money & unsold tickets due",
+      start:"2026-09-13", allDay:true,
+      notes:"Turn in to Bro. Spencer. Everything comes back, sold or not." },
+    { uid:"e7", ministry:"kids", type:"event", title:"Fall Festival planning meeting",
+      start:"2026-09-15T18:30:00", end:"2026-09-15T19:30:00", location:"Kids room" },
+    { uid:"e8", ministry:"ladies", type:"event", title:"Ladies' fellowship supper",
+      start:"2026-09-19T18:00:00", end:"2026-09-19T20:00:00", location:"Fellowship hall",
+      notes:"Covered dish — bring a side or dessert." },
+    { uid:"e9", ministry:"youth", type:"event", title:"Gun raffle drawing",
+      start:"2026-09-20T12:30:00", end:"2026-09-20T13:00:00", location:"Fellowship hall",
+      notes:"Right after morning service. Winner's choice of the three prizes." },
+    { uid:"e10", ministry:"church", type:"event", title:"Fifth Sunday singing & dinner on the grounds",
+      start:"2026-09-27T11:00:00", end:"2026-09-27T14:00:00", location:"Pavilion" },
+    { uid:"e11", ministry:"kids", type:"event", title:"Fall Festival",
+      start:"2026-10-31T17:00:00", end:"2026-10-31T20:00:00", location:"Church grounds",
+      notes:"Trunk-or-treat, cake walk, hayride." },
+    { uid:"e12", ministry:"youth", type:"deadline", pinned:true,
+      title:"Trip deposit due — $75", start:"2027-02-14", allDay:true,
+      notes:"Non-refundable. Locks in your spot and the group rate on cabins." },
+    { uid:"e13", ministry:"youth", type:"trip", pinned:true,
+      title:"Youth trip — Pigeon Forge, TN", start:"2027-07-12", end:"2027-07-17", allDay:true,
+      location:"Pigeon Forge, Tennessee",
+      notes:"Six days. Dollywood, Ober Mountain, and evening services at the cabin." },
+    { uid:"e14", ministry:"church", type:"event", pinned:true, title:"Homecoming",
+      start:"2027-05-16T10:00:00", end:"2027-05-16T14:00:00", location:"Church grounds",
+      notes:"Dinner on the grounds and afternoon singing. Invite family early — folks travel in." }
+  ]
+};
+
+let DATA = SAMPLE, active = new Set(), showAll = false;
+let cursor = new Date(); cursor.setDate(1);
+
+const DOW = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const MONS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const MON = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+
+const $ = id => document.getElementById(id);
+const parse = s => new Date(s.length === 10 ? s + "T00:00:00" : s);
+const min = m => DATA.ministries.find(x => x.id === m) || { name:m, color:"#6B625A" };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
+
+function startOfToday(){ const d = new Date(); d.setHours(0,0,0,0); return d; }
+function daysUntil(d){ return Math.round((new Date(d.getFullYear(),d.getMonth(),d.getDate()) - startOfToday())/86400000); }
+function windowEnd(){ const t = startOfToday(); return new Date(t.getFullYear(), t.getMonth()+2, 0, 23, 59, 59); }
+
+function countdown(n){
+  if (n < 0)   return "Past due";
+  if (n === 0) return "Due today";
+  if (n === 1) return "Due tomorrow";
+  if (n < 45)  return "Due in " + n + " days";
+  return "Due in " + Math.round(n/30) + " months";
+}
+function awayLabel(n){
+  if (n <= 0)  return "Happening now";
+  if (n < 45)  return n + " days away";
+  if (n < 365) return Math.round(n/30) + " months away";
+  return "Next year";
+}
+function timeLabel(e){
+  if (e.allDay){
+    if (!e.end) return "All day";
+    const s = parse(e.start), en = parse(e.end);
+    return MONS[s.getMonth()] + " " + s.getDate() + " – " + MONS[en.getMonth()] + " " + en.getDate();
+  }
+  const t = d => d.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"}).replace(":00","");
+  return e.end ? t(parse(e.start)) + " – " + t(parse(e.end)) : t(parse(e.start));
+}
+
+function buildPills(){
+  const box = $("pills"); box.innerHTML = "";
+  DATA.ministries.forEach(m => {
+    const on = active.has(m.id);
+    const label = document.createElement("label");
+    label.className = "pill" + (on ? " on" : "");
+    if (on){ label.style.background = m.color; label.style.borderColor = m.color; label.style.color = "#fff"; }
+    label.innerHTML = '<input type="checkbox" ' + (on ? "checked" : "") + '>' +
+      '<span class="dot" style="background:' + (on ? "#fff" : m.color) + '"></span><span>' + esc(m.name) + '</span>';
+    label.querySelector("input").addEventListener("change", () => {
+      active.has(m.id) ? active.delete(m.id) : active.add(m.id);
+      buildPills(); render();
+    });
+    box.appendChild(label);
+  });
+}
+
+function buildRibbon(){
+  $("ribbon").innerHTML = DATA.ministries
+    .map(m => '<span style="background:' + m.color + '"></span>').join("");
+}
+
+function upcoming(){
+  const today = startOfToday();
+  return DATA.events
+    .filter(e => active.has(e.ministry))
+    .filter(e => parse(e.end || e.start) >= today)
+    .sort((a,b) => parse(a.start) - parse(b.start));
+}
+
+function renderPinned(){
+  const host = $("pinned");
+  const cut = windowEnd();
+  const list = upcoming().filter(e => e.pinned && parse(e.start) > cut);
+  if (!list.length){ host.hidden = true; return; }
+  host.hidden = false;
+
+  host.innerHTML = '<div class="pinned-head"><h2>Pinned — plan ahead</h2>' +
+    '<span class="sub">' + list.length + ' further out</span></div>' +
+    list.map(e => {
+      const d = parse(e.start), m = min(e.ministry), n = daysUntil(d);
+      return '<div class="pinrow"><div class="when">' + MONS[d.getMonth()].toUpperCase() +
+        '<b>' + d.getDate() + '</b>' + d.getFullYear() + '</div><div class="body">' +
+        '<h3>' + esc(e.title) + '</h3><div class="meta"><span style="color:' + m.color +
+        ';font-weight:700">' + esc(m.name) + '</span> · ' + timeLabel(e) +
+        (e.location ? " · " + esc(e.location) : "") + '</div>' +
+        (e.notes ? '<div class="meta">' + esc(e.notes) + '</div>' : "") +
+        '<span class="away">' + (e.type === "deadline" ? countdown(n) : awayLabel(n)) + '</span>' +
+        '</div></div>';
+    }).join("");
+}
+
+function renderAgenda(){
+  const host = $("agenda"), btn = $("moreBtn");
+  const all = upcoming(), cut = windowEnd();
+  const near = all.filter(e => parse(e.start) <= cut);
+  const later = all.filter(e => parse(e.start) > cut);
+  const list = showAll ? all : near;
+  host.innerHTML = "";
+
+  if (!list.length){
+    host.innerHTML = '<div class="empty"><strong>Nothing scheduled here yet</strong>' +
+      'Turn on another ministry above, or check back after Sunday.</div>';
+    btn.hidden = !later.length;
+    if (later.length) btn.textContent = "Show " + later.length + " event" + (later.length>1?"s":"") + " further out";
+    return;
+  }
+
+  let lastMonth = "";
+  list.forEach(e => {
+    const d = parse(e.start), m = min(e.ministry), dl = e.type === "deadline";
+    const key = MON[d.getMonth()] + " " + d.getFullYear();
+    if (key !== lastMonth){
+      const h = document.createElement("div");
+      h.className = "month-head"; h.textContent = key;
+      host.appendChild(h); lastMonth = key;
+    }
+    const row = document.createElement("article");
+    row.className = "entry" + (dl ? " deadline" : "");
+    row.innerHTML =
+      '<div class="datechip" style="background:' + m.color + '"><span class="dow">' + DOW[d.getDay()] +
+      '</span><span class="dnum">' + d.getDate() + '</span></div><div class="card">' +
+      (e.pinned ? '<span class="pinmark">Pinned</span>' : "") +
+      (dl ? '<span class="due">' + countdown(daysUntil(d)) + '</span>' : "") +
+      '<h3>' + esc(e.title) + '</h3><div class="meta">' +
+      '<span class="who" style="color:' + (dl ? "#D14E2B" : m.color) + '">' + esc(m.name) + '</span>' +
+      '<span>' + timeLabel(e) + '</span>' +
+      (e.location ? '<span>' + esc(e.location) + '</span>' : "") + '</div>' +
+      (e.notes ? '<p class="note">' + esc(e.notes) + '</p>' : "") +
+      (e.link ? '<a class="cta" href="' + esc(e.link) + '">' + esc(e.linkText || "Details") + ' &rarr;</a>' : "") +
+      '</div>';
+    host.appendChild(row);
+  });
+
+  btn.hidden = !later.length;
+  btn.textContent = showAll
+    ? "Show less"
+    : "Show " + later.length + " event" + (later.length>1?"s":"") + " further out";
+}
+
+function renderGrid(){
+  const g = $("grid"); g.innerHTML = "";
+  const y = cursor.getFullYear(), mo = cursor.getMonth();
+  $("gridLabel").textContent = MON[mo] + " " + y;
+  DOW.forEach(d => { const h = document.createElement("div"); h.className = "gh"; h.textContent = d; g.appendChild(h); });
+
+  const first = new Date(y,mo,1).getDay(), days = new Date(y,mo+1,0).getDate(), prev = new Date(y,mo,0).getDate();
+  const today = startOfToday();
+
+  for (let i = 0; i < 42; i++){
+    const cell = document.createElement("div");
+    let n, inMonth = true;
+    if (i < first){ n = prev - first + 1 + i; inMonth = false; }
+    else if (i - first < days){ n = i - first + 1; }
+    else { n = i - first - days + 1; inMonth = false; }
+    cell.className = "gd" + (inMonth ? "" : " off");
+    cell.innerHTML = '<span class="n">' + n + '</span>';
+
+    if (inMonth){
+      const date = new Date(y,mo,n);
+      if (date.getTime() === today.getTime()) cell.classList.add("today");
+      DATA.events
+        .filter(e => active.has(e.ministry))
+        .filter(e => {
+          const s = parse(e.start), en = parse(e.end || e.start);
+          return date >= new Date(s.getFullYear(),s.getMonth(),s.getDate())
+              && date <= new Date(en.getFullYear(),en.getMonth(),en.getDate());
+        })
+        .forEach(e => {
+          const chip = document.createElement("div");
+          chip.className = "ev" + (e.type === "deadline" ? " dl" : "");
+          chip.style.background = min(e.ministry).color;
+          chip.textContent = e.title; chip.title = e.title;
+          cell.appendChild(chip);
+        });
+    }
+    g.appendChild(cell);
+  }
+}
+
+function renderSubscribe(){
+  const sel = [...active];
+  const one = sel.length === 1 ? sel[0] + ".ics" : (DATA.feeds?.all || "all.ics");
+  const url = (DATA.feeds?.base || "") + one;
+  $("btnApple").href  = url.replace(/^https?:/, "webcal:");
+  $("btnGoogle").href = "https://calendar.google.com/calendar/r?cid=" + encodeURIComponent(url);
+  $("btnIcs").href    = url;
+}
+
+function render(){
+  renderPinned(); renderAgenda(); renderGrid(); renderSubscribe();
+  $("toggleAll").textContent = active.size === DATA.ministries.length ? "Clear all" : "Select all";
+}
+
+document.querySelectorAll(".tab").forEach(tab => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected","false"));
+    tab.setAttribute("aria-selected","true");
+    const month = tab.dataset.view === "month";
+    $("monthView").hidden = !month; $("agendaView").hidden = month;
+  });
+});
+$("toggleAll").addEventListener("click", () => {
+  active = active.size === DATA.ministries.length ? new Set() : new Set(DATA.ministries.map(m => m.id));
+  buildPills(); render();
+});
+$("moreBtn").addEventListener("click", () => { showAll = !showAll; renderAgenda(); });
+$("prevM").addEventListener("click", () => { cursor.setMonth(cursor.getMonth()-1); renderGrid(); });
+$("nextM").addEventListener("click", () => { cursor.setMonth(cursor.getMonth()+1); renderGrid(); });
+
+function init(){
+  const want = new URLSearchParams(location.search).get("ministry");
+  const ids = DATA.ministries.map(m => m.id);
+  active = want ? new Set(want.split(",").filter(id => ids.includes(id))) : new Set(ids);
+  if (!active.size) active = new Set(ids);
+  $("stamp").textContent = "Last updated " + parse(DATA.generated)
+    .toLocaleString("en-US",{weekday:"long",month:"long",day:"numeric",hour:"numeric",minute:"2-digit"});
+  buildRibbon(); buildPills(); render();
+}
+
+fetch("./events.json").then(r => r.ok ? r.json() : Promise.reject())
+  .then(j => { DATA = j; }).catch(() => {}).finally(init);
+</script>
+</body>
+</html>

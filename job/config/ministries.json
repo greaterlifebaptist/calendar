@@ -1,0 +1,123 @@
+{
+  "$comment": "IDs are LOCKED (CLAUDE.md section 3). They appear in URLs, feed filenames and QR codes. Display names may change freely; ids never do.",
+  "timezone": "America/New_York",
+  "site": {
+    "feedBase": "https://calendars.greaterlifebaptistchurch.com/feeds/",
+    "personalFeedBase": "https://calendars.greaterlifebaptistchurch.com/f/",
+    "allFeed": "all.ics"
+  },
+  "reminderDefaults": {
+    "deadline": ["30d", "7d", "1d", "0d"],
+    "trip": ["30d", "7d", "1d"],
+    "event": ["7d", "1d"],
+    "routine": []
+  },
+  "ministries": [
+    {
+      "id": "church",
+      "name": "Church-wide",
+      "visibility": "public",
+      "phase": 1,
+      "enabled": true,
+      "color": "#1B5E45",
+      "calendarIdEnv": "CAL_CHURCH",
+      "notify": [],
+      "reminders": null
+    },
+    {
+      "id": "youth",
+      "name": "Greater Generation",
+      "visibility": "public",
+      "phase": 1,
+      "enabled": true,
+      "color": "#6B9A12",
+      "calendarIdEnv": "CAL_YOUTH",
+      "notify": ["youth-parents"],
+      "reminders": null
+    },
+    {
+      "id": "youth-leaders",
+      "name": "Youth Leaders",
+      "visibility": "private",
+      "phase": 1,
+      "enabled": true,
+      "color": "#7A3E6E",
+      "calendarIdEnv": "CAL_YOUTH_LEADERS",
+      "notify": [],
+      "reminders": null
+    },
+    {
+      "id": "children",
+      "name": "Children",
+      "visibility": "public",
+      "phase": 2,
+      "enabled": false,
+      "color": "#EE7B21",
+      "calendarIdEnv": "CAL_CHILDREN",
+      "notify": [],
+      "reminders": null
+    },
+    {
+      "id": "youngadults",
+      "name": "Ignite Young Adults",
+      "visibility": "public",
+      "phase": 2,
+      "enabled": false,
+      "color": "#D14E2B",
+      "calendarIdEnv": "CAL_YOUNGADULTS",
+      "notify": [],
+      "reminders": null
+    },
+    {
+      "id": "seniors",
+      "name": "Best Life",
+      "visibility": "public",
+      "phase": 2,
+      "enabled": false,
+      "color": "#8A6A08",
+      "calendarIdEnv": "CAL_SENIORS",
+      "notify": [],
+      "reminders": null
+    },
+    {
+      "id": "mens",
+      "name": "Man Church",
+      "visibility": "public",
+      "phase": 2,
+      "enabled": false,
+      "color": "#2C7EA1",
+      "calendarIdEnv": "CAL_MENS",
+      "notify": [],
+      "reminders": null
+    },
+    {
+      "id": "womens",
+      "name": "Soul Sisters",
+      "visibility": "public",
+      "phase": 2,
+      "enabled": false,
+      "color": "#A0447F",
+      "calendarIdEnv": "CAL_WOMENS",
+      "notify": [],
+      "reminders": null
+    },
+    {
+      "id": "worship",
+      "name": "Worship / Music",
+      "visibility": "private",
+      "phase": 2,
+      "enabled": false,
+      "color": "#5B4B8A",
+      "calendarIdEnv": "CAL_WORSHIP",
+      "notify": [],
+      "reminders": null
+    }
+  ],
+  "channels": {
+    "youth-parents": {
+      "kind": "groupme",
+      "label": "Youth Parents",
+      "botIdEnv": "GROUPME_BOT_YOUTH_PARENTS"
+    }
+  }
+}

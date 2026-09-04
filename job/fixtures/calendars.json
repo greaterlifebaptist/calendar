@@ -1,0 +1,253 @@
+{
+  "_comment": "Sample Google Calendar API v3 event resources, keyed by ministry id. Titles are written the way GLBC leaders actually type them on a phone, including the sloppy ones. Used by `npm run dev` so the pipeline runs with no credentials.",
+
+  "church": [
+    {
+      "id": "svc-thu",
+      "iCalUID": "svc-thu@google.com",
+      "status": "confirmed",
+      "summary": "Thursday night service",
+      "location": "Sanctuary",
+      "start": { "dateTime": "2026-09-03T19:00:00-04:00", "timeZone": "America/New_York" },
+      "end": { "dateTime": "2026-09-03T20:30:00-04:00", "timeZone": "America/New_York" },
+      "recurrence": ["RRULE:FREQ=WEEKLY;BYDAY=TH"],
+      "created": "2026-01-04T15:00:00Z",
+      "updated": "2026-01-04T15:00:00Z",
+      "sequence": 0
+    },
+    {
+      "id": "svc-sun",
+      "iCalUID": "svc-sun@google.com",
+      "status": "confirmed",
+      "summary": "Sunday morning worship",
+      "location": "Sanctuary",
+      "start": { "dateTime": "2026-09-06T11:00:00-04:00", "timeZone": "America/New_York" },
+      "end": { "dateTime": "2026-09-06T12:15:00-04:00", "timeZone": "America/New_York" },
+      "recurrence": ["RRULE:FREQ=WEEKLY;BYDAY=SU"],
+      "created": "2026-01-04T15:00:00Z",
+      "updated": "2026-01-04T15:00:00Z",
+      "sequence": 0
+    },
+    {
+      "id": "svc-thu_20261126T230000Z",
+      "iCalUID": "svc-thu_20261126T230000Z@google.com",
+      "status": "cancelled",
+      "recurringEventId": "svc-thu",
+      "originalStartTime": { "dateTime": "2026-11-26T19:00:00-05:00", "timeZone": "America/New_York" },
+      "start": { "dateTime": "2026-11-26T19:00:00-05:00" },
+      "end": { "dateTime": "2026-11-26T20:30:00-05:00" }
+    },
+    {
+      "id": "svc-sun_20261227T150000Z",
+      "iCalUID": "svc-sun_20261227T150000Z@google.com",
+      "status": "confirmed",
+      "recurringEventId": "svc-sun",
+      "originalStartTime": { "dateTime": "2026-12-27T11:00:00-05:00", "timeZone": "America/New_York" },
+      "summary": "Sunday morning worship — combined singing service",
+      "location": "Sanctuary",
+      "start": { "dateTime": "2026-12-27T10:30:00-05:00", "timeZone": "America/New_York" },
+      "end": { "dateTime": "2026-12-27T12:00:00-05:00", "timeZone": "America/New_York" },
+      "updated": "2026-08-30T18:00:00Z",
+      "sequence": 1
+    },
+    {
+      "id": "revival1",
+      "iCalUID": "revival1@google.com",
+      "status": "confirmed",
+      "summary": "Revival — Night 1",
+      "location": "Sanctuary",
+      "description": "Preaching: Bro. Daniel Hicks. Special singing before the message.",
+      "start": { "dateTime": "2026-09-10T19:00:00-04:00", "timeZone": "America/New_York" },
+      "end": { "dateTime": "2026-09-10T20:30:00-04:00", "timeZone": "America/New_York" },
+      "created": "2026-07-01T12:00:00Z",
+      "updated": "2026-08-20T12:00:00Z",
+      "sequence": 1
+    },
+    {
+      "id": "revival2",
+      "iCalUID": "revival2@google.com",
+      "status": "confirmed",
+      "summary": "Revival — Night 2 (Youth Night)",
+      "location": "Sanctuary",
+      "description": "<p>Teens sit together up front.<br>Pizza in the fellowship hall afterward.</p>",
+      "start": { "dateTime": "2026-09-11T19:00:00-04:00", "timeZone": "America/New_York" },
+      "end": { "dateTime": "2026-09-11T20:30:00-04:00", "timeZone": "America/New_York" },
+      "created": "2026-07-01T12:00:00Z",
+      "updated": "2026-08-20T12:00:00Z"
+    },
+    {
+      "id": "money-count",
+      "iCalUID": "money-count@google.com",
+      "status": "confirmed",
+      "summary": "EVENT: Money counters meeting",
+      "location": "Church office",
+      "description": "The word \"money\" would otherwise read as a deadline. The EVENT: prefix says it is not.",
+      "start": { "dateTime": "2026-09-13T13:00:00-04:00", "timeZone": "America/New_York" },
+      "end": { "dateTime": "2026-09-13T14:00:00-04:00", "timeZone": "America/New_York" }
+    },
+    {
+      "id": "fifth-sunday",
+      "iCalUID": "fifth-sunday@google.com",
+      "status": "confirmed",
+      "summary": "Fifth Sunday singing & dinner on the grounds",
+      "location": "Pavilion",
+      "start": { "dateTime": "2026-09-27T11:00:00-04:00", "timeZone": "America/New_York" },
+      "end": { "dateTime": "2026-09-27T14:00:00-04:00", "timeZone": "America/New_York" }
+    },
+    {
+      "id": "deacons",
+      "iCalUID": "deacons@google.com",
+      "status": "confirmed",
+      "summary": "Deacons meeting",
+      "location": "Church office",
+      "start": { "dateTime": "2026-10-05T18:00:00-04:00", "timeZone": "America/New_York" },
+      "end": { "dateTime": "2026-10-05T19:00:00-04:00", "timeZone": "America/New_York" }
+    },
+    {
+      "id": "homecoming",
+      "iCalUID": "homecoming@google.com",
+      "status": "confirmed",
+      "summary": "PIN: Homecoming",
+      "location": "Church grounds",
+      "description": "Dinner on the grounds and afternoon singing. Invite family early, folks travel in.\ncontact: Sis. Wanda in the office",
+      "start": { "dateTime": "2027-05-16T10:00:00-04:00", "timeZone": "America/New_York" },
+      "end": { "dateTime": "2027-05-16T14:00:00-04:00", "timeZone": "America/New_York" }
+    },
+    {
+      "id": "workday",
+      "iCalUID": "workday@google.com",
+      "status": "confirmed",
+      "summary": "Church workday",
+      "location": "Church grounds",
+      "description": "Bring a rake and a weed eater if you have one.",
+      "start": { "date": "2026-10-17" },
+      "end": { "date": "2026-10-18" }
+    }
+  ],
+
+  "youth": [
+    {
+      "id": "yth-forms",
+      "iCalUID": "yth-forms@google.com",
+      "status": "confirmed",
+      "summary": "Permission forms due - Pigeon Forge",
+      "description": "Signed form and medical release. No form, no seat on the van.\nlink: Permission form https://example.org/glbc/forms/pigeon-forge\ncontact: Bro. Spencer",
+      "start": { "date": "2026-09-30" },
+      "end": { "date": "2026-10-01" },
+      "created": "2026-08-01T12:00:00Z",
+      "updated": "2026-08-28T12:00:00Z"
+    },
+    {
+      "id": "yth-raffle-money",
+      "iCalUID": "yth-raffle-money@google.com",
+      "status": "confirmed",
+      "summary": "raffle money and unsold tickets due",
+      "description": "Turn in to Bro. Spencer. Everything comes back, sold or not.",
+      "start": { "date": "2026-09-20" },
+      "end": { "date": "2026-09-21" }
+    },
+    {
+      "id": "yth-carwash",
+      "iCalUID": "yth-carwash@google.com",
+      "status": "confirmed",
+      "summary": "Youth fundraiser car wash",
+      "location": "Church parking lot",
+      "description": "cost: donations only\nBring towels and buckets. Rain date is the following Saturday.",
+      "start": { "dateTime": "2026-09-19T09:00:00-04:00", "timeZone": "America/New_York" },
+      "end": { "dateTime": "2026-09-19T13:00:00-04:00", "timeZone": "America/New_York" }
+    },
+    {
+      "id": "yth-drawing",
+      "iCalUID": "yth-drawing@google.com",
+      "status": "confirmed",
+      "summary": "Gun raffle drawing",
+      "location": "Fellowship hall",
+      "description": "Right after morning service. Winner's choice of the three prizes.",
+      "start": { "dateTime": "2026-09-27T12:30:00-04:00", "timeZone": "America/New_York" },
+      "end": { "dateTime": "2026-09-27T13:00:00-04:00", "timeZone": "America/New_York" }
+    },
+    {
+      "id": "yth-wed",
+      "iCalUID": "yth-wed@google.com",
+      "status": "confirmed",
+      "summary": "Youth group",
+      "location": "Youth building",
+      "start": { "dateTime": "2026-09-09T18:30:00-04:00", "timeZone": "America/New_York" },
+      "end": { "dateTime": "2026-09-09T20:00:00-04:00", "timeZone": "America/New_York" },
+      "recurrence": ["RRULE:FREQ=WEEKLY;BYDAY=WE"]
+    },
+    {
+      "id": "yth-lockin",
+      "iCalUID": "yth-lockin@google.com",
+      "status": "confirmed",
+      "summary": "Fall lock-in",
+      "location": "Fellowship hall",
+      "description": "cost: $10\nDrop off Friday 8pm, pick up Saturday 8am. Bring a sleeping bag.",
+      "start": { "dateTime": "2026-11-13T20:00:00-05:00", "timeZone": "America/New_York" },
+      "end": { "dateTime": "2026-11-14T08:00:00-05:00", "timeZone": "America/New_York" }
+    },
+    {
+      "id": "yth-deposit",
+      "iCalUID": "yth-deposit@google.com",
+      "status": "confirmed",
+      "summary": "Trip deposit $75",
+      "description": "Non-refundable. Locks in your spot and the group rate on cabins.\ncost: $75",
+      "start": { "date": "2027-02-14" },
+      "end": { "date": "2027-02-15" }
+    },
+    {
+      "id": "yth-trip",
+      "iCalUID": "yth-trip@google.com",
+      "status": "confirmed",
+      "summary": "Youth trip - Pigeon Forge, TN",
+      "location": "Pigeon Forge, Tennessee",
+      "description": "Six days. Dollywood, Ober Mountain, and evening services at the cabin.\ncost: $310 total\ncontact: Bro. Spencer",
+      "start": { "date": "2027-07-12" },
+      "end": { "date": "2027-07-18" }
+    },
+    {
+      "id": "yth-planning",
+      "iCalUID": "yth-planning@google.com",
+      "status": "confirmed",
+      "summary": "NOPIN: Leaders planning retreat",
+      "description": "Leaders only. Should not clutter the pinned rail for parents.",
+      "start": { "date": "2027-01-16" },
+      "end": { "date": "2027-01-18" }
+    },
+    {
+      "id": "yth-admin-form",
+      "iCalUID": "yth-admin-form@google.com",
+      "status": "confirmed",
+      "summary": "See You at the Pole",
+      "location": "Midland Middle School flagpole",
+      "description": "Meet at the flagpole before first bell.",
+      "start": { "dateTime": "2026-09-23T07:00:00-04:00", "timeZone": "America/New_York" },
+      "end": { "dateTime": "2026-09-23T07:30:00-04:00", "timeZone": "America/New_York" },
+      "extendedProperties": {
+        "shared": { "glbcType": "event", "glbcPinned": "true" }
+      }
+    }
+  ],
+
+  "youth-leaders": [
+    {
+      "id": "ldr-monthly",
+      "iCalUID": "ldr-monthly@google.com",
+      "status": "confirmed",
+      "summary": "Youth leaders monthly planning",
+      "location": "Youth building",
+      "description": "Calendar review, curriculum, and van maintenance.",
+      "start": { "dateTime": "2026-09-08T18:00:00-04:00", "timeZone": "America/New_York" },
+      "end": { "dateTime": "2026-09-08T19:30:00-04:00", "timeZone": "America/New_York" },
+      "recurrence": ["RRULE:FREQ=MONTHLY;BYDAY=2TU"]
+    },
+    {
+      "id": "ldr-budget",
+      "iCalUID": "ldr-budget@google.com",
+      "status": "confirmed",
+      "summary": "Budget request due to the church treasurer",
+      "start": { "date": "2026-10-15" },
+      "end": { "date": "2026-10-16" }
+    }
+  ]
+}
