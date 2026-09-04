@@ -559,9 +559,10 @@ const TV = (PARAMS.get("display") || "").toLowerCase() === "tv";
 const CACHE_KEY = "glbc.events.v1";
 const DISMISS_KEY = "glbc.install.dismissed";
 const REFRESH_MS = 15 * 60 * 1000;
-/* Feeds are rebuilt hourly. Past this, something is wrong upstream and the
-   reader deserves to know rather than trusting a stale page. */
-const STALE_MS = 12 * 60 * 60 * 1000;
+/* Feeds are rebuilt hourly, but the schedule genuinely does not move much,
+   so a short window would cry wolf. A full day without a refresh does mean
+   something upstream has stopped. */
+const STALE_MS = 24 * 60 * 60 * 1000;
 
 let SOURCE = "sample";
 
@@ -600,7 +601,7 @@ function renderNotice(){
   } else if (age > STALE_MS) {
     cls = "notice";
     head = "This may be out of date";
-    body = "The calendar normally refreshes every hour, but it has not since " +
+    body = "The calendar refreshes through the day, but it has not since " +
            longWhen(generated) + ". Check GroupMe before relying on a date here.";
   }
 

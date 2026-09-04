@@ -100,11 +100,25 @@ jobs:
       # Assemble exactly what scripts/serve.mjs serves locally: the pages in
       # site/ over the job output in public/.
       - name: Assemble site
+        env:
+          SITE_DOMAIN: ${{ vars.SITE_DOMAIN }}
         run: |
           mkdir -p _site
           cp -r public/. _site/
           cp -r site/. _site/
-          ls -R _site | head -40
+
+          # The CNAME file appears only once a custom domain actually resolves.
+          # Shipping it earlier makes Pages redirect to a hostname that does not
+          # exist yet, so the site cannot be tested at all before DNS is done.
+          # Set the SITE_DOMAIN repository variable when the record goes live.
+          if [ -n "$SITE_DOMAIN" ]; then
+            echo "$SITE_DOMAIN" > _site/CNAME
+            echo "Custom domain: $SITE_DOMAIN"
+          else
+            echo 'No SITE_DOMAIN variable set. Serving on the default github.io URL.'
+          fi
+
+          ls _site
 
       - uses: actions/upload-pages-artifact@v3
         with:

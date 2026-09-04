@@ -106,7 +106,8 @@ a second admin, matching CLAUDE.md section 11.
 
    `SHEET_ID`, `GROUPME_BOT_YOUTH_PARENTS` and `ADMIN_PASSCODE` come later.
 
-4. Actions tab > Calendar sync > Run workflow, to test before the hour.
+4. Actions tab > Calendar sync > Run workflow, to test without waiting for the
+   hour. The site appears at `https://<owner>.github.io/<repo>/`. DNS can wait.
 
 ## 6. DNS
 
@@ -114,8 +115,7 @@ The site is served at `calendars.greaterlifebaptistchurch.com`. The main
 website stays exactly where it is on SiteGround. The WordPress page at
 `greaterlifebaptistchurch.com/calendar` fetches from the subdomain.
 
-Add one DNS record wherever the domain's DNS is managed, which is either the
-registrar or SiteGround:
+Add one DNS record in SiteGround, under Site Tools > Domain > DNS Zone Editor:
 
 ```
 Type   CNAME
@@ -124,9 +124,20 @@ Value  <github-owner>.github.io
 TTL    default
 ```
 
-Then in the repo, Settings > Pages > Custom domain, enter
-`calendars.greaterlifebaptistchurch.com` and tick Enforce HTTPS once the
-certificate is issued. `site/CNAME` already carries this name.
+Do this part last. Until the record exists, the site is testable at the
+default address GitHub gives you, which is
+`https://<owner>.github.io/<repo>/`.
+
+When the record is live:
+
+1. Repo Settings > Secrets and variables > Actions > **Variables** tab. Add a
+   variable named `SITE_DOMAIN` with the value
+   `calendars.greaterlifebaptistchurch.com`. The workflow only writes the
+   CNAME file when that variable is set, so a half-finished DNS change cannot
+   take the site offline.
+2. Repo Settings > Pages > Custom domain, enter the same name.
+3. Tick Enforce HTTPS once the certificate is issued, which can take a few
+   minutes.
 
 The subdomain is deliberate indirection. If hosting ever moves to Cloudflare
 Pages or Azure, it is this one DNS record that changes and nothing else. No
