@@ -119,14 +119,19 @@ body{background:var(--ivory);color:var(--ink);font-family:var(--body);font-size:
 .ev.dl{background:var(--clay)!important;font-weight:700}
 
 /* ---------- subscribe ---------- */
-.subscribe{margin-top:44px;background:var(--pine);border-radius:13px;padding:24px 22px;color:#EAF3EE}
-.subscribe h2{font-family:var(--display);font-size:1.4rem;margin:0 0 6px;color:#fff}
-.subscribe p{margin:0 0 16px;font-size:.89rem;color:#B9D2C6;max-width:44ch}
-.btns{display:flex;flex-wrap:wrap;gap:9px}
-.btn{display:inline-block;padding:10px 17px;border-radius:8px;font-size:.87rem;font-weight:700;text-decoration:none;background:var(--sun);color:#3D2A00}
+.subscribe{margin-top:32px;background:var(--pine);border-radius:11px;padding:15px 17px 14px;color:#EAF3EE}
+.subscribe h2{font-family:var(--display);font-size:1.12rem;margin:0 0 9px;color:#fff}
+/* Says exactly what the buttons will add, because the ministry filter above
+   drives it and that connection is not obvious from the buttons alone. */
+.subwhat{margin:0 0 11px;font-size:.85rem;line-height:1.45;color:#EAF3EE;background:rgba(0,0,0,.16);border-left:3px solid var(--sun);border-radius:0 6px 6px 0;padding:8px 11px}
+.subwhat b{color:#fff}
+.subwhat.none{border-left-color:#8FB3A2;color:#B9D2C6}
+.btns{display:flex;flex-wrap:wrap;gap:7px}
+.btn{display:inline-block;padding:8px 14px;border-radius:7px;font-size:.82rem;font-weight:700;text-decoration:none;background:var(--sun);color:#3D2A00}
 .btn.ghost{background:transparent;border:1.5px solid #47806A;color:#EAF3EE}
 .btn:hover{opacity:.9}
-.fineprint{margin-top:15px;font-size:.78rem;color:#8FB3A2}
+.btn.off{opacity:.35;pointer-events:none;cursor:default}
+.fineprint{margin-top:11px;margin-bottom:0;font-size:.76rem;line-height:1.45;color:#8FB3A2}
 
 footer{margin-top:34px;font-size:.82rem;color:var(--ink-soft)}
 footer .stamp{font-family:var(--mono);font-size:10.5px;letter-spacing:.05em}
@@ -237,14 +242,13 @@ body.tv footer{font-size:1rem}
 
 <section class="subscribe">
   <h2>Put this on your phone</h2>
-  <p>Events show up in the calendar app you already use. Nothing to install.</p>
+  <p class="subwhat" id="subWhat"></p>
   <div class="btns">
     <a class="btn" href="#" id="btnApple">iPhone &amp; iPad</a>
     <a class="btn ghost" href="#" id="btnGoogle">Android &amp; Google</a>
     <a class="btn ghost" href="#" id="btnIcs">Outlook or other</a>
   </div>
-  <p class="fineprint" id="subWhat"></p>
-  <p class="fineprint">Subscribed calendars refresh on your phone's own schedule, so they can run a few hours behind. We always announce changes in GroupMe.</p>
+  <p class="fineprint">Events appear in the calendar app you already use, and refresh on your phone's own schedule, so they can run a few hours behind. Adding a different selection later arrives as a second calendar rather than replacing the first, so remove the old one if you swap.</p>
 </section>
 
 <footer>
@@ -503,25 +507,44 @@ function renderGrid(){
 
 function renderSubscribe(){
   const sel = [...active];
-  const all = DATA.ministries.length;
-  // One bundle feed exists per ministry, plus a combined one. There is no
-  // feed for an arbitrary pair, so any partial selection falls back to
-  // everything and the page says so rather than quietly subscribing you to
-  // more than you asked for.
+  const total = DATA.ministries.length;
+  const btns = ["btnApple","btnGoogle","btnIcs"].map($);
+  const box = $("subWhat");
+
+  // Nothing selected means nothing to add. Falling back to everything would
+  // hand someone the opposite of what they asked for; if they wanted all of
+  // it they would have selected all of it.
+  if (!sel.length){
+    btns.forEach(b => {
+      b.classList.add("off");
+      b.setAttribute("aria-disabled","true");
+      b.removeAttribute("href");
+    });
+    box.className = "subwhat none";
+    box.innerHTML = "Pick at least one calendar under <b>Show me</b> above, and these buttons will add exactly that.";
+    return;
+  }
+
+  // One bundle feed exists per ministry, plus a combined one. There is no feed
+  // for an arbitrary pair, so a partial selection has to use the combined feed
+  // and say plainly that it is doing so.
   const single = sel.length === 1;
+  const everything = sel.length === total;
   const file = single ? sel[0] + ".ics" : (DATA.feeds?.all || "all.ics");
   const url = (DATA.feeds?.base || "") + file;
+
+  btns.forEach(b => { b.classList.remove("off"); b.removeAttribute("aria-disabled"); });
   $("btnApple").href  = url.replace(/^https?:/, "webcal:");
   $("btnGoogle").href = "https://calendar.google.com/calendar/r?cid=" + encodeURIComponent(url);
   $("btnIcs").href    = url;
 
-  const names = sel.map(id => min(id).name);
-  let what;
-  if (single) what = "Adds " + names[0] + ".";
-  else if (sel.length === all || !sel.length) what = "Adds everything.";
-  else what = "Adds everything, not just the " + names.length +
-    " you picked. There is one calendar per ministry and one for all of them.";
-  $("subWhat").textContent = what;
+  const names = sel.map(id => esc(min(id).name));
+  box.className = "subwhat";
+  if (single) box.innerHTML = "Adds <b>" + names[0] + "</b>.";
+  else if (everything) box.innerHTML = "Adds <b>everything</b>, all " + total + " calendars.";
+  else box.innerHTML = "Adds <b>everything</b>, not just the " + names.length +
+    " you picked. Calendars come one per ministry or all together, so there is no feed for just " +
+    names.join(" and ") + ".";
 }
 
 function render(){

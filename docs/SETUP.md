@@ -201,3 +201,31 @@ What may safely live in the repo: calendar IDs, the Sheet ID, ministry config,
 and every line of code. What may not: the service account key, GroupMe bot IDs,
 the admin passcode, and any account password. Those are GitHub Actions secrets
 or password manager entries.
+
+---
+
+## 9. Adding events
+
+Add them in **Google Calendar**, on the phone app or the web. That is the
+system of record and it stays that way. The admin form in step 8 of the plan is
+a convenience for people who would rather use a form; it will write to these
+same calendars through the API, and it is not a prerequisite for anything.
+
+**Recurring events are fully supported.** Create the repeat in Google as
+normal, weekly, monthly, third Tuesday, whatever. The job copies the recurrence
+rule into the feeds rather than expanding it into hundreds of separate entries,
+and it handles the two things people actually do to a series:
+
+- Move or rename a single occurrence, and only that occurrence changes.
+- Delete a single occurrence, and it disappears from the feeds without
+  disturbing the rest.
+
+A weekly or biweekly series is classified `routine` and never pinned, on the
+assumption that it is the normal rhythm rather than something to plan around.
+If a recurring event should behave otherwise, put `EVENT:` at the front of the
+title.
+
+Nothing else is required. Type a title and a time. The classifier reads the
+title and the dates and works out the rest, and there is no metadata anyone has
+to remember. See the Classification section of the README for the details and
+for the prefixes that override a wrong guess.

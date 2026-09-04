@@ -41,27 +41,69 @@ something changed. Different provider from Google, versioned forever, free, and
 access controlled. Every snapshot is a commit, so recovery is possible to any
 point in time, not just to last night.
 
-### Turning it on
+### Turning it on, step by step
 
-1. Create a **private** repo on the `greaterlifebaptist` account, for example
-   `calendar-backup`. Initialise it with a README so it has a branch.
-2. Create a fine-grained personal access token: Settings > Developer settings >
-   Personal access tokens > Fine-grained tokens.
-   - Repository access: **only** the backup repo.
-   - Permissions: Contents **read and write**. Nothing else.
-   - Expiry: set a reminder, or choose no expiry. An expired token fails the
-     run loudly rather than silently, but a failed run is still a stopped
-     backup.
-3. In the `calendar` repo, add:
+Do all of this signed in as the **church** GitHub account, `greaterlifebaptist`.
 
-   | Where | Name | Value |
-   |---|---|---|
-   | Secrets | `BACKUP_TOKEN` | the token |
-   | Variables | `BACKUP_REPO` | `greaterlifebaptist/calendar-backup` |
+**Part 1 — create the private repository.**
+
+1. Go to <https://github.com/new>.
+2. Owner: `greaterlifebaptist`. Repository name: `calendar-backup`.
+3. Select **Private**. This is the whole point; it holds private calendars.
+4. Tick **Add a README file**. The repo needs at least one commit or there is
+   no branch to push to.
+5. Click **Create repository**.
+
+**Part 2 — create the access token.**
+
+A token is how the job proves it may write to that repo. Make it able to do
+that one thing and nothing else.
+
+6. Click your avatar, top right, then **Settings**. This is account settings,
+   not the repository's.
+7. Left sidebar, scroll to the bottom: **Developer settings**.
+8. **Personal access tokens** > **Fine-grained tokens**.
+9. **Generate new token**.
+10. Fill in:
+    - **Token name**: `calendar-backup-writer`
+    - **Expiration**: 1 year, and put a reminder in your calendar. Or **No
+      expiration** if you would rather not have it stop. An expired token
+      fails the run loudly, but a failed run is still a stopped backup.
+    - **Resource owner**: `greaterlifebaptist`
+11. **Repository access**: choose **Only select repositories**, then pick
+    `calendar-backup`. Do not choose all repositories.
+12. **Permissions** > **Repository permissions**. Find **Contents** and set it
+    to **Read and write**. Leave everything else alone. Metadata will switch
+    itself to read-only, which is expected.
+13. **Generate token**, then **copy it**. It is shown once. If you lose it,
+    delete it and make another.
+
+**Part 3 — tell the calendar repo about it.**
+
+14. Go to the `calendar` repo > **Settings** > **Secrets and variables** >
+    **Actions**.
+15. On the **Secrets** tab, **New repository secret**:
+    - Name: `BACKUP_TOKEN`
+    - Value: the token you copied
+16. On the **Variables** tab, **New repository variable**:
+    - Name: `BACKUP_REPO`
+    - Value: `greaterlifebaptist/calendar-backup`
+
+    Secrets and variables are different tabs and are not interchangeable. The
+    workflow reads `BACKUP_TOKEN` as a secret and `BACKUP_REPO` as a variable.
+    Putting either in the wrong place means it is simply not there.
+
+**Part 4 — prove it works.**
+
+17. **Actions** tab > **Calendar sync** > **Run workflow**.
+18. Open the run and check the **Back up calendars** step. It should say
+    `Snapshot pushed.` on the first run.
+19. Open `calendar-backup` in the browser. You should see a `backup/` folder
+    containing `manifest.json` and one JSON file per calendar.
 
 Until `BACKUP_REPO` is set, every run prints a warning in the Actions summary
-saying backups are off. If `BACKUP_REPO` is set but the token is missing, the
-run fails rather than pretending to back anything up.
+saying backups are off. If `BACKUP_REPO` is set but the token is missing or
+wrong, the run **fails** rather than quietly pretending to back anything up.
 
 ## Restoring
 
