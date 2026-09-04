@@ -47,22 +47,32 @@ not grant it silently.
   Skip this and every save fails with a permission error, even though the
   deployment looks healthy.
 
-**3. Set the passcode.** Project Settings > **Script Properties** > Add script
-property:
+**3. Set the passcode.** This is what `adminReady: false` means, and nothing
+else. It is not a GitHub secret and not in the repo; it lives in the script.
 
-  | Property | Value |
-  |---|---|
-  | `ADMIN_PASSCODE` | something long that is not used anywhere else |
+  1. Open the Apps Script editor.
+  2. Left sidebar, the **gear icon**, **Project Settings**.
+  3. Scroll to the bottom, to **Script Properties**.
+  4. **Add script property**.
+  5. Property `ADMIN_PASSCODE`, value your passcode, then **Save script
+     properties**.
 
-  It lives only there. It is never in the repo, never in the page, and never
-  sent to the website's host.
+  Pick something long that is not used anywhere else. Two or three people will
+  share it, and it currently grants every private calendar.
+
+  **No redeploy needed.** Script properties are read at run time, so reload the
+  `/exec` URL and `adminReady` flips to `true` straight away. If it does not,
+  the property name is misspelled; it is case sensitive.
+
+
+
 
 ### Checking
 
-Open the `/exec` URL. You want `version` 4 or higher and `adminReady: true`:
+Open the `/exec` URL. You want `version` 5 or higher and `adminReady: true`:
 
 ```json
-{"ok":true,"service":"glbc-signup","version":4,
+{"ok":true,"service":"glbc-signup","version":5,
  "actions":["signup","load","save","rotate","admin.hello","admin.list",
   "admin.save","admin.delete","admin.people","admin.setgroups"],
  "sheet":true,"adminReady":true,"detail":""}
@@ -87,9 +97,18 @@ Apps Script already runs as the church account and can read `Session
 as the owner. It is not work to do speculatively, but it is work to do before
 the sensitive calendars, not after.
 
-Practical measures already in place: a wrong passcode costs the guesser a
-deliberate delay, the comparison does not leak how much of it was right, and
-the passcode is held in the browser tab only until it is closed.
+Practical measures already in place: the comparison does not leak how much of
+the passcode was right, a wrong one costs the guesser a deliberate delay, ten
+wrong ones lock the admin actions for fifteen minutes, and the passcode is held
+in the browser tab only until it is closed.
+
+The lockout matters more than it looks. The admin page is linked from the
+public calendar, so this endpoint will be poked at. Without a cap, a bot
+hammering wrong passcodes would burn the script's daily execution quota and
+take signup down for everybody. The counter is script wide, because Apps Script
+cannot see who is calling, so an attacker can lock the admins out for fifteen
+minutes. That is a far better outcome, and signup and preferences are untouched
+either way: nothing but the admin actions ever checks a passcode.
 
 ## Who gets which calendars
 

@@ -34,7 +34,7 @@
  * not take looks identical to one that did. Open the /exec URL and read the
  * version back.
  */
-var VERSION = 4;
+var VERSION = 5;
 
 var SITE = 'https://calendars.greaterlifebaptistchurch.com';
 var EVENTS_JSON = SITE + '/events.json';
@@ -419,11 +419,37 @@ function adminPasscode_() {
   return String(PropertiesService.getScriptProperties().getProperty('ADMIN_PASSCODE') || '');
 }
 
+var FAIL_KEY = 'admin_fails';
+var FAIL_LIMIT = 10;
+var FAIL_WINDOW = 900; // seconds
+
+/**
+ * Passcode check, with a lockout after repeated failures.
+ *
+ * The admin page is linked from the public calendar, so this endpoint will be
+ * poked at. The lockout is less about guessing, which a long passcode already
+ * makes hopeless, than about the deliberate delay below: without a cap, a bot
+ * hammering wrong passcodes would burn the script's daily execution quota and
+ * take signup down for everybody.
+ *
+ * The counter is script-wide rather than per-caller, because Apps Script
+ * cannot see who is calling. So a determined attacker can lock the admins out
+ * for fifteen minutes. That is a far better outcome than the alternative, and
+ * signup and preferences are untouched either way: nothing but the admin
+ * actions ever calls this.
+ */
 function checkPasscode_(given) {
   var want = adminPasscode_();
   if (!want) {
     return 'No passcode is set. Add ADMIN_PASSCODE in Project Settings > Script Properties.';
   }
+
+  var cache = CacheService.getScriptCache();
+  var fails = Number(cache.get(FAIL_KEY) || 0);
+  if (fails >= FAIL_LIMIT) {
+    return 'Too many wrong attempts. Try again in a few minutes.';
+  }
+
   var got = String(given || '');
   // Compare every character regardless, so the time taken says nothing about
   // how much of the passcode was right.
@@ -432,10 +458,14 @@ function checkPasscode_(given) {
   for (var i = 0; i < n; i++) {
     if (got.charAt(i) !== want.charAt(i)) same = false;
   }
+
   if (!same) {
+    cache.put(FAIL_KEY, String(fails + 1), FAIL_WINDOW);
     Utilities.sleep(1200); // slow down anyone working through guesses
     return 'That passcode is not right.';
   }
+
+  cache.remove(FAIL_KEY);
   return null;
 }
 
