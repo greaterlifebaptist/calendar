@@ -129,3 +129,16 @@ Set these as GitHub Actions secrets. Never commit them.
 
 A calendar the service account has not been shared with returns 403. A calendar
 id left blank is skipped with a warning rather than failing the run.
+
+## Preview
+
+Serves `site/` over `public/` from one origin, the way GitHub Pages will, so
+the page fetches `events.json` and the feeds by their real paths:
+
+```bash
+node scripts/serve.mjs
+```
+
+In fixtures mode a recurring event shows only one occurrence, because Google
+does the expanding and fixtures do not. Everything else renders as it will in
+production.
