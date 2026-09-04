@@ -34,7 +34,7 @@
  * not take looks identical to one that did. Open the /exec URL and read the
  * version back.
  */
-var VERSION = 6;
+var VERSION = 7;
 
 var SITE = 'https://calendars.greaterlifebaptistchurch.com';
 var EVENTS_JSON = SITE + '/events.json';
@@ -779,4 +779,32 @@ function handleAdminSetGroups_(body) {
 
   writeGroups_(sheet, headers, found.row, groups, all);
   return json_({ ok: true, handle: token, groups: groups });
+}
+
+// ---------------------------------------------------------------------------
+// Run this by hand if calendar access is not working
+// ---------------------------------------------------------------------------
+//
+// Pick authorizeCalendar from the dropdown at the top of the editor and press
+// Run. Unlike doGet, this touches CalendarApp directly, so Apps Script cannot
+// decide the calendar permission is unnecessary. If the permission is missing
+// the consent screen appears; if it is already granted the log says so.
+//
+// Then look at the execution log for the two lines it prints.
+
+function authorizeCalendar() {
+  var owned = CalendarApp.getAllOwnedCalendars();
+  Logger.log('CalendarApp can see ' + owned.length + ' calendars this account owns.');
+
+  var probe = UrlFetchApp.fetch(
+    'https://www.googleapis.com/calendar/v3/users/me/calendarList?maxResults=1',
+    {
+      muteHttpExceptions: true,
+      headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() }
+    }
+  );
+  Logger.log('Calendar REST check: HTTP ' + probe.getResponseCode() +
+    (probe.getResponseCode() === 200
+      ? '  (good, redeploy a new version now)'
+      : '  ' + probe.getContentText().slice(0, 200)));
 }

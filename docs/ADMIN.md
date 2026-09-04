@@ -58,15 +58,41 @@ The fix is to stop relying on the guess and state the permissions outright.
   3. Replace its contents with
      [`site/apps-script/appsscript.json`](../site/apps-script/appsscript.json)
      from this repo, and save.
-  4. Pick any function from the dropdown at the top, `doGet` will do, and press
-     **Run**.
-  5. Approve the consent screen. It will now mention seeing and editing your
-     calendars, which is the point. If no consent screen appears, the
-     permissions were already granted.
-  6. Redeploy: **Deploy** > **Manage deployments** > pencil > **New version**.
+  4. Pick **`authorizeCalendar`** from the function dropdown at the top and
+     press **Run**. Not `doGet`: `doGet` never touches `CalendarApp`, so Apps
+     Script can decide the calendar permission is unnecessary and skip the
+     prompt entirely. `authorizeCalendar` exists only to make that impossible.
+  5. Approve the consent screen. It will mention seeing and editing your
+     calendars, which is the point.
+  6. Read the execution log. `Calendar REST check: HTTP 200` means it worked.
+  7. Redeploy: **Deploy** > **Manage deployments** > pencil > **New version**.
 
   The manifest also pins "execute as me" and "anyone can access", so those
   cannot drift on a later deploy.
+
+### If it still says no consent was needed
+
+Two things to check, in order.
+
+**Did the manifest actually save?** Open `appsscript.json` in the editor and
+confirm it contains an `oauthScopes` list with the calendar entry in it. Apps
+Script will quietly keep the old file if the JSON was malformed.
+
+**Force a fresh consent by revoking the old one.** Once a script is authorised,
+Google will not ask again unless what it needs has changed, and that comparison
+sometimes goes stale.
+
+  1. Go to <https://myaccount.google.com/permissions>, signed in as the church
+     account.
+  2. Find the script project, likely listed as **GLBC Signup**.
+  3. **Remove access**.
+  4. Back in the editor, run `authorizeCalendar` again. The consent screen will
+     now definitely appear, listing every permission from the manifest.
+  5. Redeploy a new version.
+
+Revoking is safe. It removes an authorisation, not the script, and the next run
+grants it back. The hourly job is unaffected: it uses the service account, which
+is a completely separate credential.
 
 **3. Set the passcode.** This is what `adminReady: false` means, and nothing
 else. It is not a GitHub secret and not in the repo; it lives in the script.
@@ -90,11 +116,11 @@ else. It is not a GitHub secret and not in the repo; it lives in the script.
 
 ### Checking
 
-Open the `/exec` URL. You want `version` 6 or higher, with `adminReady`,
+Open the `/exec` URL. You want `version` 7 or higher, with `adminReady`,
 `sheet` and `calendar` all `true`:
 
 ```json
-{"ok":true,"service":"glbc-signup","version":6,
+{"ok":true,"service":"glbc-signup","version":7,
  "actions":["signup","load","save","rotate","admin.hello","admin.list",
   "admin.save","admin.delete","admin.people","admin.setgroups"],
  "sheet":true,"adminReady":true,"calendar":true,"detail":""}
