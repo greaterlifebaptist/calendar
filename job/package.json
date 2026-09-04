@@ -12,7 +12,8 @@
     "dev": "node src/index.ts --fixtures",
     "typecheck": "tsc --noEmit",
     "test": "node --test \"test/**/*.test.ts\"",
-    "check": "npm run typecheck && npm test"
+    "check": "npm run typecheck && npm test",
+    "restore": "node scripts/restore.mjs"
   },
   "dependencies": {
     "google-auth-library": "^9.14.1"

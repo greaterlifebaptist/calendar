@@ -20,3 +20,7 @@ public/f/*.ics
 
 # Deploy staging directory, assembled by the workflow.
 _site/
+
+# Raw calendar snapshots, including private ministries. Pushed to a separate
+# private repository by the workflow, never to this public one.
+backup/

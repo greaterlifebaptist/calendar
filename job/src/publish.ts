@@ -101,13 +101,30 @@ export function publish(input: PublishInput): PublishResult {
   const publicInstances = live.filter((e) => isPublic(cfg, e.ministry));
   const privateCount = live.length - publicInstances.length;
 
+  // A calendar can exist in Google without ever being used. A ministry that
+  // has nothing coming up is not offered as a filter or a subscription, so
+  // the page never shows a pill leading to an empty calendar. It reappears on
+  // its own the moment somebody schedules something.
+  //
+  // Only the listing is withheld. The .ics file is still written, because
+  // anyone already subscribed would otherwise find their feed 404 during a
+  // quiet stretch.
+  const inUse = new Set(
+    publicInstances
+      .filter((e) => new Date(e.endInstant).getTime() >= generated.getTime())
+      .map((e) => e.ministry),
+  );
+  const publicMinistries = ministries.filter((m) => m.visibility === 'public');
+  const listed = publicMinistries.filter((m) => inUse.has(m.id));
+
   // ---- events.json ----
   const events: EventsJson = {
     generated: generated.toISOString(),
     timezone: tz,
     feeds: { base: cfg.site.feedBase, all: cfg.site.allFeed },
-    ministries: ministries
-      .filter((m) => m.visibility === 'public')
+    // If nothing at all is scheduled anywhere, list everything rather than
+    // rendering a page with no filters on it.
+    ministries: (listed.length ? listed : publicMinistries)
       .map((m) => ({ id: m.id, name: m.name, color: m.color })),
     events: publicInstances.map((e) => toPublicEvent(e, tz)),
   };

@@ -5,11 +5,13 @@
  * Run it against the real calendars:   npm start
  */
 
-import { loadConfig, loadDotEnv, activeMinistries, pendingMinistries, USE_FIXTURES } from './config.ts';
+import { loadConfig, loadDotEnv, activeMinistries, pendingMinistries, USE_FIXTURES, ROOT } from './config.ts';
 import { fetchAll } from './fetch.ts';
 import { normalizeAll, dedupe, byStart } from './normalize.ts';
 import { publish } from './publish.ts';
+import { writeBackup } from './backup.ts';
 import { addMonths, startOfMonth } from './time.ts';
+import { join } from 'node:path';
 import type { CalEvent } from './types.ts';
 
 /** How far ahead to read. Deep enough for next summer's trip to be pinned. */
@@ -61,6 +63,9 @@ export async function run(): Promise<number> {
     log('  [ ok ] ' + r.ministry.id + ' — ' + r.instances.length + ' occurrences, ' + r.masters.length + ' raw');
   }
 
+  // Snapshot before publishing. If publishing throws, the backup still ran.
+  const backup = writeBackup(cfg, results, join(ROOT, 'backup'), now);
+
   const cleanInstances = dedupe(instances).sort(byStart);
   const result = publish({ cfg, ministries, instances: cleanInstances, masters, generated: now });
 
@@ -73,6 +78,7 @@ export async function run(): Promise<number> {
   log('  events.json  ' + result.publicEventCount + ' public events (' + result.privateEventCount + ' private withheld)');
   log('  by type      ' + [...counts].map(([k, v]) => k + '=' + v).join(' ') + '  pinned=' + pinned);
   log('  feeds        ' + result.feedPaths.length + ' .ics files');
+  log('  backup       ' + backup.events + ' raw events from ' + backup.calendars + ' calendars');
 
   const hardFailures = results.filter((r) => r.error);
   if (hardFailures.length) {

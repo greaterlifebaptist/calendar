@@ -95,6 +95,48 @@ jobs:
             git reset
           fi
 
+      # Off-Google, off-this-repo copy of every calendar, private ones
+      # included, which is why it goes to a separate private repository and
+      # never into public/. Skipped with a notice until it is configured, so
+      # it can be switched on without touching this file.
+      - name: Back up calendars
+        if: ${{ vars.BACKUP_REPO != '' }}
+        env:
+          BACKUP_REPO: ${{ vars.BACKUP_REPO }}
+          BACKUP_TOKEN: ${{ secrets.BACKUP_TOKEN }}
+        run: |
+          if [ -z "$BACKUP_TOKEN" ]; then
+            echo "::error::BACKUP_REPO is set but BACKUP_TOKEN is missing. Calendars are NOT being backed up."
+            exit 1
+          fi
+          if [ ! -f backup/manifest.json ]; then
+            echo "::error::The job produced no backup snapshot."
+            exit 1
+          fi
+
+          git clone --depth 1 \
+            "https://x-access-token:$BACKUP_TOKEN@github.com/$BACKUP_REPO.git" /tmp/backup-repo
+
+          rm -rf /tmp/backup-repo/backup
+          cp -r backup /tmp/backup-repo/backup
+
+          cd /tmp/backup-repo
+          git config user.name 'glbc-calendar-bot'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          if git diff --cached --quiet; then
+            echo 'Calendars unchanged since the last snapshot.'
+          else
+            git commit -m "Snapshot $(date -u +'%Y-%m-%d %H:%M UTC')"
+            git push
+            echo 'Snapshot pushed.'
+          fi
+
+      - name: Warn when backups are off
+        if: ${{ vars.BACKUP_REPO == '' }}
+        run: |
+          echo "::warning::No BACKUP_REPO variable set, so calendars are not being backed up. See docs/BACKUP.md."
+
       # Assemble exactly what scripts/serve.mjs serves locally: the pages in
       # site/ over the job output in public/.
       - name: Assemble site
@@ -104,6 +146,10 @@ jobs:
           mkdir -p _site
           cp -r public/. _site/
           cp -r site/. _site/
+
+          # Without this, Pages runs the output through Jekyll, which is how a
+          # repo README ends up served instead of the calendar.
+          touch _site/.nojekyll
 
           # The CNAME file appears only once a custom domain actually resolves.
           # Shipping it earlier makes Pages redirect to a hostname that does not

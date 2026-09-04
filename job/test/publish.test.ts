@@ -122,3 +122,27 @@ test('a multi-day all-day event ends on its last real day', () => {
   const out = toPublicEvent(normalize(raw, TZ, NOW), TZ);
   assert.equal(out.end, '2027-07-17');
 });
+
+test('a ministry with nothing scheduled is not offered on the site', async () => {
+  const { events, feedsDir } = await runPipeline();
+  const listed = new Set(events.ministries.map((m) => m.id));
+  const withEvents = new Set(events.events.map((e) => e.ministry));
+
+  // The fixtures only cover church and youth; the rest have real calendars
+  // configured but nothing in them.
+  assert.ok(listed.has('church') && listed.has('youth'));
+  for (const id of ['children', 'mens', 'seniors', 'womens', 'youngadults']) {
+    assert.equal(listed.has(id), false, id + ' offered despite having no events');
+    assert.equal(withEvents.has(id), false);
+    // ...but its feed still exists, or anyone already subscribed would 404.
+    assert.ok(existsSync(join(feedsDir, id + '.ics')), id + '.ics disappeared');
+  }
+});
+
+test('every listed ministry actually has something coming up', async () => {
+  const { events } = await runPipeline();
+  const withEvents = new Set(events.events.map((e) => e.ministry));
+  for (const m of events.ministries) {
+    assert.ok(withEvents.has(m.id), m.id + ' is listed but has no events');
+  }
+});

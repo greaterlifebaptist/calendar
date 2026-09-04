@@ -7,6 +7,7 @@ website, subscribable `.ics` feeds, and GroupMe reminders.
 Design decisions and their reasoning live in [CLAUDE.md](CLAUDE.md). Read that
 first. Google, GitHub and DNS setup is in [docs/SETUP.md](docs/SETUP.md), and
 the agreed design for the overflow-room TV is in [docs/TV.md](docs/TV.md).
+Backups and how to restore from one are in [docs/BACKUP.md](docs/BACKUP.md).
 This file covers only how to run what exists.
 
 ## Status
@@ -18,7 +19,7 @@ publish `events.json` plus the bundle feeds.
 |---|---|
 | 1. Job core | done |
 | 2. Public site page | done — TV mode, add to home screen, cached fallback |
-| 3. Hourly workflow | written, waiting on the repo and secrets |
+| 3. Hourly workflow | live |
 | 4. Reminder engine | not started |
 | 5-8. Signup, personal feeds, prefs, admin form | not started |
 
@@ -67,6 +68,8 @@ public/              job output, served by GitHub Pages
    decides whether it is pinned. Inference does the work; nobody has to type
    metadata. See below.
 3. Writes `events.json` and one `.ics` per public ministry, plus `all.ics`.
+4. Snapshots every calendar verbatim into `backup/`, private ones included,
+   which the workflow pushes to a separate private repository.
 
 Files are only rewritten when their bytes change, so the hourly commit stays
 quiet when nothing happened.
@@ -181,3 +184,14 @@ data where possible and always says which it is. A response that returns HTTP
 The page also warns when live data is more than a day old. Feeds refresh
 hourly, so anything older means the job has stopped and the reader should not
 trust the dates.
+
+## Ministries that are not in use
+
+A calendar can exist in Google without anyone ever putting anything in it. A
+ministry with nothing coming up is not listed in `events.json`, so it is not
+offered as a filter or a subscription and the page never shows a pill leading
+to an empty calendar. It reappears by itself when somebody schedules something.
+
+Only the listing is withheld. The `.ics` file is still written every run,
+because anyone already subscribed would otherwise find their feed returning 404
+during a quiet stretch.

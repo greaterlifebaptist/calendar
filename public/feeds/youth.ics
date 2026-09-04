@@ -26,4 +26,143 @@ DTSTART:19701101T020000
 RRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU
 END:STANDARD
 END:VTIMEZONE
+BEGIN:VEVENT
+UID:yth-forms@google.com
+DTSTAMP:20260828T120000Z
+DTSTART;VALUE=DATE:20260930
+DTEND;VALUE=DATE:20261001
+SUMMARY:Permission forms due - Pigeon Forge
+DESCRIPTION:Signed form and medical release. No form\, no seat on the van.\
+ n\nContact: Bro. Spencer\nPermission form: https://example.org/glbc/forms/
+ pigeon-forge
+URL:https://example.org/glbc/forms/pigeon-forge
+CATEGORIES:DEADLINE
+X-GLBC-MINISTRY:youth
+X-GLBC-TYPE:deadline
+CREATED:20260801T120000Z
+LAST-MODIFIED:20260828T120000Z
+TRANSP:TRANSPARENT
+END:VEVENT
+BEGIN:VEVENT
+UID:yth-raffle-money@google.com
+DTSTAMP:20260920T040000Z
+DTSTART;VALUE=DATE:20260920
+DTEND;VALUE=DATE:20260921
+SUMMARY:raffle money and unsold tickets due
+DESCRIPTION:Turn in to Bro. Spencer. Everything comes back\, sold or not.
+CATEGORIES:DEADLINE
+X-GLBC-MINISTRY:youth
+X-GLBC-TYPE:deadline
+TRANSP:TRANSPARENT
+END:VEVENT
+BEGIN:VEVENT
+UID:yth-carwash@google.com
+DTSTAMP:20260919T130000Z
+DTSTART;TZID=America/New_York:20260919T090000
+DTEND;TZID=America/New_York:20260919T130000
+SUMMARY:Youth fundraiser car wash
+DESCRIPTION:Bring towels and buckets. Rain date is the following Saturday.\
+ n\nCost: donations only
+LOCATION:Church parking lot
+CATEGORIES:EVENT
+X-GLBC-MINISTRY:youth
+X-GLBC-TYPE:event
+TRANSP:OPAQUE
+END:VEVENT
+BEGIN:VEVENT
+UID:yth-drawing@google.com
+DTSTAMP:20260927T163000Z
+DTSTART;TZID=America/New_York:20260927T123000
+DTEND;TZID=America/New_York:20260927T130000
+SUMMARY:Gun raffle drawing
+DESCRIPTION:Right after morning service. Winner's choice of the three prize
+ s.
+LOCATION:Fellowship hall
+CATEGORIES:EVENT
+X-GLBC-MINISTRY:youth
+X-GLBC-TYPE:event
+TRANSP:OPAQUE
+END:VEVENT
+BEGIN:VEVENT
+UID:yth-wed@google.com
+DTSTAMP:20260909T223000Z
+DTSTART;TZID=America/New_York:20260909T183000
+DTEND;TZID=America/New_York:20260909T200000
+SUMMARY:Youth group
+LOCATION:Youth building
+CATEGORIES:ROUTINE
+X-GLBC-MINISTRY:youth
+X-GLBC-TYPE:routine
+RRULE:FREQ=WEEKLY;BYDAY=WE
+TRANSP:OPAQUE
+END:VEVENT
+BEGIN:VEVENT
+UID:yth-lockin@google.com
+DTSTAMP:20261114T010000Z
+DTSTART;TZID=America/New_York:20261113T200000
+DTEND;TZID=America/New_York:20261114T080000
+SUMMARY:Fall lock-in
+DESCRIPTION:Drop off Friday 8pm\, pick up Saturday 8am. Bring a sleeping ba
+ g.\n\nCost: $10
+LOCATION:Fellowship hall
+CATEGORIES:EVENT
+X-GLBC-MINISTRY:youth
+X-GLBC-TYPE:event
+TRANSP:OPAQUE
+END:VEVENT
+BEGIN:VEVENT
+UID:yth-deposit@google.com
+DTSTAMP:20270214T050000Z
+DTSTART;VALUE=DATE:20270214
+DTEND;VALUE=DATE:20270215
+SUMMARY:Trip deposit $75
+DESCRIPTION:Non-refundable. Locks in your spot and the group rate on cabins
+ .\n\nCost: $75
+CATEGORIES:DEADLINE
+X-GLBC-MINISTRY:youth
+X-GLBC-TYPE:deadline
+X-GLBC-PINNED:TRUE
+TRANSP:TRANSPARENT
+END:VEVENT
+BEGIN:VEVENT
+UID:yth-trip@google.com
+DTSTAMP:20270712T040000Z
+DTSTART;VALUE=DATE:20270712
+DTEND;VALUE=DATE:20270718
+SUMMARY:Youth trip - Pigeon Forge\, TN
+DESCRIPTION:Six days. Dollywood\, Ober Mountain\, and evening services at t
+ he cabin.\n\nCost: $310 total\nContact: Bro. Spencer
+LOCATION:Pigeon Forge\, Tennessee
+CATEGORIES:TRIP
+X-GLBC-MINISTRY:youth
+X-GLBC-TYPE:trip
+X-GLBC-PINNED:TRUE
+TRANSP:TRANSPARENT
+END:VEVENT
+BEGIN:VEVENT
+UID:yth-planning@google.com
+DTSTAMP:20270116T050000Z
+DTSTART;VALUE=DATE:20270116
+DTEND;VALUE=DATE:20270118
+SUMMARY:Leaders planning retreat
+DESCRIPTION:Leaders only. Should not clutter the pinned rail for parents.
+CATEGORIES:TRIP
+X-GLBC-MINISTRY:youth
+X-GLBC-TYPE:trip
+TRANSP:TRANSPARENT
+END:VEVENT
+BEGIN:VEVENT
+UID:yth-admin-form@google.com
+DTSTAMP:20260923T110000Z
+DTSTART;TZID=America/New_York:20260923T070000
+DTEND;TZID=America/New_York:20260923T073000
+SUMMARY:See You at the Pole
+DESCRIPTION:Meet at the flagpole before first bell.
+LOCATION:Midland Middle School flagpole
+CATEGORIES:EVENT
+X-GLBC-MINISTRY:youth
+X-GLBC-TYPE:event
+X-GLBC-PINNED:TRUE
+TRANSP:OPAQUE
+END:VEVENT
 END:VCALENDAR
