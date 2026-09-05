@@ -72,6 +72,10 @@ button.primary[disabled]{opacity:.45;cursor:default}
 .btn{display:inline-block;padding:9px 15px;border-radius:7px;font-size:.83rem;font-weight:700;text-decoration:none;background:var(--sun);color:#3D2A00;border:none;cursor:pointer;font-family:var(--body)}
 .btn.ghost{background:transparent;border:1.5px solid #47806A;color:#EAF3EE}
 .fineprint{margin-top:14px;font-size:.76rem;line-height:1.5;color:#8FB3A2}
+.howto{margin:13px 0 0;font-size:.83rem;line-height:1.55;color:#EAF3EE;background:rgba(0,0,0,.18);border-left:3px solid var(--sun);border-radius:0 6px 6px 0;padding:10px 12px}
+.howto b{color:#fff;display:block;margin-bottom:2px}
+.howto a{color:var(--sun);font-weight:700}
+.howto code{font-family:var(--mono);font-size:.92em;background:rgba(0,0,0,.25);padding:1px 4px;border-radius:3px}
 .notice{margin-top:22px;padding:13px 15px;border-radius:9px;font-size:.87rem;background:#FFF6E0;border:1.5px solid #F2DFAE;color:#6B5307}
 .notice b{display:block;font-family:var(--display);font-size:1rem;margin-bottom:2px}
 footer{margin-top:30px;font-size:.82rem;color:var(--ink-soft)}
@@ -131,6 +135,7 @@ footer a{color:var(--clay)}
     <a class="btn ghost" id="btnGoogle" href="#">Add on Android</a>
     <a class="btn ghost" id="btnIcs" href="#">Outlook or other</a>
   </div>
+  <p class="howto" id="howto"></p>
   <p class="fineprint" id="changeLater"></p>
   <p class="fineprint">
     Scan the code with your phone camera, or tap a button on the phone itself.
@@ -197,12 +202,43 @@ function showResult(feedUrl, updated){
   $("resultHead").textContent = updated ? "Your calendar is updated" : "Here is your calendar";
   $("resultSub").textContent = updated
     ? "Same link as before, so nothing to change on your phone. It will catch up on its own."
-    : "Scan this with your phone, or use the buttons below if you are already on it.";
+    : "Scan this with your phone, or use the buttons below if you are already on it. " +
+      "Give it a minute before adding it: your calendar is being built right now.";
 
   $("feedUrl").value = feedUrl;
   $("btnApple").href = feedUrl.replace(/^https?:/, "webcal:");
   $("btnGoogle").href = "https://calendar.google.com/calendar/r?cid=" + encodeURIComponent(feedUrl);
   $("btnIcs").href = feedUrl;
+
+  // Say what actually happens on the phone in front of them.
+  //
+  // The Google Calendar app on Android cannot add a calendar by link at all;
+  // that only exists on the website. Offering a button that opens the app and
+  // silently does nothing is worse than saying so, and it is exactly what a
+  // parent would give up over.
+  const android = /Android/i.test(navigator.userAgent);
+  const ios = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const how = $("howto");
+  if (android){
+    how.innerHTML =
+      "<b>On Android, this takes one trip to a computer</b>" +
+      "The Google Calendar app cannot add a calendar from a link. Copy the link above, " +
+      "then on a computer open <a href=\"https://calendar.google.com\" target=\"_blank\" rel=\"noopener\">calendar.google.com</a>, " +
+      "find <b style=\"display:inline\">Other calendars</b> in the left column, press " +
+      "<code>+</code>, choose <b style=\"display:inline\">From URL</b>, and paste it. " +
+      "It appears on your phone within a few minutes. You only do this once.";
+  } else if (ios){
+    how.innerHTML =
+      "<b>On iPhone</b>" +
+      "Tap <b style=\"display:inline\">Add on iPhone</b> and say yes when it asks to subscribe. " +
+      "If nothing happens, copy the link and paste it into Safari's address bar.";
+  } else {
+    how.innerHTML =
+      "<b>On this computer</b>" +
+      "Tap <b style=\"display:inline\">Add on Android</b> for Google Calendar, or " +
+      "<b style=\"display:inline\">Add on iPhone</b> for Apple Calendar. For anything else, copy the link " +
+      "and use your calendar app's \"subscribe by URL\" option.";
+  }
 
   const box = $("qr");
   box.innerHTML = "";

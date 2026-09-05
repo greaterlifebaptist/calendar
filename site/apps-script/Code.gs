@@ -34,7 +34,7 @@
  * not take looks identical to one that did. Open the /exec URL and read the
  * version back.
  */
-var VERSION = 10;
+var VERSION = 11;
 
 var SITE = 'https://calendars.greaterlifebaptistchurch.com';
 var EVENTS_JSON = SITE + '/events.json';
@@ -361,7 +361,8 @@ function handleSignup_(body) {
     token: token,
     feedUrl: FEED_BASE + token + '.ics',
     groups: groups,
-    updated: existingRow !== -1
+    updated: existingRow !== -1,
+    rebuild: requestRebuild_('signup')
   });
 }
 
@@ -405,7 +406,10 @@ function handleSave_(body) {
   }
 
   writeGroups_(sheet, headers, found.row, groups, allowed);
-  return json_({ ok: true, groups: groups, feedUrl: FEED_BASE + token + '.ics' });
+  return json_({
+    ok: true, groups: groups, feedUrl: FEED_BASE + token + '.ics',
+    rebuild: requestRebuild_('preferences')
+  });
 }
 
 /**
@@ -429,7 +433,10 @@ function handleRotate_(body) {
   var fresh = token_();
   sheet.getRange(found.row, tokenCol + 1).setValue(fresh);
 
-  return json_({ ok: true, token: fresh, feedUrl: FEED_BASE + fresh + '.ics' });
+  return json_({
+    ok: true, token: fresh, feedUrl: FEED_BASE + fresh + '.ics',
+    rebuild: requestRebuild_('rotate')
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -817,5 +824,59 @@ function authorizeCalendar() {
     Logger.log('Calendar API service: OK. Redeploy a new version now.');
   } catch (err) {
     Logger.log('Calendar API service: FAILED. ' + (err && err.message ? err.message : err));
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Ask the site to rebuild now
+// ---------------------------------------------------------------------------
+//
+// A personal feed does not exist until the job builds it, and the job runs
+// hourly. So somebody who has just signed up taps their own link and gets a
+// 404, which reads as broken rather than as "not yet". Waiting up to an hour
+// on the first thing a new person does is the wrong trade.
+//
+// This nudges GitHub Actions to run immediately. It is best effort: if it is
+// not configured, or GitHub is having a bad day, signup still succeeds and the
+// hourly run picks it up as before. Nothing here is allowed to fail a signup.
+//
+// To switch it on, add two script properties:
+//   GITHUB_REPO            greaterlifebaptist/calendar
+//   GITHUB_DISPATCH_TOKEN  a fine-grained token with Contents: read and write
+//                          on that repository, and nothing else
+
+function requestRebuild_(why) {
+  try {
+    var props = PropertiesService.getScriptProperties();
+    var repo = String(props.getProperty('GITHUB_REPO') || '').trim();
+    var token = String(props.getProperty('GITHUB_DISPATCH_TOKEN') || '').trim();
+    if (!repo || !token) return 'not configured';
+
+    // One rebuild per couple of minutes. A family signing up together should
+    // not queue five identical runs, and this is a public endpoint.
+    var cache = CacheService.getScriptCache();
+    if (cache.get('rebuild_asked')) return 'already asked recently';
+    cache.put('rebuild_asked', '1', 120);
+
+    var res = UrlFetchApp.fetch('https://api.github.com/repos/' + repo + '/dispatches', {
+      method: 'post',
+      muteHttpExceptions: true,
+      contentType: 'application/json',
+      headers: {
+        Authorization: 'Bearer ' + token,
+        Accept: 'application/vnd.github+json'
+      },
+      payload: JSON.stringify({
+        event_type: 'signup',
+        client_payload: { reason: String(why || 'signup') }
+      })
+    });
+
+    // 204 is success for this endpoint.
+    return res.getResponseCode() === 204
+      ? 'requested'
+      : 'GitHub said ' + res.getResponseCode();
+  } catch (err) {
+    return 'failed: ' + (err && err.message ? err.message : err);
   }
 }

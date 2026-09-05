@@ -7,6 +7,12 @@ name: Calendar sync
 on:
   schedule:
     - cron: '7 * * * *'
+  # Signing up, changing groups or replacing a link asks for a rebuild, so a
+  # personal feed exists within a minute or two instead of on the hour.
+  # Without it, the first thing a new person does is tap their own link and
+  # get a 404, which reads as broken rather than as "not yet".
+  repository_dispatch:
+    types: [signup]
   workflow_dispatch:
     inputs:
       # Both boxes default to unticked and mean "do more than usual" when

@@ -179,3 +179,55 @@ somebody hits the missing feature.
 - It does not email anyone. There is no mail sending anywhere in this system.
 - It does not read anything back out to the caller beyond that person's own
   token and feed URL.
+
+---
+
+## Making a new link work straight away
+
+A personal feed does not exist until the job builds it, and the job runs
+hourly. So somebody who has just signed up taps their own link and gets a
+**404**, which reads as broken rather than as "not yet". Up to an hour of that,
+on the first thing a new person ever does, is the wrong trade.
+
+Signing up, changing groups, or replacing a link now asks GitHub to rebuild
+immediately, so the feed exists within a minute or two.
+
+It is optional. Without it everything still works, just on the hour.
+
+**To switch it on:**
+
+1. Make a fine-grained personal access token: avatar > Settings > Developer
+   settings > Personal access tokens > Fine-grained tokens.
+   - Repository access: **only** `greaterlifebaptist/calendar`.
+   - Permissions: **Contents: read and write**. Nothing else.
+2. In the Apps Script editor: Project Settings > Script Properties, add:
+
+   | Property | Value |
+   |---|---|
+   | `GITHUB_REPO` | `greaterlifebaptist/calendar` |
+   | `GITHUB_DISPATCH_TOKEN` | the token |
+
+No redeploy needed; script properties are read at run time.
+
+The signup response includes a `rebuild` field saying what happened:
+`requested`, `not configured`, `already asked recently`, or the error. A family
+signing up together cannot queue five identical runs: one rebuild per two
+minutes, and everything else waits for the hourly one.
+
+Nothing here can fail a signup. If GitHub is unreachable the row is still
+written and the feed appears on the hour as before.
+
+## Adding a calendar on Android
+
+Worth knowing, because it will be the most common question.
+
+**The Google Calendar app on Android cannot add a calendar from a link.** That
+feature only exists on the website. Tapping a subscription link on an Android
+phone opens the app, which quietly does nothing.
+
+The signup page now says so, and gives the real instructions: copy the link,
+then on a computer open calendar.google.com, find **Other calendars** in the
+left column, press **+**, choose **From URL**, and paste. It syncs down to the
+phone within a few minutes, and it is a one-off.
+
+iPhone has no such problem: tapping the link subscribes directly.
