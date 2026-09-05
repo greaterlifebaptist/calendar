@@ -173,6 +173,11 @@ deployment did not take, whatever the editor said. This marker exists because
 a deploy that silently failed is indistinguishable from one that worked until
 somebody hits the missing feature.
 
+It is kept in step with the deployment number Google shows in **Manage
+deployments**, so the two agree and there is only one number to think about.
+That only holds if every handed-over version is actually deployed; skipping
+one puts them out of step until the next bump catches up.
+
 ## What it deliberately does not do
 
 - It does not delete anybody. Removing a person is a leader editing the sheet.

@@ -27,14 +27,20 @@
  */
 
 /**
- * Bump this whenever this file changes.
+ * The deployment number this file is meant to become.
  *
  * Apps Script serves the DEPLOYED version, not the saved one, and the editor
  * gives no hint which is live. Without a marker, a deploy that silently did
  * not take looks identical to one that did. Open the /exec URL and read the
  * version back.
+ *
+ * Bump this ONLY when the file is handed over to be deployed, never on an
+ * edit in between. Bumping per edit ran this number ahead of Google's own
+ * deployment counter, which left two numbers that look like the same thing
+ * and disagree, and the whole point of the marker is telling at a glance
+ * whether a deploy took.
  */
-var VERSION = 12;
+var VERSION = 11;
 
 var SITE = 'https://calendars.greaterlifebaptistchurch.com';
 var EVENTS_JSON = SITE + '/events.json';
