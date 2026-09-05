@@ -256,7 +256,7 @@ footer a{color:var(--clay)}
   <section class="card">
     <fieldset style="margin:0">
       <legend>What is already on this calendar</legend>
-      <p class="lede" style="margin:0 0 10px;font-size:.85rem">Tap one to edit it. A repeating event shows once; editing it changes the whole series.</p>
+      <p class="lede" style="margin:0 0 10px;font-size:.85rem">From last week to a year ahead. Tap one to edit it. A repeating event shows once, and editing it changes the whole series.</p>
       <div class="list" id="list"></div>
     </fieldset>
   </section>
@@ -617,12 +617,18 @@ $("save").addEventListener("click", async () => {
         link: $("link").value.trim(),
       },
     });
-    say($("status"), (out.updated ? "Saved. " : "Added. ") +
-      "It appears on the website within the hour.", "ok");
-    editingId = out.id;
-    $("save").textContent = "Save changes";
-    $("clear").hidden = false;
-    $("del").hidden = false;
+    if (out.updated) {
+      say($("status"), "Saved. It appears on the website within the hour.", "ok");
+      editingId = out.id;
+      $("save").textContent = "Save changes";
+      $("clear").hidden = false;
+      $("del").hidden = false;
+    } else {
+      // Adding one thing usually means adding another. Leaving the old values
+      // sitting there invites editing them by accident and saving a duplicate.
+      clearForm();
+      say($("status"), "Added. It appears on the website within the hour.", "ok");
+    }
     refreshList();
   } catch (err) {
     fail($("status"), err);

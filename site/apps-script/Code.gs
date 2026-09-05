@@ -34,7 +34,7 @@
  * not take looks identical to one that did. Open the /exec URL and read the
  * version back.
  */
-var VERSION = 9;
+var VERSION = 10;
 
 var SITE = 'https://calendars.greaterlifebaptistchurch.com';
 var EVENTS_JSON = SITE + '/events.json';
@@ -646,14 +646,22 @@ function handleAdminList_(body) {
   // Unexpanded, so a series shows as one editable thing rather than every
   // occurrence. Editing a single occurrence of a series is a job for Google
   // Calendar; this form deals in the series itself.
+  // A bounded window, or a calendar with a long-running weekly series would
+  // hand back a list nobody can scan. Last week onward, a year ahead.
   var data = calendarService_().Events.list(m.calendarId, {
     singleEvents: false,
     maxResults: 250,
     showDeleted: false,
-    timeMin: new Date(Date.now() - 7 * 86400000).toISOString()
+    timeMin: new Date(Date.now() - 7 * 86400000).toISOString(),
+    timeMax: new Date(Date.now() + 365 * 86400000).toISOString()
   });
 
-  var items = (data.items || []).map(function (e) {
+  var items = (data.items || []).filter(function (e) {
+    // A one-off change to a single occurrence comes back as its own entry.
+    // Showing it would imply this form can edit one occurrence, which it
+    // deliberately cannot: that is a job for Google Calendar.
+    return !e.recurringEventId;
+  }).map(function (e) {
     var shared = (e.extendedProperties && e.extendedProperties.shared) || {};
     return {
       id: e.id,
