@@ -94,13 +94,24 @@ so nothing is quietly skipped when it goes live.
 
 ## Testing it on demand
 
-Reminders only fire at 9am local, which makes them awkward to try out at four
-in the afternoon. The **Run workflow** button has a **send_now** tick box that
-ignores the send hour for that one run.
+**Run workflow** has two tick boxes. Both are unticked by default, and ticking
+either means "do more than usual".
 
-It ignores the hour and nothing else. Dry run, the dedupe state and the blast
-guard all still apply, so ticking it cannot cause a send that would not have
-happened at 9am anyway.
+| Box | Unticked | Ticked |
+|---|---|---|
+| `really_send` | writes the messages to the log only | actually posts to GroupMe |
+| `send_now` | waits for 9am | works out reminders right now |
+
+To rehearse, tick **send_now** only and read the log. To actually receive one,
+tick **both**.
+
+These were once a single box labelled "log reminders instead of sending them",
+which defaulted to ticked. It read like the helpful option, so ticking it was
+the natural thing to do, and it silently prevented every send.
+
+`send_now` overrides the hour and nothing else. The dedupe state and the blast
+guard still apply, so it cannot cause a send that would not have happened at
+9am anyway.
 
 Locally the same thing is `--send-now`:
 
@@ -129,13 +140,14 @@ same GroupMe account, and press **Create Bot**.
 Actions, **Secrets** tab, New repository secret. Name
 `GROUPME_BOT_YOUTH_PARENTS`, value the bot id. Nothing starts sending yet.
 
-**4. Dry run it.** Actions, Calendar sync, **Run workflow**, tick **send_now**,
-leave **dry_run** ticked. The log shows every message it would have sent.
+**4. Rehearse.** Actions, Calendar sync, **Run workflow**, tick **send_now**
+only. The log shows every message it would have sent, without sending any.
 
-**5. Send to yourself.** Add the repository **variable** `REMINDERS_LIVE` =
-`true`. The bot still points at your test group, so the next run delivers real
-messages to you and nobody else. Watch it on the ordinary hourly schedule for a
-few days.
+**5. Send to yourself.** Add the repository **variable** `REMINDERS_LIVE` with
+the value `true`, on the **Variables** tab, no quotes. Run the workflow again
+with **both** boxes ticked. The bot still points at your test group, so it
+arrives with you and nobody else. After that leave it on the ordinary hourly
+schedule for a few days.
 
 To go live for real parents, make a **second** bot in the real group and swap
 the secret. Keep the test bot so there is always somewhere safe to test.

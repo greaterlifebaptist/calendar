@@ -9,12 +9,16 @@ on:
     - cron: '7 * * * *'
   workflow_dispatch:
     inputs:
-      dry_run:
-        description: 'Log reminders instead of sending them'
+      # Both boxes default to unticked and mean "do more than usual" when
+      # ticked. The previous wording, "log reminders instead of sending them",
+      # defaulted to ticked and read like the helpful option, so ticking it was
+      # the natural thing to do and it silently prevented every send.
+      really_send:
+        description: 'SEND reminders to GroupMe for real (unticked = only write them to the log)'
         type: boolean
-        default: true
+        default: false
       send_now:
-        description: 'Ignore the 9am send hour, so reminders can be tested on demand'
+        description: 'Ignore the 9am send hour, so a reminder can be tested right now'
         type: boolean
         default: false
 
@@ -63,7 +67,9 @@ jobs:
           # "true". Having a bot configured is setup, not consent to start
           # messaging parents.
           REMINDERS_LIVE: ${{ vars.REMINDERS_LIVE }}
-          DRY_RUN: ${{ inputs.dry_run && 'true' || '' }}
+          # A manual run is a dry run unless "really_send" was ticked. A
+          # scheduled run is not forced either way, so REMINDERS_LIVE decides.
+          DRY_RUN: ${{ (github.event_name == 'workflow_dispatch' && !inputs.really_send) && 'true' || '' }}
           FORCE_SEND_HOUR: ${{ inputs.send_now && 'true' || '' }}
         run: npm start
 
