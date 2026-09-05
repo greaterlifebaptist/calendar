@@ -614,7 +614,11 @@ function writeCache(json){
 }
 
 function looksValid(j){
-  return j && Array.isArray(j.events) && Array.isArray(j.ministries) && j.ministries.length > 0;
+  // Deliberately does NOT require any ministries. Once unused ones are hidden,
+  // a quiet week legitimately lists none, and treating that as corrupt made the
+  // page fall through to the built-in sample and show invented events under an
+  // "Example schedule" banner. An empty calendar is an answer, not a failure.
+  return j && Array.isArray(j.events) && Array.isArray(j.ministries);
 }
 
 const longWhen = d => d.toLocaleString("en-US",

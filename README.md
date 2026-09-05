@@ -8,6 +8,8 @@ Design decisions and their reasoning live in [CLAUDE.md](CLAUDE.md). Read that
 first. Google, GitHub and DNS setup is in [docs/SETUP.md](docs/SETUP.md), and
 the agreed design for the overflow-room TV is in [docs/TV.md](docs/TV.md).
 Backups and how to restore from one are in [docs/BACKUP.md](docs/BACKUP.md).
+Putting the calendar on the church website is in
+[docs/WORDPRESS.md](docs/WORDPRESS.md).
 Deploying the signup endpoint is in [docs/SIGNUP.md](docs/SIGNUP.md), and the
 admin form in [docs/ADMIN.md](docs/ADMIN.md). Reminders, and how to switch
 them on safely, are in [docs/REMINDERS.md](docs/REMINDERS.md).
@@ -63,6 +65,7 @@ site/prefs.html      change your groups later, or replace a leaked link
 site/tv.html         the overflow-room wall display
 site/admin.html      add and edit events without touching Google Calendar
 site/apps-script/    the endpoint that writes to the membership sheet
+site/embed.js        generated widget for the church website, see docs/WORDPRESS.md
 job/src/             the hourly job
 job/config/          ministries.json — ids are locked, see CLAUDE.md section 3
 job/fixtures/        sample Google API responses for credential-free runs
@@ -274,3 +277,24 @@ cd job && npm run preview:reminders
 
 Full detail, including each guard and why it exists, is in
 [docs/REMINDERS.md](docs/REMINDERS.md).
+
+## Embedding on the church website
+
+Two lines in a WordPress Custom HTML block put the whole calendar at
+`greaterlifebaptistchurch.com/calendar`, with nothing to maintain there:
+
+```html
+<div id="glbc-calendar"></div>
+<script src="https://calendars.greaterlifebaptistchurch.com/embed.js" defer></script>
+```
+
+`site/embed.js` is **generated** from `site/index.html`. After changing that
+page, run:
+
+```bash
+node scripts/build-embed.mjs
+```
+
+Two hand-maintained copies of a page drift, and the drift stays invisible until
+somebody notices the church website is a version behind. Details and
+troubleshooting are in [docs/WORDPRESS.md](docs/WORDPRESS.md).

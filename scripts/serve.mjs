@@ -65,6 +65,9 @@ const server = createServer(async (req, res) => {
     res.writeHead(200, {
       'content-type': TYPES[extname(file).toLowerCase()] ?? 'application/octet-stream',
       'cache-control': 'no-store',
+      // GitHub Pages sends this, so the local server must too, or embedding
+      // the calendar in another site appears broken only here.
+      'access-control-allow-origin': '*',
     });
     res.end(body);
   } catch (err) {
