@@ -44,6 +44,7 @@ it stays between the reader and their own browser.
 | `load` | token | Returns that person's name and current groups |
 | `save` | token, groups | Changes their public groups |
 | `rotate` | token | Issues a new link and abandons the old one |
+| `share` | token, email | Puts their chosen calendars into that Google account |
 
 `rotate` is what makes a leaked link recoverable. The old feed stops existing
 at the next sync, so anyone still holding it gets nothing.
@@ -219,15 +220,10 @@ written and the feed appears on the hour as before.
 
 ## Adding a calendar on Android
 
-Worth knowing, because it will be the most common question.
+**The Google Calendar app on Android cannot add a calendar from a link**, so
+the subscription route cannot be finished on the phone at all. Both pages offer
+a box to type a Google address into instead, which shares the real calendars
+with that account and works entirely on the phone.
 
-**The Google Calendar app on Android cannot add a calendar from a link.** That
-feature only exists on the website. Tapping a subscription link on an Android
-phone opens the app, which quietly does nothing.
-
-The signup page now says so, and gives the real instructions: copy the link,
-then on a computer open calendar.google.com, find **Other calendars** in the
-left column, press **+**, choose **From URL**, and paste. It syncs down to the
-phone within a few minutes, and it is a one-off.
-
-iPhone has no such problem: tapping the link subscribes directly.
+The whole picture, including why one merged feed and per-ministry colours
+cannot both be had, is in [ANDROID.md](ANDROID.md).

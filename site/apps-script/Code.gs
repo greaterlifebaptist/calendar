@@ -34,7 +34,7 @@
  * not take looks identical to one that did. Open the /exec URL and read the
  * version back.
  */
-var VERSION = 11;
+var VERSION = 12;
 
 var SITE = 'https://calendars.greaterlifebaptistchurch.com';
 var EVENTS_JSON = SITE + '/events.json';
@@ -246,6 +246,7 @@ function doGet() {
     actions: [
       'signup', 'load', 'save', 'rotate',
       'admin.hello', 'admin.list', 'admin.save', 'admin.delete',
+      'share',
       'admin.people', 'admin.setgroups'
     ],
     adminReady: !!adminPasscode_(),
@@ -276,6 +277,7 @@ function doPost(e) {
     if (action === 'load') return handleLoad_(body);
     if (action === 'save') return handleSave_(body);
     if (action === 'rotate') return handleRotate_(body);
+    if (action === 'share')  return handleShare_(body);
     if (action === 'admin.hello')  return handleAdminHello_(body);
     if (action === 'admin.list')   return handleAdminList_(body);
     if (action === 'admin.save')   return handleAdminSave_(body);
@@ -406,8 +408,21 @@ function handleSave_(body) {
   }
 
   writeGroups_(sheet, headers, found.row, groups, allowed);
+
+  // If they took the Google route, their access has to follow their choices.
+  // Otherwise unticking a ministry would remove it from a feed they may not
+  // even be using while leaving the real calendar on their phone.
+  var emailCol = columnIndex_(headers, 'email');
+  var email = emailCol === -1 ? '' : String(found.values[emailCol] || '').trim();
+  var reshared = null;
+  if (email && isSharedWith_(email)) {
+    var all = allMinistryIds_();
+    reshared = syncCalendarSharing_(email, groupsOf_(headers, sheet.getRange(found.row, 1, 1, headers.length).getValues()[0], all));
+  }
+
   return json_({
     ok: true, groups: groups, feedUrl: FEED_BASE + token + '.ics',
+    reshared: reshared,
     rebuild: requestRebuild_('preferences')
   });
 }
@@ -879,4 +894,158 @@ function requestRebuild_(why) {
   } catch (err) {
     return 'failed: ' + (err && err.message ? err.message : err);
   }
+}
+
+// ---------------------------------------------------------------------------
+// Adding calendars straight to somebody's Google account
+// ---------------------------------------------------------------------------
+//
+// No link can subscribe an Android phone to an .ics. The Google Calendar app
+// simply has no "add by URL"; that lives on the website only. Telling somebody
+// who just scanned a QR code at church to go home and find a computer is not a
+// signup flow, it is a way to lose them.
+//
+// The church account owns these calendars, so it can share them directly with
+// a Google account instead. That works on the phone in their hand, appears
+// natively, syncs instantly, and is revocable properly rather than depending on
+// an unguessable URL staying unguessed.
+//
+// The trade is that they get one calendar per ministry rather than one merged
+// one. That also gets them a colour each, which a single merged feed can never
+// do: every major calendar app colours by calendar, not by event, and ignores
+// the per-event colour property in a subscribed feed.
+//
+// sendNotifications is false on purpose. The default emails an invitation the
+// person then has to accept, which puts two extra steps between them and a
+// working calendar.
+
+/** Read access for one address on one calendar, without an email about it. */
+function grantCalendar_(calendarId, email) {
+  var cal = calendarService_();
+  var ruleId = 'user:' + email;
+  try {
+    var existing = cal.Acl.get(calendarId, ruleId);
+    if (existing && existing.role && existing.role !== 'none') return 'already';
+  } catch (err) {
+    // Not shared yet, which is the normal path.
+  }
+  cal.Acl.insert(
+    { scope: { type: 'user', value: email }, role: 'reader' },
+    calendarId,
+    { sendNotifications: false }
+  );
+  return 'granted';
+}
+
+function revokeCalendar_(calendarId, email) {
+  try {
+    calendarService_().Acl.remove(calendarId, 'user:' + email);
+    return 'revoked';
+  } catch (err) {
+    return 'was not shared';
+  }
+}
+
+/**
+ * Make somebody's Google access match the groups they have chosen.
+ *
+ * Idempotent, and it removes as well as adds, so unticking a ministry on the
+ * preferences page takes their access away rather than only hiding it from a
+ * feed they may already have on their phone.
+ */
+function syncCalendarSharing_(email, groups) {
+  var address = String(email || '').trim();
+  if (!address || address.indexOf('@') === -1) {
+    return { ok: false, reason: 'no email address on file' };
+  }
+
+  var wanted = {};
+  (groups || []).forEach(function (g) { wanted[g] = true; });
+
+  var added = [], removed = [], failed = [];
+  allMinistries_().forEach(function (m) {
+    if (!m.calendarId) return;
+    try {
+      if (wanted[m.id]) {
+        if (grantCalendar_(m.calendarId, address) === 'granted') added.push(m.name);
+      } else {
+        if (revokeCalendar_(m.calendarId, address) === 'revoked') removed.push(m.name);
+      }
+    } catch (err) {
+      failed.push(m.name + ': ' + (err && err.message ? err.message : err));
+    }
+  });
+
+  return { ok: failed.length === 0, added: added, removed: removed, failed: failed };
+}
+
+/** Has this person been given any of our calendars? */
+function isSharedWith_(email) {
+  var address = String(email || '').trim();
+  if (!address) return false;
+  var list = allMinistries_();
+  for (var i = 0; i < list.length; i++) {
+    if (!list[i].calendarId) continue;
+    try {
+      var rule = calendarService_().Acl.get(list[i].calendarId, 'user:' + address);
+      if (rule && rule.role && rule.role !== 'none') return true;
+    } catch (err) {
+      // not shared with this one
+    }
+  }
+  return false;
+}
+
+/**
+ * Put the calendars this person has chosen into their Google account.
+ *
+ * Keyed on their token, so it works straight from the page they are already
+ * looking at, and the email comes from their own row rather than from whatever
+ * the browser sends.
+ */
+function handleShare_(body) {
+  var token = String(body.token || '').trim();
+  if (!validToken_(token)) return json_({ ok: false, error: 'That link does not look right.' });
+
+  var sheet = sheet_();
+  var headers = headers_(sheet);
+  var found = findByToken_(sheet, headers, token);
+  if (!found) {
+    return json_({ ok: false, error: 'We could not find that link. It may have been replaced.' });
+  }
+
+  var emailCol = columnIndex_(headers, 'email');
+  var onFile = emailCol === -1 ? '' : String(found.values[emailCol] || '').trim();
+  var given = String(body.email || '').trim();
+
+  // A person may not have given an address at signup, so accept one now and
+  // remember it. It is theirs either way; this is not somebody else's row.
+  var address = given || onFile;
+  if (!address || address.indexOf('@') === -1) {
+    return json_({ ok: false, error: 'Give the Google address you use on your phone.' });
+  }
+  if (address.length > 120) return json_({ ok: false, error: 'That address is too long.' });
+
+  if (given && given !== onFile && emailCol !== -1) {
+    sheet.getRange(found.row, emailCol + 1).setValue(given);
+  }
+
+  var all = allMinistryIds_();
+  var groups = groupsOf_(headers, found.values, all);
+  var result = syncCalendarSharing_(address, groups);
+
+  if (!result.ok && !result.added.length) {
+    return json_({
+      ok: false,
+      error: 'Google would not share those calendars. ' + (result.failed[0] || result.reason || '')
+    });
+  }
+
+  return json_({
+    ok: true,
+    email: address,
+    added: result.added,
+    removed: result.removed,
+    failed: result.failed
+  });
 }

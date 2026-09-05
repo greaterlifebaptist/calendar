@@ -70,6 +70,17 @@ button.quiet:hover{border-color:var(--clay)}
 .linkrow{display:flex;gap:8px;margin-top:12px}
 .linkrow input{flex:1;font-family:var(--mono);font-size:.72rem;padding:9px 10px;border-radius:7px;border:1.5px solid #47806A;background:#14503A;color:#EAF3EE;min-width:0}
 .btn{display:inline-block;padding:9px 15px;border-radius:7px;font-size:.83rem;font-weight:700;text-decoration:none;background:var(--sun);color:#3D2A00;border:none;cursor:pointer;font-family:var(--body)}
+
+.gshare{margin-top:26px;background:var(--pine);border-radius:11px;padding:16px 17px;color:#EAF3EE}
+.gshare b{display:block;font-family:var(--display);font-size:1.1rem;color:#fff;margin-bottom:3px}
+.gshare p{margin:0 0 12px;font-size:.85rem;color:#B9D2C6}
+.grow{display:flex;gap:8px;flex-wrap:wrap}
+.grow input{flex:1;min-width:190px;font-family:var(--body);font-size:.95rem;padding:10px 12px;border-radius:7px;border:1.5px solid #47806A;background:#14503A;color:#EAF3EE}
+.grow input::placeholder{color:#8FB3A2}
+.grow input:focus{outline:2px solid var(--sun);outline-offset:1px}
+.gstatus{margin:10px 0 0!important;font-size:.83rem;color:#B9D2C6}
+.gstatus.ok{color:#BBE5C9;font-weight:700}
+.gstatus.err{color:#FFC2AE;font-weight:700}
 footer{margin-top:30px;font-size:.82rem;color:var(--ink-soft)}
 footer a{color:var(--clay)}
 </style>
@@ -92,6 +103,18 @@ footer a{color:var(--clay)}
   <div class="actions">
     <button type="button" class="primary" id="save">Save changes</button>
     <span class="status" id="status"></span>
+  </div>
+
+  <div class="gshare">
+    <b>Or put them straight in your Google Calendar</b>
+    <p id="gshareSub">Nothing to copy and nothing to install. Type the Google address your
+      phone signs in with and the calendars appear in the app you already have. This is the
+      only way that finishes on an Android phone.</p>
+    <div class="grow">
+      <input type="email" id="gmail" placeholder="you@gmail.com" autocomplete="email" maxlength="120">
+      <button type="button" class="btn" id="gshareGo">Add them</button>
+    </div>
+    <p class="gstatus" id="gstatus"></p>
   </div>
 
   <section class="danger">
@@ -196,15 +219,52 @@ $("save").addEventListener("click", async () => {
   $("status").className = "status";
   $("status").textContent = "Saving…";
   try {
-    await call({ action: "save", token: TOKEN, groups: [...chosen] });
+    const out = await call({ action: "save", token: TOKEN, groups: [...chosen] });
     $("status").className = "status ok";
-    $("status").textContent = chosen.size
-      ? "Saved. Your phone will catch up within a few hours."
-      : "Saved. Your calendar will be empty until you pick something.";
+    $("status").textContent = !chosen.size
+      ? "Saved. Your calendar will be empty until you pick something."
+      : out.reshared
+        ? "Saved, and your Google Calendar has been updated already."
+        : "Saved. Your phone will catch up within a few hours.";
   } catch (err) {
     fail(err);
   } finally {
     $("save").disabled = false;
+  }
+});
+
+$("gshareGo").addEventListener("click", async () => {
+  const addr = $("gmail").value.trim();
+  const st = $("gstatus");
+  if (!addr || addr.indexOf("@") === -1){
+    st.className = "gstatus err";
+    st.textContent = "Type the Google address your phone signs in with.";
+    return;
+  }
+  $("gshareGo").disabled = true;
+  st.className = "gstatus";
+  st.textContent = "Working…";
+  try {
+    // Save first, so what lands in their Google account is what is ticked on
+    // screen rather than whatever was saved last time.
+    await call({ action: "save", token: TOKEN, groups: [...chosen] });
+    const out = await call({ action: "share", token: TOKEN, email: addr });
+    st.className = "gstatus ok";
+    const added = (out.added || []).join(", ");
+    const gone = (out.removed || []).join(", ");
+    st.textContent = added
+      ? "Done. " + added + " should appear within a minute. If you do not see them, open the " +
+        "Google Calendar app, go to Settings, and switch them on."
+      : gone
+        ? "Updated. " + gone + " removed from your Google account."
+        : "Your Google Calendar already matches what is ticked above.";
+  } catch (err) {
+    st.className = "gstatus err";
+    st.textContent = (err && err.fromServer && err.message)
+      ? err.message
+      : "Could not reach the church server. Try again in a minute.";
+  } finally {
+    $("gshareGo").disabled = false;
   }
 });
 
@@ -298,6 +358,8 @@ addEventListener("hashchange", () => {
   document.getElementById("notice").hidden = true;
   document.getElementById("newlink").hidden = true;
   document.getElementById("status").textContent = "";
+  document.getElementById("gstatus").textContent = "";
+  document.getElementById("gmail").value = "";
   start();
 });
 </script>

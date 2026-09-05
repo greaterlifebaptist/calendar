@@ -76,6 +76,16 @@ button.primary[disabled]{opacity:.45;cursor:default}
 .howto b{color:#fff;display:block;margin-bottom:2px}
 .howto a{color:var(--sun);font-weight:700}
 .howto code{font-family:var(--mono);font-size:.92em;background:rgba(0,0,0,.25);padding:1px 4px;border-radius:3px}
+.gshare{margin-top:14px;background:rgba(255,255,255,.07);border:1.5px solid #47806A;border-radius:9px;padding:13px 14px}
+.gshare b{display:block;font-family:var(--display);font-size:1.05rem;color:#fff;margin-bottom:3px}
+.gshare p{margin:0 0 11px;font-size:.83rem;color:#B9D2C6}
+.grow{display:flex;gap:8px;flex-wrap:wrap}
+.grow input{flex:1;min-width:190px;font-family:var(--body);font-size:.95rem;padding:10px 12px;border-radius:7px;border:1.5px solid #47806A;background:#14503A;color:#EAF3EE}
+.grow input::placeholder{color:#8FB3A2}
+.grow input:focus{outline:2px solid var(--sun);outline-offset:1px}
+.gstatus{margin:10px 0 0!important;font-size:.83rem;color:#B9D2C6}
+.gstatus.ok{color:#BBE5C9;font-weight:700}
+.gstatus.err{color:#FFC2AE;font-weight:700}
 .notice{margin-top:22px;padding:13px 15px;border-radius:9px;font-size:.87rem;background:#FFF6E0;border:1.5px solid #F2DFAE;color:#6B5307}
 .notice b{display:block;font-family:var(--display);font-size:1rem;margin-bottom:2px}
 footer{margin-top:30px;font-size:.82rem;color:var(--ink-soft)}
@@ -136,6 +146,16 @@ footer a{color:var(--clay)}
     <a class="btn ghost" id="btnIcs" href="#">Outlook or other</a>
   </div>
   <p class="howto" id="howto"></p>
+
+  <div class="gshare" id="gshare" hidden>
+    <b>Put it straight in your Google Calendar</b>
+    <p>No link to copy. Type the Google address your phone uses and the calendars appear in the app you already have.</p>
+    <div class="grow">
+      <input type="email" id="gmail" placeholder="you@gmail.com" autocomplete="email" maxlength="120">
+      <button type="button" class="btn" id="gshareGo">Add them</button>
+    </div>
+    <p class="gstatus" id="gstatus"></p>
+  </div>
   <p class="fineprint" id="changeLater"></p>
   <p class="fineprint">
     Scan the code with your phone camera, or tap a button on the phone itself.
@@ -161,6 +181,8 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">"
 
 let DATA = null;
 let chosen = new Set();
+let TOKEN = "";
+let LAST_EMAIL = "";
 
 function notice(head, body, kind){
   const el = $("notice");
@@ -219,14 +241,19 @@ function showResult(feedUrl, updated){
   const android = /Android/i.test(navigator.userAgent);
   const ios = /iPad|iPhone|iPod/.test(navigator.userAgent);
   const how = $("howto");
+
+  // Android gets the Google route first, because the link route genuinely
+  // cannot be finished on the phone: the Google Calendar app has no way to
+  // add a calendar from a URL.
+  $("gshare").hidden = false;
+  if (LAST_EMAIL) $("gmail").value = LAST_EMAIL;
+
   if (android){
     how.innerHTML =
-      "<b>On Android, this takes one trip to a computer</b>" +
-      "The Google Calendar app cannot add a calendar from a link. Copy the link above, " +
-      "then on a computer open <a href=\"https://calendar.google.com\" target=\"_blank\" rel=\"noopener\">calendar.google.com</a>, " +
-      "find <b style=\"display:inline\">Other calendars</b> in the left column, press " +
-      "<code>+</code>, choose <b style=\"display:inline\">From URL</b>, and paste it. " +
-      "It appears on your phone within a few minutes. You only do this once.";
+      "<b>On Android, use the box below</b>" +
+      "The Google Calendar app cannot add a calendar from a link, so the buttons " +
+      "above will not finish the job on this phone. Typing your Google address " +
+      "below does, and it takes a few seconds.";
   } else if (ios){
     how.innerHTML =
       "<b>On iPhone</b>" +
@@ -257,6 +284,50 @@ function showResult(feedUrl, updated){
     "using the same link on your phone. Worth bookmarking.";
   $("result").scrollIntoView({ behavior: "smooth", block: "start" });
 }
+
+/** One request to the endpoint, with server messages kept apart from ours. */
+async function call(payload){
+  const res = await fetch(DATA.signup, {
+    method: "POST",
+    headers: { "content-type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(payload),
+  });
+  const out = await res.json();
+  if (!out.ok){
+    const e = new Error(out.error || "Something went wrong.");
+    e.fromServer = true;
+    throw e;
+  }
+  return out;
+}
+
+$("gshareGo").addEventListener("click", async () => {
+  const addr = $("gmail").value.trim();
+  const st = $("gstatus");
+  if (!addr || addr.indexOf("@") === -1){
+    st.className = "gstatus err";
+    st.textContent = "Type the Google address your phone signs in with.";
+    return;
+  }
+  $("gshareGo").disabled = true;
+  st.className = "gstatus";
+  st.textContent = "Adding them to your Google Calendar…";
+  try {
+    const out = await call({ action: "share", token: TOKEN, email: addr });
+    st.className = "gstatus ok";
+    st.textContent = out.added && out.added.length
+      ? "Done. " + out.added.join(", ") + " should appear in your calendar within a minute. " +
+        "If you do not see them, open the Google Calendar app, go to Settings, and switch them on."
+      : "Those are already on this Google account.";
+  } catch (err) {
+    st.className = "gstatus err";
+    st.textContent = (err && err.fromServer && err.message)
+      ? err.message
+      : "Could not reach the church server. Try again in a minute.";
+  } finally {
+    $("gshareGo").disabled = false;
+  }
+});
 
 $("copy").addEventListener("click", async () => {
   const field = $("feedUrl");
@@ -296,6 +367,8 @@ $("form").addEventListener("submit", async e => {
       e.fromServer = true;
       throw e;
     }
+    TOKEN = out.token || "";
+    LAST_EMAIL = email;
     showResult(out.feedUrl, out.updated);
   } catch (err) {
     $("go").disabled = false;

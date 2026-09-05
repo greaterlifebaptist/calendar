@@ -12,7 +12,9 @@ Putting the calendar on the church website is in
 [docs/WORDPRESS.md](docs/WORDPRESS.md).
 Deploying the signup endpoint is in [docs/SIGNUP.md](docs/SIGNUP.md), and the
 admin form in [docs/ADMIN.md](docs/ADMIN.md). Reminders, and how to switch
-them on safely, are in [docs/REMINDERS.md](docs/REMINDERS.md).
+them on safely, are in [docs/REMINDERS.md](docs/REMINDERS.md). Why an Android
+phone cannot add a calendar from a link, and what we do about it, is in
+[docs/ANDROID.md](docs/ANDROID.md).
 This file covers only how to run what exists.
 
 ## Status
