@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-05T02:35:54.936Z",
+  "generated": "2026-09-05T02:51:34.624Z",
   "timezone": "America/New_York",
   "feeds": {
     "base": "https://calendars.greaterlifebaptistchurch.com/feeds/",
@@ -59,6 +59,15 @@
       "end": "2026-09-19T21:00:00",
       "location": "Fellowship Hall",
       "notes": "Youth and adults invited to attend Youth Revival Night 3! We will have Travis Kiriluk with us and have food, fellowship, and a kids vs parents kickball game afterwards!"
+    },
+    {
+      "uid": "3rfjdbbq5iuc363rs65046jp5c@google.com",
+      "ministry": "church",
+      "type": "event",
+      "title": "Youth Led Sunday",
+      "start": "2026-09-20T11:00:00",
+      "end": "2026-09-20T12:15:00",
+      "notes": "The Youth will be leading and serving in multiple ministries today! Please encourage them and come ready to worship with them!"
     },
     {
       "uid": "4ep0nchkek5ea0jflt6p3f841p@google.com",
