@@ -72,7 +72,10 @@ button.danger:hover{border-color:var(--clay)}
 .status.err{color:var(--clay);font-weight:700}
 .status.ok{color:var(--pine);font-weight:700}
 
-.list{margin-top:8px;display:flex;flex-direction:column;gap:7px;max-height:340px;overflow:auto}
+/* Both lists scroll inside themselves. A year of events, or the whole
+   membership, must not turn the page into a mile of scrolling. */
+.list{margin-top:8px;display:flex;flex-direction:column;gap:7px;max-height:min(60vh,520px);overflow:auto;overscroll-behavior:contain}
+#people{max-height:min(60vh,520px);overflow:auto;overscroll-behavior:contain}
 .item{display:flex;gap:11px;align-items:flex-start;border:1.5px solid var(--rule);border-radius:9px;padding:10px 12px;background:#fff;cursor:pointer;text-align:left;font-family:var(--body);width:100%}
 .item:hover{border-color:var(--sun)}
 .item .when{flex:0 0 84px;font-family:var(--mono);font-size:.72rem;color:var(--ink-soft);font-weight:600;padding-top:2px}
@@ -192,18 +195,34 @@ footer a{color:var(--clay)}
         <span class="lab">Repeats</span>
         <select id="repeat">
           <option value="">Does not repeat</option>
+          <option value="DAILY">Every day</option>
           <option value="WEEKLY">Every week</option>
           <option value="WEEKLY2">Every two weeks</option>
-          <option value="MONTHLY">Every month, same date</option>
-          <option value="MONTHLYNTH">Every month, same weekday</option>
-          <option value="DAILY">Every day</option>
+          <option value="MONTHLY">Every month, on the same date</option>
+          <option value="MONTHLYNTH" id="optNth">Every month, on the same day of the week</option>
+          <option value="YEARLY">Every year</option>
         </select>
       </label>
-      <div class="row" id="repeatCountWrap" hidden>
+
+      <div id="repeatEndsWrap" hidden>
         <label>
-          <span class="lab">How many times <span class="hint">counting the first</span></span>
-          <input type="number" id="repeatCount" min="2" max="60" value="4">
+          <span class="lab">Until when</span>
+          <select id="repeatEnds">
+            <option value="never">Keeps going, no end date</option>
+            <option value="count" selected>Stops after a number of times</option>
+            <option value="until">Stops on a date</option>
+          </select>
         </label>
+        <div class="row">
+          <label id="repeatCountWrap">
+            <span class="lab">How many times <span class="hint">counting the first</span></span>
+            <input type="number" id="repeatCount" min="2" max="200" value="4">
+          </label>
+          <label id="repeatUntilWrap" hidden>
+            <span class="lab">Last one on or before</span>
+            <input type="date" id="repeatUntil">
+          </label>
+        </div>
       </div>
     </fieldset>
 
@@ -373,17 +392,37 @@ function setType(type){
    somebody typed. */
 const SLOT_MINUTES = 15;
 
+/**
+ * The list starts at 6am, not midnight.
+ *
+ * A day that begins at 12:00 AM puts every realistic church time deep down the
+ * list, so choosing 7pm means scrolling past six hours nobody schedules
+ * anything in. Starting at 6am halves that, and the small hours are still
+ * there, grouped at the bottom where they belong.
+ */
+const DAY_STARTS_AT = 6 * 60;
+
+function timeOption(m){
+  const h = Math.floor(m / 60), mm = m % 60;
+  const value = String(h).padStart(2,"0") + ":" + String(mm).padStart(2,"0");
+  const hour12 = h % 12 === 0 ? 12 : h % 12;
+  const label = hour12 + ":" + String(mm).padStart(2,"0") + " " + (h < 12 ? "AM" : "PM");
+  return '<option value="' + value + '">' + label + '</option>';
+}
+
 function fillTimeOptions(){
-  const opts = ['<option value="">--</option>'];
-  for (let m = 0; m < 24 * 60; m += SLOT_MINUTES){
-    const h = Math.floor(m / 60), mm = m % 60;
-    const value = String(h).padStart(2,"0") + ":" + String(mm).padStart(2,"0");
-    const hour12 = h % 12 === 0 ? 12 : h % 12;
-    const label = hour12 + ":" + String(mm).padStart(2,"0") + " " + (h < 12 ? "AM" : "PM");
-    opts.push('<option value="' + value + '">' + label + '</option>');
-  }
-  $("startTime").innerHTML = opts.join("");
-  $("endTime").innerHTML = opts.join("");
+  const main = [], early = [];
+  for (let m = DAY_STARTS_AT; m < 24 * 60; m += SLOT_MINUTES) main.push(timeOption(m));
+  for (let m = 0; m < DAY_STARTS_AT; m += SLOT_MINUTES) early.push(timeOption(m));
+
+  const html = '<option value="">--</option>' +
+    '<optgroup label="Morning">' + main.slice(0, 24).join("") + '</optgroup>' +
+    '<optgroup label="Afternoon">' + main.slice(24, 48).join("") + '</optgroup>' +
+    '<optgroup label="Evening">' + main.slice(48).join("") + '</optgroup>' +
+    '<optgroup label="After midnight">' + early.join("") + '</optgroup>';
+
+  $("startTime").innerHTML = html;
+  $("endTime").innerHTML = html;
 }
 
 /** Nearest quarter hour at or after a "HH:MM", so loaded events still fit. */
@@ -421,37 +460,98 @@ function syncAllDay(){
 }
 
 function syncRepeat(){
-  $("repeatCountWrap").hidden = !$("repeat").value;
+  const on = !!$("repeat").value;
+  $("repeatEndsWrap").hidden = !on;
+  const ends = $("repeatEnds").value;
+  $("repeatCountWrap").hidden = ends !== "count";
+  $("repeatUntilWrap").hidden = ends !== "until";
+
+  // "Same day of the week" only means something once a date is chosen, and
+  // saying which one is far clearer than leaving the reader to work it out.
+  const opt = $("optNth");
+  const start = $("startDate").value;
+  if (start){
+    const d = new Date(start + "T00:00:00");
+    const nth = ["first","second","third","fourth","fifth"][Math.floor((d.getDate() - 1) / 7)];
+    const dow = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][d.getDay()];
+    opt.textContent = nth ? "Every month, on the " + nth + " " + dow : "Every month, on the same day of the week";
+  } else {
+    opt.textContent = "Every month, on the same day of the week";
+  }
+}
+
+/** COUNT=, UNTIL=, or neither for a series with no end. */
+function repeatEnding(){
+  const ends = $("repeatEnds").value;
+  if (ends === "never") return "";
+  if (ends === "count"){
+    return ";COUNT=" + Math.max(2, Math.min(200, Number($("repeatCount").value) || 4));
+  }
+  const until = $("repeatUntil").value;
+  if (!until) return "";
+  // An all-day series wants a plain date; a timed one wants a UTC instant, and
+  // mixing the two is the usual way an otherwise valid rule gets rejected.
+  if ($("allDay").checked) return ";UNTIL=" + until.replace(/-/g, "");
+  const end = new Date(until + "T23:59:59");
+  // YYYYMMDDTHHMMSSZ exactly. Milliseconds make the rule invalid.
+  return ";UNTIL=" + end.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
 }
 
 function buildRrule(){
   const kind = $("repeat").value;
   if (!kind) return "";
-  const count = Math.max(2, Math.min(60, Number($("repeatCount").value) || 4));
+  const tail = repeatEnding();
   const start = $("startDate").value;
-  if (kind === "WEEKLY")   return "RRULE:FREQ=WEEKLY;COUNT=" + count;
-  if (kind === "WEEKLY2")  return "RRULE:FREQ=WEEKLY;INTERVAL=2;COUNT=" + count;
-  if (kind === "MONTHLY")  return "RRULE:FREQ=MONTHLY;COUNT=" + count;
-  if (kind === "DAILY")    return "RRULE:FREQ=DAILY;COUNT=" + count;
+  if (kind === "DAILY")    return "RRULE:FREQ=DAILY" + tail;
+  if (kind === "WEEKLY")   return "RRULE:FREQ=WEEKLY" + tail;
+  if (kind === "WEEKLY2")  return "RRULE:FREQ=WEEKLY;INTERVAL=2" + tail;
+  if (kind === "MONTHLY")  return "RRULE:FREQ=MONTHLY" + tail;
+  if (kind === "YEARLY")   return "RRULE:FREQ=YEARLY" + tail;
   if (kind === "MONTHLYNTH"){
-    // "the second Tuesday", worked out from the date they picked.
-    if (!start) return "RRULE:FREQ=MONTHLY;COUNT=" + count;
+    // "the third Sunday", worked out from the date they picked.
+    if (!start) return "RRULE:FREQ=MONTHLY" + tail;
     const d = new Date(start + "T00:00:00");
     const nth = Math.floor((d.getDate() - 1) / 7) + 1;
     const day = ["SU","MO","TU","WE","TH","FR","SA"][d.getDay()];
-    return "RRULE:FREQ=MONTHLY;BYDAY=" + nth + day + ";COUNT=" + count;
+    return "RRULE:FREQ=MONTHLY;BYDAY=" + nth + day + tail;
   }
   return "";
 }
 
 function readRrule(rule){
-  if (!rule) return { kind:"", count:4 };
+  const blank = { kind:"", ends:"count", count:4, until:"" };
+  if (!rule) return blank;
   const up = rule.toUpperCase();
-  const count = Number((/COUNT=(\d+)/.exec(up) || [])[1]) || 4;
-  if (/FREQ=DAILY/.test(up))   return { kind:"DAILY", count };
-  if (/FREQ=WEEKLY/.test(up))  return { kind: /INTERVAL=2/.test(up) ? "WEEKLY2" : "WEEKLY", count };
-  if (/FREQ=MONTHLY/.test(up)) return { kind: /BYDAY=/.test(up) ? "MONTHLYNTH" : "MONTHLY", count };
-  return { kind:"", count };
+
+  const count = Number((/COUNT=(\d+)/.exec(up) || [])[1]) || 0;
+
+  // UNTIL is either a plain date (all-day series) or a UTC instant. A late
+  // evening local end becomes the next day in UTC, so a timed one has to be
+  // converted back or the form shows a date one later than was chosen.
+  const m = /UNTIL=(\d{8})(?:T(\d{6})Z)?/.exec(up);
+  let until = "";
+  if (m){
+    const [y, mo, d] = [m[1].slice(0,4), m[1].slice(4,6), m[1].slice(6,8)];
+    if (m[2]){
+      const utc = new Date(Date.UTC(+y, +mo - 1, +d, +m[2].slice(0,2), +m[2].slice(2,4), +m[2].slice(4,6)));
+      until = utc.getFullYear() + "-" +
+        String(utc.getMonth() + 1).padStart(2,"0") + "-" +
+        String(utc.getDate()).padStart(2,"0");
+    } else {
+      until = y + "-" + mo + "-" + d;
+    }
+  }
+  // Neither present means a series with no end, which is a real answer here
+  // rather than a missing one.
+  const ends = count ? "count" : (until ? "until" : "never");
+
+  let kind = "";
+  if (/FREQ=DAILY/.test(up))   kind = "DAILY";
+  if (/FREQ=WEEKLY/.test(up))  kind = /INTERVAL=2/.test(up) ? "WEEKLY2" : "WEEKLY";
+  if (/FREQ=MONTHLY/.test(up)) kind = /BYDAY=/.test(up) ? "MONTHLYNTH" : "MONTHLY";
+  if (/FREQ=YEARLY/.test(up))  kind = "YEARLY";
+
+  return { kind, ends, count: count || 4, until };
 }
 
 /** Pull cost/link/contact back out so editing does not duplicate them. */
@@ -477,7 +577,9 @@ function clearForm(){
   endTimeTouched = false;
   $("contact").value = contactFor($("ministry").value);
   $("repeat").value = "";
+  $("repeatEnds").value = "count";
   $("repeatCount").value = 4;
+  $("repeatUntil").value = "";
   setType("event");
   syncAllDay(); syncRepeat();
   $("save").textContent = "Add to the calendar";
@@ -522,7 +624,9 @@ function loadIntoForm(ev){
 
   const r = readRrule(ev.rrule);
   $("repeat").value = r.kind;
+  $("repeatEnds").value = r.ends;
   $("repeatCount").value = r.count;
+  $("repeatUntil").value = r.until;
 
   setType(ev.type || "event");
   $("pinned").checked = !!ev.pinned;
@@ -661,6 +765,8 @@ $("endDate").addEventListener("input", () => { endDateTouched = true; });
 $("endTime").addEventListener("change", () => { endTimeTouched = true; });
 $("allDay").addEventListener("change", syncAllDay);
 $("repeat").addEventListener("change", syncRepeat);
+$("repeatEnds").addEventListener("change", syncRepeat);
+$("startDate").addEventListener("change", syncRepeat);
 $("ministry").addEventListener("change", () => { clearForm(); refreshList(); });
 document.querySelectorAll("#typeSeg button").forEach(b => {
   b.addEventListener("click", () => setType(b.dataset.type));
