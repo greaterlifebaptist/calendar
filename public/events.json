@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-04T22:20:24.307Z",
+  "generated": "2026-09-05T01:04:52.709Z",
   "timezone": "America/New_York",
   "feeds": {
     "base": "https://calendars.greaterlifebaptistchurch.com/feeds/",
@@ -20,6 +20,14 @@
     }
   ],
   "events": [
+    {
+      "uid": "11vdpkaqed44hie7n7a1k81ofh@google.com",
+      "ministry": "youth",
+      "type": "event",
+      "title": "Test youth event",
+      "start": "2026-09-11T15:00:00",
+      "end": "2026-09-11T16:00:00"
+    },
     {
       "uid": "4o2amkeu8rila1o5fcttepqens@google.com",
       "ministry": "church",
