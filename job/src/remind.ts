@@ -198,6 +198,8 @@ type PlanInput = {
   masters: CalEvent[];
   state: ReminderState | null;
   now: Date;
+  /** Ignore the send-hour check. Used by the lookahead and by --send-now. */
+  forceHour?: boolean;
 };
 
 /**
@@ -227,7 +229,7 @@ export function planReminders(input: PlanInput): ReminderPlan {
   const hour = zonedParts(now, tz).H;
 
   // Once a day, not once an hour.
-  if (hour !== schedule.sendHour && !FORCE_SEND_HOUR()) {
+  if (hour !== schedule.sendHour && !input.forceHour && !FORCE_SEND_HOUR()) {
     return { due: [], skipped: `not the send hour (${schedule.sendHour}:00 local)`, seeding: false };
   }
 
@@ -386,4 +388,38 @@ export async function sendReminders(
   }
 
   return result;
+}
+
+/**
+ * When the next reminders are due, whenever nothing is due right now.
+ *
+ * Without this, a run that sends nothing is indistinguishable from a run where
+ * something is broken, and the only way to tell them apart is to work the
+ * ladder out by hand. Printed on every run, so the Actions log answers "why
+ * did I not get anything" without anyone opening a terminal.
+ */
+export function nextReminders(
+  input: Omit<PlanInput, 'now'> & { now: Date },
+  days = 60,
+  limit = 5,
+): { when: Date; reminder: PlannedReminder }[] {
+  const out: { when: Date; reminder: PlannedReminder }[] = [];
+  const seen: ReminderState = { sent: { ...(input.state?.sent ?? {}) } };
+  const tz = input.cfg.timezone;
+
+  for (let i = 0; i <= days && out.length < limit; i++) {
+    const day = new Date(input.now.getTime() + i * 86400000);
+    const p = zonedParts(day, tz);
+    // Midday keeps the date stable either side of a clock change; the plan
+    // only cares which calendar day it is once the hour check is bypassed.
+    const at = new Date(Date.UTC(p.y, p.m - 1, p.d, 12));
+
+    const plan = planReminders({ ...input, state: seen, now: at, forceHour: true });
+    for (const r of plan.due) {
+      if (out.length >= limit) break;
+      seen.sent[r.key] = at.toISOString();
+      out.push({ when: at, reminder: r });
+    }
+  }
+  return out;
 }

@@ -32,13 +32,33 @@ week-ahead notice would always arrive the day after the previous week's
 session. A monthly or rarer series is not frequent enough to be a nuisance and
 is left alone.
 
+## Why nothing was sent
+
+Every run prints the reminder section, whether or not anything went out, and
+says which of these is true:
+
+| The log says | Meaning |
+|---|---|
+|  | It is not 9am. Normal for 23 runs out of 24. |
+|  | It is 9am, but no event is on a rung today. |
+|  | The next few dates anything is due, so a quiet run is not a mystery. |
+|  | Nothing will ever send. Check  in the config. |
+|  | Working normally, just rehearsing. |
+
+The most common reason for silence is simply that no event is seven or one
+days away yet. An event thirteen days out has no rung today; the ladder only
+fires at 30, 7, 1 and 0 days depending on type.
+
 ## Read every message before any of them are real
 
 ```bash
 cd job && npm run preview:reminders
-```
+```This needs a terminal, and the  lines in the Actions log cover the
+same ground without one.
 
-This walks forward day by day and prints every message the ladder would send,
+
+
+Run it from a terminal in the folder holding this repo. It walks forward day by day and prints every message the ladder would send,
 in full, with the dates it would send them. It sends nothing and does not touch
 the saved state. `--days 60` looks further ahead; `--fixtures` runs it against
 the sample calendar instead of the real one.

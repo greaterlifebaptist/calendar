@@ -17,7 +17,7 @@ import { readPeople, duplicateTokens } from './sheet.ts';
 import { writePersonalFeeds } from './personal.ts';
 import {
   planReminders, planDigest, sendReminders,
-  loadState, saveState, pruneState, statePath,
+  loadState, saveState, pruneState, statePath, nextReminders,
 } from './remind.ts';
 import { addMonths, startOfMonth } from './time.ts';
 import { join } from 'node:path';
@@ -59,6 +59,26 @@ async function publishPersonalFeeds(cfg: Config, masters: CalEvent[]) {
   return writePersonalFeeds(cfg, sheet.people, masters, outputDir());
 }
 
+
+/** Say when the next reminders land, so a quiet run is not a mystery. */
+function reportUpcoming(
+  cfg: Config, ministries: Ministry[], instances: CalEvent[], masters: CalEvent[],
+  state: Parameters<typeof nextReminders>[0]['state'], now: Date,
+): void {
+  const upcoming = nextReminders({ cfg, ministries, instances, masters, state, now });
+  if (!upcoming.length) {
+    const withChannel = ministries.filter((m) => (m.notify ?? []).length);
+    log(withChannel.length
+      ? '  nothing due in the next 60 days either'
+      : '  no ministry has a GroupMe channel, so nothing will ever be sent');
+    return;
+  }
+  log('  next up:');
+  for (const u of upcoming) {
+    log('    ' + u.when.toISOString().slice(0, 10) + '  ' +
+      u.reminder.title + '  (' + u.reminder.ruleId + ', ' + u.reminder.ministry + ')');
+  }
+}
 /**
  * Work out what the ladder owes, and send it unless anything says not to.
  *
@@ -83,6 +103,7 @@ async function runReminders(
 
   if (plan.skipped && !all.length) {
     log('  ' + plan.skipped);
+    reportUpcoming(cfg, ministries, instances, masters, state, now);
     return null;
   }
 
@@ -98,7 +119,8 @@ async function runReminders(
   }
 
   if (!all.length) {
-    log('  nothing due');
+    log('  nothing due right now');
+    reportUpcoming(cfg, ministries, instances, masters, state, now);
     return null;
   }
 
