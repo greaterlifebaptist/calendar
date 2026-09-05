@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-05T01:13:20.239Z",
+  "generated": "2026-09-05T02:21:06.588Z",
   "timezone": "America/New_York",
   "feeds": {
     "base": "https://calendars.greaterlifebaptistchurch.com/feeds/",
@@ -9,11 +9,6 @@
   "signup": "https://script.google.com/macros/s/AKfycbyNowdqhkq7HxBtKSI3Sxk12e5MBs8N2kmxBPCBsVwlyfGSkwLrMx77FgkBRtPsobEO/exec",
   "ministries": [
     {
-      "id": "church",
-      "name": "Church-wide",
-      "color": "#1B5E45"
-    },
-    {
       "id": "youth",
       "name": "Greater Generation",
       "color": "#6B9A12"
@@ -21,37 +16,34 @@
   ],
   "events": [
     {
-      "uid": "3qrnn288h83cnunehv6na5b1a1@google.com",
+      "uid": "jhrefasg3q4q1rrqdsovs3hsmk@google.com",
       "ministry": "youth",
       "type": "event",
-      "title": "Test123",
-      "start": "2026-09-05T19:00:00",
-      "end": "2026-09-05T20:00:00",
-      "notes": "This is a test"
-    },
-    {
-      "uid": "11vdpkaqed44hie7n7a1k81ofh@google.com",
-      "ministry": "youth",
-      "type": "event",
-      "title": "Test youth event",
-      "start": "2026-09-11T15:00:00",
-      "end": "2026-09-11T16:00:00"
-    },
-    {
-      "uid": "4o2amkeu8rila1o5fcttepqens@google.com",
-      "ministry": "church",
-      "type": "event",
-      "title": "Test - main church",
+      "title": "Youth Revival",
       "start": "2026-09-17T19:00:00",
-      "end": "2026-09-17T20:00:00"
+      "end": "2026-09-17T20:15:00",
+      "location": "Fellowship Hall",
+      "notes": "Guest Evan Scofield preaching! Be sure to invite friends to attend!"
     },
     {
-      "uid": "4jgidqhfhlptb578dh6n1tqaee@google.com",
+      "uid": "7qrjsamrrgnd726r7m4nmvrvi8@google.com",
       "ministry": "youth",
       "type": "event",
-      "title": "Test - Youth",
-      "start": "2026-09-17T20:00:00",
-      "end": "2026-09-17T21:00:00"
+      "title": "Youth Revival & Bonfire",
+      "start": "2026-09-18T19:00:00",
+      "end": "2026-09-18T22:00:00",
+      "location": "Fellowship Hall",
+      "notes": "Youth and adults invited to attend Youth Revival Night 2! We will have Evan Scofield back with us and have food, fellowship, and a bonfire afterwards!"
+    },
+    {
+      "uid": "9jcse5nv2n7ng9h47v4m5q8ii8@google.com",
+      "ministry": "youth",
+      "type": "event",
+      "title": "Youth Revival & Kickball Game",
+      "start": "2026-09-19T18:00:00",
+      "end": "2026-09-19T21:00:00",
+      "location": "Fellowship Hall",
+      "notes": "Youth and adults invited to attend Youth Revival Night 3! We will have Travis Kiriluk with us and have food, fellowship, and a kids vs parents kickball game afterwards!"
     }
   ]
 }

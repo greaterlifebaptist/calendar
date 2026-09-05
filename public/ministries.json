@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-05T01:13:20.239Z",
+  "generated": "2026-09-05T02:21:06.588Z",
   "ministries": [
     {
       "id": "church",
@@ -7,7 +7,7 @@
       "visibility": "public",
       "color": "#1B5E45",
       "calendarId": "08edfaf4977f2441b6cc09b06664b0dd7f2182d7b9d6c2b513b18e1b0571d9ba@group.calendar.google.com",
-      "contact": ""
+      "contact": "JC Cross"
     },
     {
       "id": "youth",
@@ -15,7 +15,7 @@
       "visibility": "public",
       "color": "#6B9A12",
       "calendarId": "04cc8182f2139f35a05e34fe7e0eef8bcc31213876b29a53827d381bdb79db6f@group.calendar.google.com",
-      "contact": ""
+      "contact": "Spencer Welch"
     },
     {
       "id": "youth-leaders",
@@ -23,7 +23,7 @@
       "visibility": "private",
       "color": "#7A3E6E",
       "calendarId": "c867f60e7cdbbc54e17206d894626575f35a5d23727d0725dd8d137614d74a97@group.calendar.google.com",
-      "contact": ""
+      "contact": "Spencer Welch"
     },
     {
       "id": "children",
@@ -31,7 +31,7 @@
       "visibility": "public",
       "color": "#EE7B21",
       "calendarId": "9c4da1865b4da67c68c6ed2518444e6fcddee7f701f9ed89daf0b3037e65801f@group.calendar.google.com",
-      "contact": ""
+      "contact": "Andrea Hutchins or Michelle Jenson"
     },
     {
       "id": "youngadults",
@@ -39,7 +39,7 @@
       "visibility": "public",
       "color": "#D14E2B",
       "calendarId": "78667ba96b8fbff31b1a5afe19e6d4bb32c1e6c46682ab2bc2fda4e9495a46f7@group.calendar.google.com",
-      "contact": ""
+      "contact": "JC Cross"
     },
     {
       "id": "seniors",
@@ -47,7 +47,7 @@
       "visibility": "public",
       "color": "#8A6A08",
       "calendarId": "f73e5f90cc4f78f19347e222ecb634414b538e17405a2a6dceebe5d3acd5d90a@group.calendar.google.com",
-      "contact": ""
+      "contact": "Buddy Thompson"
     },
     {
       "id": "mens",
@@ -55,7 +55,7 @@
       "visibility": "public",
       "color": "#2C7EA1",
       "calendarId": "fa9ce46f7f64be0a373fef3ecb944d10af149314c9ad1b8026f4736e8a3b7cc5@group.calendar.google.com",
-      "contact": ""
+      "contact": "Jonathan McNeese"
     },
     {
       "id": "womens",
@@ -63,7 +63,7 @@
       "visibility": "public",
       "color": "#A0447F",
       "calendarId": "148766a415e4c583b091421797f5cfa7452915fe707ca3a39152e9efd6ee9e0e@group.calendar.google.com",
-      "contact": ""
+      "contact": "Amy McNeese"
     },
     {
       "id": "worship",
@@ -71,7 +71,7 @@
       "visibility": "private",
       "color": "#5B4B8A",
       "calendarId": "9021e8c138cd0f101aa900af6cdec4c61e87af24755e784598e19bde501e5783@group.calendar.google.com",
-      "contact": ""
+      "contact": "Nelson Tomlinson"
     }
   ]
 }
