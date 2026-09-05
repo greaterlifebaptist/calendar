@@ -230,7 +230,14 @@ export function planReminders(input: PlanInput): ReminderPlan {
 
   // Once a day, not once an hour.
   if (hour !== schedule.sendHour && !input.forceHour && !FORCE_SEND_HOUR()) {
-    return { due: [], skipped: `not the send hour (${schedule.sendHour}:00 local)`, seeding: false };
+    // Seeding is reported honestly even here, so the state file gets created
+    // on an ordinary quiet run rather than waiting for one that has something
+    // to send. Otherwise the first deliberate test is swallowed by the seed.
+    return {
+      due: [],
+      skipped: `not the send hour (${schedule.sendHour}:00 local)`,
+      seeding: !state,
+    };
   }
 
   const byMinistry = new Map(ministries.map((m) => [m.id, m]));

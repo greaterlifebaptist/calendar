@@ -76,9 +76,12 @@ hour.
 `job/state/reminders.json`, committed back to the repo each run. Without it the
 hourly job would repeat itself.
 
-**The first run sends nothing.** With no state file, it records everything it
-*would* have sent and sends none of it. Otherwise switching this on fires every
-rung for everything already on the calendar, at everybody, at once.
+**The first run sends nothing.** With no state file, it records whatever is due
+at that moment as already handled and sends none of it, so switching this on
+cannot fire a backlog. This happens on the first run of any kind, including a
+quiet one, so the file is in place long before anybody tries a real send. It
+used to wait for the first run that had something to send, which meant the very
+first deliberate test was swallowed.
 
 **A corrupt state file stops the run.** An unreadable file is not treated as
 "nothing has been sent yet", because that reading re-sends the lot.

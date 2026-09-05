@@ -101,20 +101,29 @@ async function runReminders(
   log('');
   log('Reminders');
 
-  if (plan.skipped && !all.length) {
-    log('  ' + plan.skipped);
-    reportUpcoming(cfg, ministries, instances, masters, state, now);
-    return null;
-  }
-
+  // Seeding happens on the first run of any kind, including a quiet one, so
+  // the state file exists long before anybody tries a real send.
+  //
+  // It used to wait for the first run that had something to send, which meant
+  // the very first deliberate test was silently swallowed AND its rung marked
+  // as handled, so it would never fire at all. The backlog it guards against
+  // is still guarded: the blast limit below refuses any run wanting more than
+  // a handful, whenever that happens.
   if (plan.seeding) {
-    // First ever run. Record everything as already handled and send nothing,
-    // so switching this on does not fire a backlog at thirty parents.
     const seeded: Record<string, string> = {};
     for (const r of all) seeded[r.key] = now.toISOString();
     saveState(path, { sent: seeded, seededAt: now.toISOString() });
-    log('  first run: recorded ' + all.length + ' reminder(s) as already handled,');
-    log('  and sent nothing. From the next run on, only new ones go out.');
+    log(all.length
+      ? '  first run: recorded ' + all.length + ' reminder(s) as already handled and sent none.'
+      : '  first run: nothing was due, so nothing was suppressed.');
+    log('  from now on reminders behave normally.');
+    reportUpcoming(cfg, ministries, instances, masters, { sent: seeded }, now);
+    return null;
+  }
+
+  if (plan.skipped && !all.length) {
+    log('  ' + plan.skipped);
+    reportUpcoming(cfg, ministries, instances, masters, state, now);
     return null;
   }
 
