@@ -25,8 +25,12 @@ appear in the app they already have.
 | Colours | all one colour | a colour each |
 | Revoking | replace the link | remove the access |
 
-Both are offered. The link stays the better answer on iPhone and desktop; the
-Google route is the only one that finishes on Android.
+Both are offered, but not equally on every device. The subscribe buttons are
+named after the app they open rather than after a phone, and on Android the
+Apple and Google ones are taken away entirely: neither can finish there, and a
+button that opens an app which then does nothing is what makes somebody decide
+the whole system is broken. What is left on Android is the Google address box
+first, then the link, labelled as being for a computer.
 
 ## Why not one merged calendar with colours
 
