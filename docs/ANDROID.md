@@ -69,15 +69,29 @@ the closest thing Google offers to a folder.
 notices. Our own pages and feeds keep using the display names in
 `job/config/ministries.json`, which are already the friendly ones.
 
-## The invitation email
+## Access and subscription are two different things
 
-Sharing normally emails an invitation the person must accept, then asks again
-in the calendar. That is two steps between them and a working calendar, so the
-share is sent with notifications **off**, which should let it appear directly.
+This is the part that is not obvious, and it cost a day.
 
-If it still asks for acceptance, that is Google's behaviour for personal
-accounts and there is nothing to be done about it from here. It is still all on
-the phone, which is the part that matters.
+The church account can **grant access** to a calendar. It cannot **put that
+calendar in somebody's list** — only they can do that. Normally the invitation
+email papers over the gap: its "add this calendar" link does the second half.
+
+Sharing here is sent with notifications **off**, to spare people the two
+acceptance steps. Which means the access lands silently and nothing appears —
+indistinguishable, from the reader's side, from the share having failed.
+
+So the page hands over an add link per calendar instead:
+
+    https://calendar.google.com/calendar/render?cid=<calendar id>
+
+One tap each, no inbox, and it works on the phone in their hand. A tapped
+button greys out and says "Added", because coming back to a row of identical
+buttons with no idea which have been pressed is how somebody ends up with
+three of one calendar and none of another.
+
+Anyone who runs it twice gets their links again rather than "you already have
+those", which was the dead end that made a working share look broken.
 
 ## Changing groups later
 

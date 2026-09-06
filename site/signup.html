@@ -86,6 +86,10 @@ button.primary[disabled]{opacity:.45;cursor:default}
 .gstatus{margin:10px 0 0!important;font-size:.83rem;color:#B9D2C6}
 .gstatus.ok{color:#BBE5C9;font-weight:700}
 .gstatus.err{color:#FFC2AE;font-weight:700}
+.gadd{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px}
+.gadd a{display:inline-block;padding:9px 14px;border-radius:7px;font-size:.83rem;font-weight:700;text-decoration:none;background:var(--sun);color:#3D2A00}
+.gadd a:hover{opacity:.9}
+.gadd a.done{background:transparent;border:1.5px solid #47806A;color:#8FB3A2}
 .routehead{font-family:var(--display);font-size:1.05rem;color:#fff;margin:22px 0 6px}
 .notice{margin-top:22px;padding:13px 15px;border-radius:9px;font-size:.87rem;background:#FFF6E0;border:1.5px solid #F2DFAE;color:#6B5307}
 .notice b{display:block;font-family:var(--display);font-size:1rem;margin-bottom:2px}
@@ -153,12 +157,14 @@ footer a{color:var(--clay)}
 
   <div class="gshare" id="gshare" hidden>
     <b>Put it straight in your Google Calendar</b>
-    <p>No link to copy. Type the Google address your phone uses and the calendars appear in the app you already have.</p>
+    <p>No link to copy and nothing to install. Type the Google address your phone signs in
+      with, then tap each calendar to add it to the app you already have.</p>
     <div class="grow">
       <input type="email" id="gmail" placeholder="you@gmail.com" autocomplete="email" maxlength="120">
       <button type="button" class="btn" id="gshareGo">Add them</button>
     </div>
     <p class="gstatus" id="gstatus"></p>
+    <div class="gadd" id="gadd" hidden></div>
   </div>
   <p class="fineprint" id="changeLater"></p>
   <p class="fineprint" id="privacyNote"></p>
@@ -223,14 +229,15 @@ function showResult(feedUrl, updated){
   $("result").hidden = false;
   $("resultHead").textContent = updated ? "Your calendar is updated" : "Here is your calendar";
   const onAndroid = /Android/i.test(navigator.userAgent);
+  const ready = feedUrl.indexOf("/c/") !== -1;
+  const wait = ready ? "" : " Give it a minute before adding it: your calendar is being built right now.";
   $("resultSub").textContent = onAndroid
     ? (updated
         ? "Nothing to change if you already added it. To put it on this phone, use the box below."
-        : "To get it onto this phone, use the box below. Give it a minute: your calendar is being built right now.")
+        : "To get it onto this phone, use the box below." + wait)
     : (updated
         ? "Same link as before, so nothing to change on your phone. It will catch up on its own."
-        : "Scan this with your phone, or use the buttons below if you are already on it. " +
-          "Give it a minute before adding it: your calendar is being built right now.");
+        : "Scan this with your phone, or use the buttons below if you are already on it." + wait);
 
   $("feedUrl").value = feedUrl;
   $("btnApple").href = feedUrl.replace(/^https?:/, "webcal:");
@@ -319,6 +326,33 @@ async function call(payload){
   return out;
 }
 
+/**
+ * Google keeps access and subscription apart, and only the first is something
+ * the church can do for somebody. Granting it silently leaves nothing to see,
+ * which reads as the whole thing having failed. These links are the second
+ * half: one tap each, on the phone, with no email in the way.
+ */
+function showAddLinks(calendars){
+  const box = $("gadd");
+  box.innerHTML = "";
+  box.hidden = !(calendars && calendars.length);
+  (calendars || []).forEach(cal => {
+    const a = document.createElement("a");
+    a.href = cal.add;
+    a.target = "_blank";
+    a.rel = "noopener";
+    a.textContent = "Add " + cal.name;
+    // Coming back to a row of identical buttons with no idea which have been
+    // tapped is the obvious way to end up with three of one and none of
+    // another.
+    a.addEventListener("click", () => {
+      a.classList.add("done");
+      a.textContent = "Added " + cal.name;
+    });
+    box.appendChild(a);
+  });
+}
+
 $("gshareGo").addEventListener("click", async () => {
   const addr = $("gmail").value.trim();
   const st = $("gstatus");
@@ -333,10 +367,10 @@ $("gshareGo").addEventListener("click", async () => {
   try {
     const out = await call({ action: "share", token: TOKEN, email: addr });
     st.className = "gstatus ok";
-    st.textContent = out.added && out.added.length
-      ? "Done. " + out.added.join(", ") + " should appear in your calendar within a minute. " +
-        "If you do not see them, open the Google Calendar app, go to Settings, and switch them on."
-      : "Those are already on this Google account.";
+    showAddLinks(out.calendars);
+    st.textContent = (out.calendars && out.calendars.length)
+      ? "Your account can see these now. Tap each one to put it in your calendar:"
+      : "Nothing to add — pick at least one group first.";
   } catch (err) {
     st.className = "gstatus err";
     st.textContent = (err && err.fromServer && err.message)

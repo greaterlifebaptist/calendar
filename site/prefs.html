@@ -81,6 +81,10 @@ button.quiet:hover{border-color:var(--clay)}
 .gstatus{margin:10px 0 0!important;font-size:.83rem;color:#B9D2C6}
 .gstatus.ok{color:#BBE5C9;font-weight:700}
 .gstatus.err{color:#FFC2AE;font-weight:700}
+.gadd{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px}
+.gadd a{display:inline-block;padding:9px 14px;border-radius:7px;font-size:.83rem;font-weight:700;text-decoration:none;background:var(--sun);color:#3D2A00}
+.gadd a:hover{opacity:.9}
+.gadd a.done{background:transparent;border:1.5px solid #47806A;color:#8FB3A2}
 .fineprint{margin:10px 0 0;font-size:.8rem;color:var(--ink-soft);max-width:54ch}
 footer{margin-top:30px;font-size:.82rem;color:var(--ink-soft)}
 footer a{color:var(--clay)}
@@ -120,13 +124,14 @@ footer a{color:var(--clay)}
   <div class="gshare">
     <b>Or put them straight in your Google Calendar</b>
     <p id="gshareSub">Nothing to copy and nothing to install. Type the Google address your
-      phone signs in with and the calendars appear in the app you already have. This is the
-      only way that finishes on an Android phone.</p>
+      phone signs in with, then tap each calendar to add it. This is the only way that
+      finishes on an Android phone.</p>
     <div class="grow">
       <input type="email" id="gmail" placeholder="you@gmail.com" autocomplete="email" maxlength="120">
       <button type="button" class="btn" id="gshareGo">Add them</button>
     </div>
     <p class="gstatus" id="gstatus"></p>
+    <div class="gadd" id="gadd" hidden></div>
   </div>
 
   <section class="danger">
@@ -295,6 +300,30 @@ $("save").addEventListener("click", async () => {
   }
 });
 
+/**
+ * Google keeps access and subscription apart, and only the first is something
+ * the church can do for somebody. Granting it silently leaves nothing to see,
+ * which reads as the whole thing having failed. These links are the second
+ * half: one tap each, on the phone, with no email in the way.
+ */
+function showAddLinks(calendars){
+  const box = $("gadd");
+  box.innerHTML = "";
+  box.hidden = !(calendars && calendars.length);
+  (calendars || []).forEach(cal => {
+    const a = document.createElement("a");
+    a.href = cal.add;
+    a.target = "_blank";
+    a.rel = "noopener";
+    a.textContent = "Add " + cal.name;
+    a.addEventListener("click", () => {
+      a.classList.add("done");
+      a.textContent = "Added " + cal.name;
+    });
+    box.appendChild(a);
+  });
+}
+
 $("gshareGo").addEventListener("click", async () => {
   const addr = $("gmail").value.trim();
   const st = $("gstatus");
@@ -312,14 +341,12 @@ $("gshareGo").addEventListener("click", async () => {
     await call({ action: "save", token: TOKEN, groups: [...chosen] });
     const out = await call({ action: "share", token: TOKEN, email: addr });
     st.className = "gstatus ok";
-    const added = (out.added || []).join(", ");
+    showAddLinks(out.calendars);
     const gone = (out.removed || []).join(", ");
-    st.textContent = added
-      ? "Done. " + added + " should appear within a minute. If you do not see them, open the " +
-        "Google Calendar app, go to Settings, and switch them on."
-      : gone
-        ? "Updated. " + gone + " removed from your Google account."
-        : "Your Google Calendar already matches what is ticked above.";
+    const head = gone ? "Removed " + gone + ". " : "";
+    st.textContent = (out.calendars && out.calendars.length)
+      ? head + "Your account can see these. Tap any that are not in your calendar yet:"
+      : head || "Nothing ticked, so there is nothing to add.";
   } catch (err) {
     st.className = "gstatus err";
     st.textContent = (err && err.fromServer && err.message)

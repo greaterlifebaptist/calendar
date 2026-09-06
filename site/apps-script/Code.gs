@@ -40,7 +40,7 @@
  * and disagree, and the whole point of the marker is telling at a glance
  * whether a deploy took.
  */
-var VERSION = 11;
+var VERSION = 12;
 
 var SITE = 'https://calendars.greaterlifebaptistchurch.com';
 var EVENTS_JSON = SITE + '/events.json';
@@ -1066,12 +1066,17 @@ function syncCalendarSharing_(email, groups) {
   var wanted = {};
   (groups || []).forEach(function (g) { wanted[g] = true; });
 
-  var added = [], removed = [], failed = [];
+  var added = [], removed = [], failed = [], mine = [];
   allMinistries_().forEach(function (m) {
     if (!m.calendarId) return;
     try {
       if (wanted[m.id]) {
         if (grantCalendar_(m.calendarId, address) === 'granted') added.push(m.name);
+        // Everything they are entitled to, whether this run granted it or a
+        // previous one did. Somebody who tries twice must still get their
+        // links; saying "you already have those" and stopping is the dead end
+        // that made the first attempt look like it had failed.
+        mine.push({ id: m.id, name: m.name, add: addToCalendarUrl_(m.calendarId) });
       } else {
         if (revokeCalendar_(m.calendarId, address) === 'revoked') removed.push(m.name);
       }
@@ -1080,7 +1085,27 @@ function syncCalendarSharing_(email, groups) {
     }
   });
 
-  return { ok: failed.length === 0, added: added, removed: removed, failed: failed };
+  return {
+    ok: failed.length === 0,
+    added: added, removed: removed, failed: failed, calendars: mine
+  };
+}
+
+/**
+ * A link that puts a calendar somebody already has access to into their list.
+ *
+ * Granting access and subscribing are two different things in Google Calendar,
+ * and only the first is something the church account can do for somebody else.
+ * With invitation emails switched on, the email's own "add" link does the
+ * second; with them off, access was granted silently and nothing appeared,
+ * which read as the share having failed.
+ *
+ * So the page hands over these instead: one tap each, no inbox, and it works
+ * on the phone in their hand, which is the whole reason this route exists.
+ */
+function addToCalendarUrl_(calendarId) {
+  return 'https://calendar.google.com/calendar/render?cid=' +
+    encodeURIComponent(calendarId);
 }
 
 /** Has this person been given any of our calendars? */
@@ -1150,6 +1175,7 @@ function handleShare_(body) {
     email: address,
     added: result.added,
     removed: result.removed,
-    failed: result.failed
+    failed: result.failed,
+    calendars: result.calendars
   });
 }
