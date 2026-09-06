@@ -258,8 +258,8 @@ body.tv footer{font-size:1rem}
   <h2>Put this on your phone</h2>
   <p class="subwhat" id="subWhat"></p>
   <div class="btns">
-    <a class="btn" href="#" id="btnApple">iPhone &amp; iPad</a>
-    <a class="btn ghost" href="#" id="btnGoogle">Android &amp; Google</a>
+    <a class="btn" href="#" id="btnApple">Apple Calendar</a>
+    <a class="btn ghost" href="#" id="btnGoogle">Google Calendar</a>
     <a class="btn ghost" href="#" id="btnIcs">Outlook or other</a>
   </div>
   <p class="fineprint">Nothing is recorded and nothing is installed: the events appear in the calendar app you already use, and refresh on its own schedule, so they can run a few hours behind. Changing your mind later arrives as a second calendar rather than replacing the first, so remove the old one if you swap.</p>
@@ -270,7 +270,6 @@ body.tv footer{font-size:1rem}
   <p>Same events, but the church knows it is yours. Worth the extra minute if any of these matter:</p>
   <ul>
     <li><b>You are on Android.</b> The buttons above cannot finish on an Android phone — the Google Calendar app has no way to add a calendar from a link. Signing up puts the calendars straight into your Google account instead.</li>
-    <li><b>You want the GroupMe reminders.</b> Youth parents get deadlines a month, a week and a day ahead.</li>
     <li><b>You want to change it later</b> without starting again.</li>
     <li><b>A leader needs to add you</b> to a group that is not listed here.</li>
   </ul>
@@ -572,6 +571,15 @@ function renderSubscribe(){
     : (DATA.feeds?.base || "") + (single ? sel[0] + ".ics" : (DATA.feeds?.all || "all.ics"));
 
   btns.forEach(b => { b.classList.remove("off"); b.removeAttribute("aria-disabled"); });
+
+  // Neither link route finishes on an Android phone: the Google Calendar app
+  // has no way to add a calendar from a URL, so tapping either opens an app
+  // that then does nothing. Naming a button after the platform it cannot serve
+  // was worse still, which is why they are named after the app they open.
+  const onAndroid = /Android/i.test(navigator.userAgent);
+  $("btnApple").hidden = onAndroid;
+  $("btnGoogle").hidden = onAndroid;
+
   $("btnApple").href  = url.replace(/^https?:/, "webcal:");
   // Google's add-by-URL wants the webcal form. Handed an https one it opens
   // the page and says "Unable to add the calendar, check the URL".
@@ -662,7 +670,7 @@ function renderNotice(){
     head = "Example schedule";
     body = "The live calendar could not be loaded and this device has no saved copy, " +
            "so what follows is an example rather than the real schedule. " +
-           "Please check GroupMe or call the church office.";
+           "Please call the church office.";
   } else if (SOURCE === "cache") {
     cls = "notice";
     head = "Showing a saved copy";
@@ -672,7 +680,7 @@ function renderNotice(){
     cls = "notice";
     head = "This may be out of date";
     body = "The calendar refreshes through the day, but it has not since " +
-           longWhen(generated) + ". Check GroupMe before relying on a date here.";
+           longWhen(generated) + ". Check with the church office before relying on a date here.";
   }
 
   if (!cls) { el.hidden = true; return; }
