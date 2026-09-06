@@ -159,8 +159,8 @@ body{
       <div class="qrbox">
         <div class="qr" id="qr"></div>
         <div class="say">
-          <b>Put this on your phone</b>
-          <span id="qrSay">Scan to pick the calendars you care about.</span>
+          <b>See this on your phone</b>
+          <span id="qrSay">Scan for the full calendar, and to put it on your phone.</span>
         </div>
       </div>
     </div>
@@ -470,7 +470,7 @@ function renderRibbon(){
 }
 
 function renderQr(){
-  const url = location.origin + "/signup";
+  const url = location.origin + "/";
   const box = $("qr");
   box.innerHTML = "";
   if (window.QRCode){

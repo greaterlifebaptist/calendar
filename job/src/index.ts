@@ -257,6 +257,11 @@ export async function run(): Promise<number> {
   log('  combos       ' + combo.written + ' feeds, ' +
     Math.round(combo.bytes / 1024) + ' KB' +
     (combo.removed ? ', ' + combo.removed + ' retired' : ''));
+  if (combo.tooBig) {
+    log('::warning::Combination feeds are now ' + Math.round(combo.bytes / 1048576) +
+      ' MB and are rebuilt and redeployed every hour. Time to merge on request ' +
+      'instead of building every combination. See docs/SIGNUP.md.');
+  }
 
   // Personal feeds last: they are the only place private ministries appear,
   // and they are rebuilt from the sheet every run so a removed row or a

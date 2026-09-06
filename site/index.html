@@ -133,6 +133,17 @@ body{background:var(--ivory);color:var(--ink);font-family:var(--body);font-size:
 .btn.off{opacity:.35;pointer-events:none;cursor:default}
 .fineprint{margin-top:11px;margin-bottom:0;font-size:.76rem;line-height:1.45;color:#8FB3A2}
 
+/* The second way of getting a calendar. It used to be a link in the footer,
+   which read as an afterthought, so nobody could tell it existed or how it
+   differed from the buttons above. */
+.getown{margin-top:14px;background:var(--card);border:2px solid var(--pine);border-radius:11px;padding:15px 17px}
+.getown h2{font-family:var(--display);font-size:1.12rem;margin:0 0 6px;color:var(--pine)}
+.getown p{margin:0 0 12px;font-size:.86rem;line-height:1.5;color:var(--ink-soft);max-width:56ch}
+.getown ul{margin:0 0 13px;padding-left:19px;font-size:.85rem;line-height:1.5;color:var(--ink-soft)}
+.getown li{margin-bottom:3px}
+.getown li b{color:var(--ink)}
+.getown .btn{background:var(--pine);color:#fff;font-size:.88rem;padding:11px 18px}
+
 footer{margin-top:34px;font-size:.82rem;color:var(--ink-soft)}
 footer .footlinks{margin:9px 0 0;display:flex;gap:9px;align-items:baseline;flex-wrap:wrap}
 footer .footlinks a{color:var(--clay);font-weight:600;text-decoration:underline;text-underline-offset:3px}
@@ -251,14 +262,24 @@ body.tv footer{font-size:1rem}
     <a class="btn ghost" href="#" id="btnGoogle">Android &amp; Google</a>
     <a class="btn ghost" href="#" id="btnIcs">Outlook or other</a>
   </div>
-  <p class="fineprint">Events appear in the calendar app you already use, and refresh on your phone's own schedule, so they can run a few hours behind. Adding a different selection later arrives as a second calendar rather than replacing the first, so remove the old one if you swap.</p>
+  <p class="fineprint">Nothing is recorded and nothing is installed: the events appear in the calendar app you already use, and refresh on its own schedule, so they can run a few hours behind. Changing your mind later arrives as a second calendar rather than replacing the first, so remove the old one if you swap.</p>
+</section>
+
+<section class="getown">
+  <h2>Or get your own calendar</h2>
+  <p>Same events, but the church knows it is yours. Worth the extra minute if any of these matter:</p>
+  <ul>
+    <li><b>You are on Android.</b> The buttons above cannot finish on an Android phone — the Google Calendar app has no way to add a calendar from a link. Signing up puts the calendars straight into your Google account instead.</li>
+    <li><b>You want the GroupMe reminders.</b> Youth parents get deadlines a month, a week and a day ahead.</li>
+    <li><b>You want to change it later</b> without starting again.</li>
+    <li><b>A leader needs to add you</b> to a group that is not listed here.</li>
+  </ul>
+  <a class="btn" href="./signup.html">Get your own calendar</a>
 </section>
 
 <footer>
   <p class="stamp" id="stamp"></p>
   <p class="footlinks">
-    <a href="./signup.html">Get your own calendar</a>
-    <span aria-hidden="true">·</span>
     <a href="./admin.html" rel="nofollow">Leaders</a>
   </p>
 </footer>
@@ -538,26 +559,32 @@ function renderSubscribe(){
     return;
   }
 
-  // One bundle feed exists per ministry, plus a combined one. There is no feed
-  // for an arbitrary pair, so a partial selection has to use the combined feed
-  // and say plainly that it is doing so.
+  // A feed exists for every combination of ministries, built ahead of time, so
+  // the buttons can now add exactly what is ticked. They used to fall back to
+  // the everything feed for any partial selection and say so, which was honest
+  // but still the wrong calendar, and it named the download "all.ics" when it
+  // was not all of anything.
   const single = sel.length === 1;
   const everything = sel.length === total;
-  const file = single ? sel[0] + ".ics" : (DATA.feeds?.all || "all.ics");
-  const url = (DATA.feeds?.base || "") + file;
+  const combo = DATA.feeds?.combo;
+  const url = combo
+    ? combo + [...sel].sort().join("-") + ".ics"
+    : (DATA.feeds?.base || "") + (single ? sel[0] + ".ics" : (DATA.feeds?.all || "all.ics"));
 
   btns.forEach(b => { b.classList.remove("off"); b.removeAttribute("aria-disabled"); });
   $("btnApple").href  = url.replace(/^https?:/, "webcal:");
-  $("btnGoogle").href = "https://calendar.google.com/calendar/r?cid=" + encodeURIComponent(url);
+  // Google's add-by-URL wants the webcal form. Handed an https one it opens
+  // the page and says "Unable to add the calendar, check the URL".
+  $("btnGoogle").href = "https://calendar.google.com/calendar/render?cid=" +
+    encodeURIComponent(url.replace(/^https?:/, "webcal:"));
   $("btnIcs").href    = url;
 
   const names = sel.map(id => esc(min(id).name));
   box.className = "subwhat";
   if (single) box.innerHTML = "Adds <b>" + names[0] + "</b>.";
   else if (everything) box.innerHTML = "Adds <b>everything</b>, all " + total + " calendars.";
-  else box.innerHTML = "Adds <b>everything</b>, not just the " + names.length +
-    " you picked. Calendars come one per ministry or all together, so there is no feed for just " +
-    names.join(" and ") + ".";
+  else box.innerHTML = "Adds <b>" + names.slice(0, -1).join(", ") + " and " +
+    names[names.length - 1] + "</b> — just those, as one calendar.";
 }
 
 function render(){

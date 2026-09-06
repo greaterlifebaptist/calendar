@@ -36,6 +36,8 @@ export type ComboResult = {
   removed: number;
   bytes: number;
   dir: string;
+  /** Past the point where building every combination still pays for itself. */
+  tooBig: boolean;
 };
 
 /** Same name every personal feed uses: what people need to recognise is the church. */
@@ -50,6 +52,21 @@ const CALENDAR_NAME = 'Greater Life Baptist Church';
  * actually in use, not to raise the number quietly.
  */
 const MAX_PUBLIC = 12;
+
+/**
+ * The size at which pre-building stops being the right answer.
+ *
+ * Subsets are 2^n, and each ministry's events land in half of them, so the
+ * total is (2^(n-1)) x the events. That is nothing at seven ministries and a
+ * few hundred events; it is tens of megabytes at ten ministries and a full
+ * church year, uploaded and deployed every hour for no gain.
+ *
+ * Crossing this is not an error — the feeds are all still correct — but it is
+ * the point at which merging on request is worth the extra moving part, and
+ * that decision should be prompted by a number rather than by somebody
+ * eventually noticing the deploys got slow.
+ */
+const NOISY_ABOVE_BYTES = 8 * 1024 * 1024;
 
 /**
  * The URL-safe name for a set of ministries.
@@ -134,7 +151,7 @@ export function writeComboFeeds(
     }
   }
 
-  return { written, removed, bytes, dir };
+  return { written, removed, bytes, dir, tooBig: bytes > NOISY_ABOVE_BYTES };
 }
 
 /** Total size on disk, for the run log. These files multiply; it should be visible. */
