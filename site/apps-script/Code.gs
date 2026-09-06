@@ -40,15 +40,14 @@
  * and disagree, and the whole point of the marker is telling at a glance
  * whether a deploy took.
  */
-var VERSION = 13;
+var VERSION = 14;
 
 var SITE = 'https://calendars.greaterlifebaptistchurch.com';
 var EVENTS_JSON = SITE + '/events.json';
-var FEED_BASE = SITE + '/f/';
-// A different host from the site on purpose: merged feeds are assembled on
-// request by the Cloudflare Worker in worker/, because pre-building every
-// combination is 2^n files and runs out at about eight ministries.
-var COMBO_BASE = 'https://calendar.greaterlifebaptist.workers.dev/c/';
+// Personal feeds are served by the Worker, which passes through the file the
+// job builds and stands in for it during the first hour, before it exists.
+// That is what lets one address serve somebody from signup onwards.
+var FEED_BASE = 'https://calendar.greaterlifebaptist.workers.dev/f/';
 var TAB = 'People';
 
 /**
@@ -157,88 +156,24 @@ function publicMinistries_() {
 // Which calendar address to hand somebody
 // ---------------------------------------------------------------------------
 //
-// A personal feed does not exist until the job has written it and Pages has
-// deployed it, a minute or two after signing up. For that minute the person's
-// own link returns a 404 page, and a calendar app handed a 404 page says
-// "validation failed", which reads as broken rather than as not-yet. That
-// lands on the first thing a new person ever does, standing in the foyer
-// having just scanned a QR code, and it is where adoption is lost.
+// One address, from signup onwards, forever: their token feed.
 //
-// So a selection of public ministries gets a PRE-BUILT combination feed
-// instead. The job builds every combination in advance, so the URL already
-// exists before anybody asks for it and the calendar adds immediately.
+// It used to depend on what they had picked. Anybody with only public groups
+// was sent to a shared combination feed, because their own feed does not exist
+// until the job has run and a URL that 404s for an hour is a terrible first
+// experience. That worked, and cost more than it saved: the address then
+// changed the moment a leader added them to a private group, and no
+// subscription can follow a URL change. Their phone kept the old feed, still
+// refreshing, missing exactly the events they had just been added to, with
+// nothing anywhere to say so.
 //
-// Nothing in a public combination needs hiding: every event in it is already
-// on the website. Two people who tick the same boxes share one URL, which is
-// fine and saves building the same file twice.
-//
-// Anyone in a private ministry still gets their token feed. That URL carries
-// something not otherwise published, so it has to stay unguessable and
-// revocable, and those people are set up by a leader rather than at a QR code.
+// The token was always the stable thing. The Worker now serves it from the
+// first second — passing through the built file once it exists, and standing
+// in with their public groups until it does — so there is no reason left to
+// send anybody anywhere else.
 
-/**
- * The URL-safe name for a set of ministries: sorted, joined with "~".
- *
- * Not "-": an id may contain a hyphen, and youth-leaders does. That one is
- * private today, so a hyphen separator worked by luck; the day it went public
- * every saved URL would have turned ambiguous at once.
- *
- * combo.ts in the job builds this same slug. The two must agree exactly or
- * somebody is handed a URL that was never built, so it is kept trivial and
- * a test asserts no public ministry id contains a hyphen.
- */
-function comboSlug_(ids) {
-  var seen = {}, out = [];
-  (ids || []).forEach(function (id) {
-    var key = String(id).toLowerCase();
-    if (!seen[key]) { seen[key] = true; out.push(key); }
-  });
-  return out.sort().join('~');
-}
-
-/**
- * Public and private ministry ids, from ministries.json.
- *
- * Deliberately NOT from events.json, which lists only ministries with
- * something coming up. Using that would drop a quiet ministry out of somebody's
- * groups and silently change their calendar address when nothing was
- * scheduled for a while.
- */
-function ministrySplit_() {
-  var pub = {}, priv = {};
-  allMinistries_().forEach(function (m) {
-    if (!m || !m.id) return;
-    if (m.visibility === 'public') {
-      // A ministry with no calendar behind it has no combination file either.
-      if (m.calendarId) pub[m.id] = true;
-    } else {
-      priv[m.id] = true;
-    }
-  });
-  return { pub: pub, priv: priv };
-}
-
-function feedUrlFor_(token, headers, values) {
-  var split;
-  try {
-    split = ministrySplit_();
-  } catch (err) {
-    // If the site cannot be read, fall back to the address that always works.
-    return FEED_BASE + token + '.ics';
-  }
-
-  var picked = [];
-  for (var i = 0; i < headers.length; i++) {
-    var key = String(headers[i] || '').toLowerCase();
-    if (!String(values[i] || '').trim()) continue;
-    if (split.priv[key]) return FEED_BASE + token + '.ics';
-    if (split.pub[key]) picked.push(key);
-  }
-
-  // Nothing ticked has no combination file, so the token feed carries it: the
-  // job writes that as a valid empty calendar rather than leaving a 404.
-  if (!picked.length) return FEED_BASE + token + '.ics';
-  return COMBO_BASE + comboSlug_(picked) + '.ics';
+function feedUrlFor_(token) {
+  return FEED_BASE + token + '.ics';
 }
 
 function token_() {
@@ -464,7 +399,7 @@ function handleSignup_(body) {
   return json_({
     ok: true,
     token: token,
-    feedUrl: feedUrlFor_(token, headers, finalValues),
+    feedUrl: feedUrlFor_(token),
     groups: groups,
     updated: existingRow !== -1,
     rebuild: requestRebuild_('signup')
@@ -490,7 +425,7 @@ function handleLoad_(body) {
     ok: true,
     name: nameCol === -1 ? '' : String(found.values[nameCol] || '').trim(),
     groups: groupsOf_(headers, found.values, allowed),
-    feedUrl: feedUrlFor_(token, headers, found.values)
+    feedUrl: feedUrlFor_(token)
   });
 }
 
@@ -525,7 +460,7 @@ function handleSave_(body) {
   }
 
   return json_({
-    ok: true, groups: groups, feedUrl: feedUrlFor_(token, headers, afterSave),
+    ok: true, groups: groups, feedUrl: feedUrlFor_(token),
     reshared: reshared,
     rebuild: requestRebuild_('preferences')
   });
@@ -553,7 +488,7 @@ function handleRotate_(body) {
   sheet.getRange(found.row, tokenCol + 1).setValue(fresh);
 
   return json_({
-    ok: true, token: fresh, feedUrl: feedUrlFor_(fresh, headers, found.values),
+    ok: true, token: fresh, feedUrl: feedUrlFor_(fresh),
     rebuild: requestRebuild_('rotate')
   });
 }
@@ -919,22 +854,15 @@ function handleAdminSetGroups_(body) {
   var found = findByToken_(sheet, headers, token);
   if (!found) return json_({ ok: false, error: 'That person is no longer in the sheet.' });
 
-  var before = feedUrlFor_(token, headers, found.values);
   writeGroups_(sheet, headers, found.row, groups, all);
   var after = sheet.getRange(found.row, 1, 1, headers.length).getValues()[0];
-  var feedUrl = feedUrlFor_(token, headers, after);
 
-  // Adding somebody to a private group has to reach their phone, and neither
-  // route does that by itself.
+  // On the link route this now needs nothing from anybody: their address never
+  // changes, so the new group simply appears at the next sync.
   //
-  // On the Google route their access has to be granted, and with an email this
-  // time: nobody is in front of a page to be handed add buttons.
-  //
-  // On the link route their address moves from a public combination feed to
-  // their own token feed, and nothing can make a subscription follow that. The
-  // phone quietly keeps the old feed, which still works and is now missing the
-  // very events they were just added to. So the leader is told, and given the
-  // address to send.
+  // On the Google route it still does. Access has to be granted, and with an
+  // email this time, because that person is not in front of a page to be
+  // handed add buttons.
   var emailCol = columnIndex_(headers, 'email');
   var email = emailCol === -1 ? '' : String(after[emailCol] || '').trim();
   var shared = null;
@@ -951,8 +879,7 @@ function handleAdminSetGroups_(body) {
     handle: token,
     groups: groups,
     email: email,
-    feedUrl: feedUrl,
-    feedChanged: feedUrl !== before,
+    feedUrl: feedUrlFor_(token),
     shared: shared
   });
 }

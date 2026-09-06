@@ -866,13 +866,14 @@ function renderPeople(){
      * to. That is the silent one, so it gets the loudest treatment.
      */
     const explain = (out) => {
-      // Somebody on the Google route has no link at all: their calendars are
-      // shared into their account, so the address is meaningless to them and
-      // handing their leader one to send would just be wrong.
+      // On the link route this needs nothing from anybody now: their address
+      // never changes, so a new group simply appears at the next sync. Only
+      // the Google route has a step left, because that person is not looking
+      // at a page to be handed add buttons.
       const onGoogle = !!out.shared;
       const added = (out.shared && out.shared.added) || [];
       const removed = (out.shared && out.shared.removed) || [];
-      if (!onGoogle && !out.feedChanged){ after.hidden = true; return; }
+      if (!onGoogle){ after.hidden = true; return; }
 
       let html = "";
       if (added.length){
@@ -885,13 +886,6 @@ function renderPeople(){
       } else if (onGoogle){
         html += "<b>Nothing for them to do</b>" +
           "Their Google account already matches this.";
-      }
-      if (!onGoogle && out.feedChanged){
-        html += "<b>Their calendar address has changed</b>" +
-          "Their phone is still on the old one, which no longer has everything they " +
-          "should see. Send them this and ask them to add it and remove the old:" +
-          '<span class="u"><input type="text" readonly value="' + esc(out.feedUrl) + '">' +
-          '<button type="button">Copy</button></span>';
       }
       after.innerHTML = html;
       after.hidden = false;

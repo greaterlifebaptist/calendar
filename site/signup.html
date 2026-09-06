@@ -229,15 +229,13 @@ function showResult(feedUrl, updated){
   $("result").hidden = false;
   $("resultHead").textContent = updated ? "Your calendar is updated" : "Here is your calendar";
   const onAndroid = /Android/i.test(navigator.userAgent);
-  const ready = feedUrl.indexOf("/c/") !== -1;
-  const wait = ready ? "" : " Give it a minute before adding it: your calendar is being built right now.";
   $("resultSub").textContent = onAndroid
     ? (updated
         ? "Nothing to change if you already added it. To put it on this phone, use the box below."
-        : "To get it onto this phone, use the box below." + wait)
+        : "To get it onto this phone, use the box below.")
     : (updated
         ? "Same link as before, so nothing to change on your phone. It will catch up on its own."
-        : "Scan this with your phone, or use the buttons below if you are already on it." + wait);
+        : "Scan this with your phone, or use the buttons below if you are already on it.");
 
   $("feedUrl").value = feedUrl;
   $("btnApple").href = feedUrl.replace(/^https?:/, "webcal:");
@@ -294,12 +292,10 @@ function showResult(feedUrl, updated){
   } else {
     box.hidden = true;
   }
-  $("privacyNote").textContent = feedUrl.indexOf("/c/") !== -1
-    ? "This address is shared by everyone who picked the same groups, and everything in " +
-      "it is already on the church website, so there is nothing to keep quiet. It refreshes " +
-      "on your phone's own schedule, so it can run a few hours behind."
-    : "Keep this link private: anyone who has it can see your calendar. It refreshes " +
-      "on your phone's own schedule, so it can run a few hours behind.";
+  $("privacyNote").textContent =
+    "This link is yours and never changes, so changing what is included later never " +
+    "means adding it again. Keep it private: anyone who has it can see your calendar. " +
+    "It refreshes on your phone's own schedule, so it can run a few hours behind.";
 
   // Their own preferences link. The token goes in the fragment so it is never
   // sent to a server or leaked in a referrer header.

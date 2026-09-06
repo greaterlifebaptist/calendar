@@ -17,6 +17,7 @@
  * request, so a new event needs no rebuild here at all.
  *
  *   GET /c/church~youth.ics   ->  church + youth, as one calendar
+ *   GET /f/<token>.ics        ->  one person's calendar, at a permanent address
  *   GET /health               ->  plain text, for the hourly job to check
  *
  * The slug is sorted ministry ids joined with "~". job/src/combo.ts and
@@ -26,6 +27,9 @@
  */
 
 const SITE = 'https://calendars.greaterlifebaptistchurch.com';
+
+/** Where to ask what a token is subscribed to. Public, and already in events.json. */
+const SIGNUP = 'https://script.google.com/macros/s/AKfycbyNowdqhkq7HxBtKSI3Sxk12e5MBs8N2kmxBPCBsVwlyfGSkwLrMx77FgkBRtPsobEO/exec';
 
 /** How long the edge may serve a merge without re-reading the source feeds. */
 const CACHE_SECONDS = 300;
@@ -56,7 +60,7 @@ function text(body, status, type) {
  * making one private is a config change in one place and this follows. Cached
  * briefly because it changes about once a year.
  */
-async function publicMinistries(ctx) {
+async function publicMinistries() {
   const res = await fetch(SITE + '/ministries.json', {
     cf: { cacheTtl: 600, cacheEverything: true },
   });
@@ -198,13 +202,77 @@ export async function buildMerged(ids, names) {
   return rows.join(CRLF) + CRLF;
 }
 
+/**
+ * One person's calendar, at an address that never changes.
+ *
+ * The job builds these hourly from the membership sheet, and that file is the
+ * real answer: it is the only thing that may contain a private ministry, so
+ * nothing here can assemble one.
+ *
+ * What this covers is the first hour of somebody's life. A token feed does not
+ * exist until the job has run, so a new signup had to be handed either a URL
+ * that 404s for an hour or a different kind of address that would later have
+ * to change. Both were bad and the second was worse: an address that changes
+ * means a leader adding somebody to a private group silently leaves their
+ * phone on the old feed, still refreshing, missing exactly the events they
+ * were added to.
+ *
+ * So until the file exists, this stands in by merging that person's PUBLIC
+ * groups, asked for by token. Private ministries are never assembled here, so
+ * the stand-in cannot leak one: the worst case is that somebody added to a
+ * private group in their first hour waits for the next sync to see it, at the
+ * same address they already have.
+ */
+async function handlePersonal(token) {
+  const built = await fetch(SITE + '/f/' + token + '.ics', {
+    cf: { cacheTtl: 60, cacheEverything: true },
+  });
+  if (built.ok) {
+    return new Response(await built.text(), {
+      headers: {
+        'content-type': 'text/calendar; charset=utf-8',
+        'cache-control': 'public, max-age=' + CACHE_SECONDS,
+        'access-control-allow-origin': '*',
+      },
+    });
+  }
+
+  const res = await fetch(SIGNUP, {
+    method: 'POST',
+    headers: { 'content-type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ action: 'load', token: token }),
+  });
+  if (!res.ok) return text('That calendar is not ready yet. Try again shortly.', 503);
+
+  // "load" also returns their name. It is of no use here, and this is a public
+  // endpoint, so nothing but the group list is read.
+  const out = await res.json();
+  if (!out || !out.ok || !Array.isArray(out.groups) || !out.groups.length) {
+    return text('No calendar for that link.', 404);
+  }
+
+  const known = await publicMinistries();
+  const ids = out.groups.filter((g) => known.has(g));
+  if (!ids.length) return text('No calendar for that link.', 404);
+
+  return new Response(await buildMerged(ids, ids.map((id) => known.get(id))), {
+    headers: {
+      'content-type': 'text/calendar; charset=utf-8',
+      // Deliberately short. The built file is minutes away and is the only one
+      // that can carry a private ministry, so this must not sit in front of it.
+      'cache-control': 'public, max-age=60',
+      'access-control-allow-origin': '*',
+    },
+  });
+}
+
 async function handleCombo(slug, request, ctx) {
   const parts = slug.split('~').filter(Boolean);
   if (!parts.length || parts.length > MAX_PARTS) {
     return text('Not a calendar address.', 400);
   }
 
-  const known = await publicMinistries(ctx);
+  const known = await publicMinistries();
   const ids = [];
   const names = [];
   for (const part of parts) {
@@ -248,11 +316,27 @@ export default {
 
     if (url.pathname === '/health') {
       try {
-        const known = await publicMinistries(ctx);
+        const known = await publicMinistries();
         return text('ok ' + known.size + ' ministries', 200);
       } catch (err) {
         return text('unhealthy: ' + (err && err.message ? err.message : err), 503);
       }
+    }
+
+    const cache = caches.default;
+
+    const person = /^\/f\/([a-zA-Z0-9_-]{8,64})\.ics$/.exec(url.pathname);
+    if (person) {
+      const seen = await cache.match(request);
+      if (seen) return seen;
+      let mine;
+      try {
+        mine = await handlePersonal(person[1]);
+      } catch (err) {
+        return text('That calendar could not be assembled just now.', 502);
+      }
+      if (mine.status === 200) ctx.waitUntil(cache.put(request, mine.clone()));
+      return mine;
     }
 
     const match = /^\/c\/([a-z0-9~-]{1,300})\.ics$/.exec(url.pathname);
@@ -260,7 +344,6 @@ export default {
       return text('Calendar feeds live at /c/<ministries>.ics — see ' + SITE, 404);
     }
 
-    const cache = caches.default;
     const hit = await cache.match(request);
     if (hit) return hit;
 

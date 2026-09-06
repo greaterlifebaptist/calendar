@@ -3,7 +3,7 @@
   "timezone": "America/New_York",
   "site": {
     "feedBase": "https://calendars.greaterlifebaptistchurch.com/feeds/",
-    "personalFeedBase": "https://calendars.greaterlifebaptistchurch.com/f/",
+    "personalFeedBase": "https://calendar.greaterlifebaptist.workers.dev/f/",
     "comboFeedBase": "https://calendar.greaterlifebaptist.workers.dev/c/",
     "$comment2": "comboFeedBase is the Cloudflare Worker in worker/, which merges per-ministry feeds on request. It is a different host from the site because moving the domain's DNS to Cloudflare would touch the church website; the Worker can be put on the church hostname later without breaking a single existing subscription.",
     "allFeed": "all.ics",
