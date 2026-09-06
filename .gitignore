@@ -28,3 +28,8 @@ backup/
 # Output of a fixture run. Never published; keeps npm run dev from
 # clobbering the real data in public/.
 .dev-site/
+
+# Combination feeds are rebuilt every run and there are hundreds of them.
+# Committing them would churn the repo hourly for no gain: the site is
+# deployed from the run output, not from the branch.
+public/c/*.ics

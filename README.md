@@ -10,8 +10,10 @@ the agreed design for the overflow-room TV is in [docs/TV.md](docs/TV.md).
 Backups and how to restore from one are in [docs/BACKUP.md](docs/BACKUP.md).
 Putting the calendar on the church website is in
 [docs/WORDPRESS.md](docs/WORDPRESS.md).
-Deploying the signup endpoint is in [docs/SIGNUP.md](docs/SIGNUP.md), and the
-admin form in [docs/ADMIN.md](docs/ADMIN.md). Reminders, and how to switch
+Why there are two kinds of calendar address, and why signing up hands over one
+that already exists, is in [docs/SIGNUP.md](docs/SIGNUP.md) along with
+deploying the endpoint. The admin form is in
+[docs/ADMIN.md](docs/ADMIN.md). Reminders, and how to switch
 them on safely, are in [docs/REMINDERS.md](docs/REMINDERS.md). Why an Android
 phone cannot add a calendar from a link, and what we do about it, is in
 [docs/ANDROID.md](docs/ANDROID.md).

@@ -15,6 +15,7 @@ import { publish } from './publish.ts';
 import { writeBackup } from './backup.ts';
 import { readPeople, duplicateTokens } from './sheet.ts';
 import { writePersonalFeeds } from './personal.ts';
+import { writeComboFeeds } from './combo.ts';
 import {
   planReminders, planDigest, sendReminders,
   loadState, saveState, pruneState, statePath, nextReminders,
@@ -248,6 +249,14 @@ export async function run(): Promise<number> {
   log('  events.json  ' + result.publicEventCount + ' public events (' + result.privateEventCount + ' private withheld)');
   log('  by type      ' + [...counts].map(([k, v]) => k + '=' + v).join(' ') + '  pinned=' + pinned);
   log('  feeds        ' + result.feedPaths.length + ' .ics files');
+
+  // Every combination of public ministries, built ahead of anyone asking, so
+  // signing up hands over a URL that already exists instead of one that 404s
+  // until the next deploy.
+  const combo = writeComboFeeds(cfg, masters, outputDir());
+  log('  combos       ' + combo.written + ' feeds, ' +
+    Math.round(combo.bytes / 1024) + ' KB' +
+    (combo.removed ? ', ' + combo.removed + ' retired' : ''));
 
   // Personal feeds last: they are the only place private ministries appear,
   // and they are rebuilt from the sheet every run so a removed row or a

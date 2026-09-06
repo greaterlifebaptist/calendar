@@ -38,6 +38,42 @@ it stays between the reader and their own browser.
 
 ## What the endpoint does
 
+## Two kinds of calendar address
+
+A personal feed does not exist until the job writes it and Pages deploys it,
+which is a minute or two after signing up. In that window the person's own link
+returns a 404 page, and a calendar app handed a 404 page says **validation
+failed**. That reads as broken, not as not-yet, and it lands on the very first
+thing a new person does, standing in the foyer having just scanned a QR code.
+Waiting is not an option there; that is where adoption is lost.
+
+So there are two addresses, and the endpoint decides which somebody gets.
+
+| | Combination `/c/church-youth.ics` | Token `/f/<token>.ics` |
+|---|---|---|
+| Who gets it | anyone whose groups are all public | anyone in a private ministry |
+| Exists | **already**, built ahead of time | after the next sync |
+| Secret | no, and does not need to be | yes, unguessable |
+| Shared with | everyone who ticked the same boxes | nobody |
+| Changing groups | gives a **new** address | keeps the same address |
+| Replaceable | nothing to replace | yes, `rotate` |
+
+The job builds every combination of public ministries in advance — 127 files
+for seven ministries, a few hundred KB — so whatever somebody picks, the URL
+is already there. Nothing in a public combination needs hiding: every event in
+it is already on the website.
+
+The cost is that a combination address is derived from the ticks, so changing
+them changes the address and the phone has to be told. The preferences page
+says so before saving and hands over the new one after. That trade is worth
+making: signing up happens to everyone once, changing groups happens to a few
+people rarely.
+
+**The slug is built in two places** — `comboSlug` in `job/src/combo.ts` and
+`comboSlug_` in `Code.gs`. Sorted ids joined with hyphens. If they ever
+disagree, people are handed URLs that were never built, so a test asserts no
+public ministry id contains a hyphen.
+
 | Action | Needs | Effect |
 |---|---|---|
 | `signup` | name, groups | New person, or updates an existing one matched by email |
@@ -185,7 +221,8 @@ always that means the feed URL returned GitHub Pages' 404 page, so the feed
 does not exist yet. Check, in order:
 
 1. **Does the feed exist?** Open the URL in a browser. It should start
-   `BEGIN:VCALENDAR`. An HTML page means no.
+   `BEGIN:VCALENDAR`. An HTML page means no. A `/c/` address should always
+   exist; a `/f/` one appears at the next sync.
 2. **Is `SHEET_ID` set as an Actions secret?** Without it the job skips
    personal feeds entirely and every signup link 404s. The run log says so,
    and now says it as an error once the signup endpoint is configured.

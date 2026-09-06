@@ -45,6 +45,7 @@ var VERSION = 11;
 var SITE = 'https://calendars.greaterlifebaptistchurch.com';
 var EVENTS_JSON = SITE + '/events.json';
 var FEED_BASE = SITE + '/f/';
+var COMBO_BASE = SITE + '/c/';
 var TAB = 'People';
 
 /**
@@ -147,6 +148,90 @@ function publicMinistries_() {
     if (m && m.id) ids[String(m.id)] = m.name || m.id;
   });
   return ids;
+}
+
+// ---------------------------------------------------------------------------
+// Which calendar address to hand somebody
+// ---------------------------------------------------------------------------
+//
+// A personal feed does not exist until the job has written it and Pages has
+// deployed it, a minute or two after signing up. For that minute the person's
+// own link returns a 404 page, and a calendar app handed a 404 page says
+// "validation failed", which reads as broken rather than as not-yet. That
+// lands on the first thing a new person ever does, standing in the foyer
+// having just scanned a QR code, and it is where adoption is lost.
+//
+// So a selection of public ministries gets a PRE-BUILT combination feed
+// instead. The job builds every combination in advance, so the URL already
+// exists before anybody asks for it and the calendar adds immediately.
+//
+// Nothing in a public combination needs hiding: every event in it is already
+// on the website. Two people who tick the same boxes share one URL, which is
+// fine and saves building the same file twice.
+//
+// Anyone in a private ministry still gets their token feed. That URL carries
+// something not otherwise published, so it has to stay unguessable and
+// revocable, and those people are set up by a leader rather than at a QR code.
+
+/**
+ * The URL-safe name for a set of ministries: sorted, joined with hyphens.
+ *
+ * combo.ts in the job builds this same slug. The two must agree exactly or
+ * somebody is handed a URL that was never built, so it is kept trivial and
+ * a test asserts no public ministry id contains a hyphen.
+ */
+function comboSlug_(ids) {
+  var seen = {}, out = [];
+  (ids || []).forEach(function (id) {
+    var key = String(id).toLowerCase();
+    if (!seen[key]) { seen[key] = true; out.push(key); }
+  });
+  return out.sort().join('-');
+}
+
+/**
+ * Public and private ministry ids, from ministries.json.
+ *
+ * Deliberately NOT from events.json, which lists only ministries with
+ * something coming up. Using that would drop a quiet ministry out of somebody's
+ * groups and silently change their calendar address when nothing was
+ * scheduled for a while.
+ */
+function ministrySplit_() {
+  var pub = {}, priv = {};
+  allMinistries_().forEach(function (m) {
+    if (!m || !m.id) return;
+    if (m.visibility === 'public') {
+      // A ministry with no calendar behind it has no combination file either.
+      if (m.calendarId) pub[m.id] = true;
+    } else {
+      priv[m.id] = true;
+    }
+  });
+  return { pub: pub, priv: priv };
+}
+
+function feedUrlFor_(token, headers, values) {
+  var split;
+  try {
+    split = ministrySplit_();
+  } catch (err) {
+    // If the site cannot be read, fall back to the address that always works.
+    return FEED_BASE + token + '.ics';
+  }
+
+  var picked = [];
+  for (var i = 0; i < headers.length; i++) {
+    var key = String(headers[i] || '').toLowerCase();
+    if (!String(values[i] || '').trim()) continue;
+    if (split.priv[key]) return FEED_BASE + token + '.ics';
+    if (split.pub[key]) picked.push(key);
+  }
+
+  // Nothing ticked has no combination file, so the token feed carries it: the
+  // job writes that as a valid empty calendar rather than leaving a 404.
+  if (!picked.length) return FEED_BASE + token + '.ics';
+  return COMBO_BASE + comboSlug_(picked) + '.ics';
 }
 
 function token_() {
@@ -364,10 +449,15 @@ function handleSignup_(body) {
     sheet.appendRow(values);
   }
 
+  // Read the row back rather than trusting what we meant to write, so the
+  // address reflects private columns a leader set that signup never touches.
+  var finalRow = existingRow !== -1 ? existingRow : sheet.getLastRow();
+  var finalValues = sheet.getRange(finalRow, 1, 1, headers.length).getValues()[0];
+
   return json_({
     ok: true,
     token: token,
-    feedUrl: FEED_BASE + token + '.ics',
+    feedUrl: feedUrlFor_(token, headers, finalValues),
     groups: groups,
     updated: existingRow !== -1,
     rebuild: requestRebuild_('signup')
@@ -393,7 +483,7 @@ function handleLoad_(body) {
     ok: true,
     name: nameCol === -1 ? '' : String(found.values[nameCol] || '').trim(),
     groups: groupsOf_(headers, found.values, allowed),
-    feedUrl: FEED_BASE + token + '.ics'
+    feedUrl: feedUrlFor_(token, headers, found.values)
   });
 }
 
@@ -414,6 +504,7 @@ function handleSave_(body) {
   }
 
   writeGroups_(sheet, headers, found.row, groups, allowed);
+  var afterSave = sheet.getRange(found.row, 1, 1, headers.length).getValues()[0];
 
   // If they took the Google route, their access has to follow their choices.
   // Otherwise unticking a ministry would remove it from a feed they may not
@@ -423,11 +514,11 @@ function handleSave_(body) {
   var reshared = null;
   if (email && isSharedWith_(email)) {
     var all = allMinistryIds_();
-    reshared = syncCalendarSharing_(email, groupsOf_(headers, sheet.getRange(found.row, 1, 1, headers.length).getValues()[0], all));
+    reshared = syncCalendarSharing_(email, groupsOf_(headers, afterSave, all));
   }
 
   return json_({
-    ok: true, groups: groups, feedUrl: FEED_BASE + token + '.ics',
+    ok: true, groups: groups, feedUrl: feedUrlFor_(token, headers, afterSave),
     reshared: reshared,
     rebuild: requestRebuild_('preferences')
   });
@@ -455,7 +546,7 @@ function handleRotate_(body) {
   sheet.getRange(found.row, tokenCol + 1).setValue(fresh);
 
   return json_({
-    ok: true, token: fresh, feedUrl: FEED_BASE + fresh + '.ics',
+    ok: true, token: fresh, feedUrl: feedUrlFor_(fresh, headers, found.values),
     rebuild: requestRebuild_('rotate')
   });
 }

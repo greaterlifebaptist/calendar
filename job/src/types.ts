@@ -31,6 +31,8 @@ export type Config = {
   site: {
     feedBase: string;
     personalFeedBase: string;
+    /** Pre-built feeds for a combination of public ministries, so signup is instant. */
+    comboFeedBase: string;
     allFeed: string;
     /** Deployed Apps Script web app. Blank until it exists. */
     signupEndpoint?: string;
@@ -109,7 +111,7 @@ export type { ReminderState, PlannedReminder } from './remind.ts';
 export type EventsJson = {
   generated: string;
   timezone: string;
-  feeds: { base: string; all: string; personal: string };
+  feeds: { base: string; all: string; personal: string; combo: string };
   /** Signup endpoint, so the pages need no separate config file. */
   signup?: string;
   ministries: { id: string; name: string; color: string }[];

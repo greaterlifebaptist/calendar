@@ -126,6 +126,7 @@ export function publish(input: PublishInput): PublishResult {
       base: cfg.site.feedBase,
       all: cfg.site.allFeed,
       personal: cfg.site.personalFeedBase,
+      combo: cfg.site.comboFeedBase,
     },
     signup: cfg.site.signupEndpoint || '',
     // When nothing at all is scheduled, list nothing. Offering every ministry

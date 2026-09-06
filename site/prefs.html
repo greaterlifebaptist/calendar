@@ -81,6 +81,7 @@ button.quiet:hover{border-color:var(--clay)}
 .gstatus{margin:10px 0 0!important;font-size:.83rem;color:#B9D2C6}
 .gstatus.ok{color:#BBE5C9;font-weight:700}
 .gstatus.err{color:#FFC2AE;font-weight:700}
+.fineprint{margin:10px 0 0;font-size:.8rem;color:var(--ink-soft);max-width:54ch}
 footer{margin-top:30px;font-size:.82rem;color:var(--ink-soft)}
 footer a{color:var(--clay)}
 </style>
@@ -104,6 +105,17 @@ footer a{color:var(--clay)}
     <button type="button" class="primary" id="save">Save changes</button>
     <span class="status" id="status"></span>
   </div>
+  <p class="fineprint" id="addrNote" hidden></p>
+
+  <div class="newlink" id="newlink" hidden>
+    <h3 id="newlinkHead">Your new link</h3>
+    <p id="newlinkSub">The old one stops working shortly. Add this one to your phone, then delete the old calendar.</p>
+    <div class="qr" id="qr"></div>
+    <div class="linkrow">
+      <input type="text" id="feedUrl" readonly>
+      <button type="button" class="btn" id="copy">Copy</button>
+    </div>
+  </div>
 
   <div class="gshare">
     <b>Or put them straight in your Google Calendar</b>
@@ -121,15 +133,6 @@ footer a{color:var(--clay)}
     <h2>If your link got out</h2>
     <p>Anyone who has your link can see your calendar. Replacing it stops the old one working within the hour. You will need to add the new one to your phone and remove the old.</p>
     <button type="button" class="quiet" id="rotate">Replace my link</button>
-    <div class="newlink" id="newlink" hidden>
-      <h3>Your new link</h3>
-      <p>The old one stops working shortly. Add this one to your phone, then delete the old calendar.</p>
-      <div class="qr" id="qr"></div>
-      <div class="linkrow">
-        <input type="text" id="feedUrl" readonly>
-        <button type="button" class="btn" id="copy">Copy</button>
-      </div>
-    </div>
   </section>
 </main>
 
@@ -151,6 +154,7 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">"
 
 let DATA = null;
 let TOKEN = "";
+let FEED = "";
 let chosen = new Set();
 
 function readToken(){
@@ -192,6 +196,50 @@ function buildPicks(current){
   });
 }
 
+/**
+ * Two kinds of address exist, and the page behaves differently for each.
+ *
+ * A combination address is built from the ticks, so changing them gives a new
+ * address and the phone has to be told. It also holds nothing secret, since
+ * every event in it is already on the website.
+ *
+ * A token address never changes, and is the only one worth replacing.
+ */
+function isCombo(url){ return (url || "").indexOf("/c/") !== -1; }
+
+function shapeForFeed(){
+  const combo = isCombo(FEED);
+  $("addrNote").hidden = !combo;
+  if (combo){
+    $("addrNote").textContent =
+      "Your calendar address is built from what is ticked, so changing these gives you a new " +
+      "address. We will show it once you save, and you will need to add it on your phone " +
+      "and remove the old one.";
+    $("lede").textContent = $("lede").textContent.replace(
+      " Your link stays the same, so there is nothing to change on your phone.", "");
+  }
+  // "Replace my link" only means anything when the link is a secret. A new
+  // token would not change a combination address, so offering it would be a
+  // button that does nothing.
+  document.querySelector(".danger").hidden = combo;
+}
+
+/** Show an address, with a QR code, and say why it is being shown. */
+function showNewLink(url, head, sub){
+  $("newlinkHead").textContent = head;
+  $("newlinkSub").textContent = sub;
+  $("feedUrl").value = url;
+  const box = $("qr");
+  box.innerHTML = "";
+  box.hidden = false;
+  if (window.QRCode){
+    try { new QRCode(box, { text: url, width: 160, height: 160, correctLevel: QRCode.CorrectLevel.M }); }
+    catch { box.hidden = true; }
+  } else { box.hidden = true; }
+  $("newlink").hidden = false;
+  $("newlink").scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
 async function call(payload){
   const res = await fetch(DATA.signup, {
     method: "POST",
@@ -220,12 +268,26 @@ $("save").addEventListener("click", async () => {
   $("status").textContent = "Saving…";
   try {
     const out = await call({ action: "save", token: TOKEN, groups: [...chosen] });
+    // Somebody on the Google route has no address to re-add: their calendars
+    // were just changed in place. Handing them a link would be a step
+    // backwards into the thing this was built to avoid.
+    const moved = !!out.feedUrl && out.feedUrl !== FEED && !out.reshared;
+    if (out.feedUrl) FEED = out.feedUrl;
+    if (moved){
+      shapeForFeed();
+      showNewLink(out.feedUrl, "Your calendar address changed",
+        "Because you changed what is included. Add this one to your phone, then delete the old calendar.");
+    }
     $("status").className = "status ok";
+    // "Your phone will catch up" is exactly wrong when the address moved:
+    // nothing catches up, because their phone is still on the old one.
     $("status").textContent = !chosen.size
       ? "Saved. Your calendar will be empty until you pick something."
-      : out.reshared
-        ? "Saved, and your Google Calendar has been updated already."
-        : "Saved. Your phone will catch up within a few hours.";
+      : moved
+        ? "Saved. Your address changed — the new one is below."
+        : out.reshared
+          ? "Saved, and your Google Calendar has been updated already."
+          : "Saved. Your phone will catch up within a few hours.";
   } catch (err) {
     fail(err);
   } finally {
@@ -278,15 +340,9 @@ $("rotate").addEventListener("click", async () => {
     TOKEN = out.token;
     location.hash = TOKEN;
     $("status").textContent = "";
-    $("feedUrl").value = out.feedUrl;
-    const box = $("qr");
-    box.innerHTML = "";
-    if (window.QRCode){
-      try { new QRCode(box, { text: out.feedUrl, width: 160, height: 160, correctLevel: QRCode.CorrectLevel.M }); }
-      catch { box.hidden = true; }
-    } else { box.hidden = true; }
-    $("newlink").hidden = false;
-    $("newlink").scrollIntoView({ behavior: "smooth", block: "nearest" });
+    FEED = out.feedUrl || FEED;
+    showNewLink(FEED, "Your new link",
+      "The old one stops working shortly. Add this one to your phone, then delete the old calendar.");
   } catch (err) {
     fail(err);
     $("rotate").disabled = false;
@@ -336,7 +392,9 @@ async function start(){
     $("lede").textContent = me.name
       ? me.name + ", tick what you want to see. Your link stays the same, so there is nothing to change on your phone."
       : "Tick what you want to see. Your link stays the same, so there is nothing to change on your phone.";
+    FEED = me.feedUrl || "";
     buildPicks(me.groups || []);
+    shapeForFeed();
     $("panel").hidden = false;
   } catch (err) {
     notice("We could not find that link", "",
