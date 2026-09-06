@@ -221,3 +221,27 @@ Tying admin access to a Google sign-in from the church account, as above, is
 the natural next step and the one worth doing before the calendars get more
 sensitive. A shared sheet of allowed emails would work as the list, and would
 sit next to the membership sheet that already exists.
+
+## Adding somebody to a private group
+
+Ticking a private ministry on a person's card writes the sheet. It does not, by
+itself, put anything on their phone — and the two routes fail differently, so
+the card now says which one applies and what is left to do.
+
+**If they took the Google route** (their calendars are shared into their Google
+account), the new calendar is granted and Google emails them. That email's
+"add this calendar" link is what puts it in their list. This is the one place
+the invitation email is the right tool: they are not looking at a page, so
+there are no add buttons to hand them.
+
+**If they use a subscription link**, their address changes. A public-only
+selection is served by a shared combination feed; the moment a private group is
+added it has to become their own token feed, and no subscription can follow a
+URL change. Their phone keeps the old feed, which still works and is now
+missing exactly the events they were added to. That is the silent failure, so
+the card hands you their new address with a copy button. Send it and ask them
+to add it and delete the old one.
+
+Removing a private group needs nothing from them either way: Google access is
+revoked immediately, and a link feed drops the content at its next refresh.
+

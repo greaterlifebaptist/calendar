@@ -99,6 +99,14 @@ button.danger:hover{border-color:var(--clay)}
 .person .who .st{margin-left:auto;font-size:.78rem;font-weight:700}
 .person .who .st.ok{color:var(--pine)}
 .person .who .st.err{color:var(--clay)}
+/* What the person still needs before the change reaches their phone. Neither
+   route delivers a leader's change on its own, and saying nothing leaves a
+   leader believing it landed. */
+.person .after{margin-top:9px;font-size:.82rem;line-height:1.5;background:#FFF6E0;border:1.5px solid #F2DFAE;color:#6B5307;border-radius:8px;padding:9px 11px}
+.person .after b{display:block;margin-bottom:2px}
+.person .after .u{display:flex;gap:7px;margin-top:8px}
+.person .after input{flex:1;min-width:0;font-family:var(--mono);font-size:.7rem;padding:7px 9px;border-radius:6px;border:1.5px solid #E4D3A8;background:#fff;color:#4A3A05}
+.person .after button{font-family:var(--body);font-size:.78rem;font-weight:700;border:none;border-radius:6px;padding:7px 13px;background:var(--pine);color:#fff;cursor:pointer}
 .groups{display:flex;flex-wrap:wrap;gap:6px}
 .gp{display:inline-flex;align-items:center;gap:6px;border:1.5px solid var(--rule);background:#fff;border-radius:100px;padding:6px 13px;cursor:pointer;font-family:var(--body);font-size:.82rem;font-weight:700;color:var(--ink-soft)}
 .gp .dot{width:9px;height:9px;border-radius:50%;opacity:.35}
@@ -840,10 +848,60 @@ function renderPeople(){
     card.innerHTML =
       '<div class="who"><b>' + esc(person.name || "(no name)") + '</b>' +
       (person.email ? '<span>' + esc(person.email) + '</span>' : "") +
-      '<span class="st"></span></div><div class="groups"></div>';
+      '<span class="st"></span></div><div class="groups"></div>' +
+      '<div class="after" hidden></div>';
 
     const groups = card.querySelector(".groups");
     const st = card.querySelector(".st");
+    const after = card.querySelector(".after");
+
+    /**
+     * Say what still has to happen, because saving is not delivering.
+     *
+     * A private group added here does not reach a phone by itself. On the
+     * Google route Google emails them a link to add the calendar. On the link
+     * route their address changes from the shared public feed to their own,
+     * and no subscription can follow that — their phone keeps the old one,
+     * which still works and is now missing exactly the events they were added
+     * to. That is the silent one, so it gets the loudest treatment.
+     */
+    const explain = (out) => {
+      // Somebody on the Google route has no link at all: their calendars are
+      // shared into their account, so the address is meaningless to them and
+      // handing their leader one to send would just be wrong.
+      const onGoogle = !!out.shared;
+      const added = (out.shared && out.shared.added) || [];
+      const removed = (out.shared && out.shared.removed) || [];
+      if (!onGoogle && !out.feedChanged){ after.hidden = true; return; }
+
+      let html = "";
+      if (added.length){
+        html += "<b>Google has emailed " + esc(out.email) + "</b>" +
+          "They need to open it and tap the link to add " +
+          esc(added.join(", ")) + " to their calendar.";
+      } else if (onGoogle && removed.length){
+        html += "<b>Removed from their Google account</b>" +
+          esc(removed.join(", ")) + " has gone from their calendar already. Nothing for them to do.";
+      } else if (onGoogle){
+        html += "<b>Nothing for them to do</b>" +
+          "Their Google account already matches this.";
+      }
+      if (!onGoogle && out.feedChanged){
+        html += "<b>Their calendar address has changed</b>" +
+          "Their phone is still on the old one, which no longer has everything they " +
+          "should see. Send them this and ask them to add it and remove the old:" +
+          '<span class="u"><input type="text" readonly value="' + esc(out.feedUrl) + '">' +
+          '<button type="button">Copy</button></span>';
+      }
+      after.innerHTML = html;
+      after.hidden = false;
+      const copy = after.querySelector("button");
+      if (copy) copy.addEventListener("click", async () => {
+        const field = after.querySelector("input");
+        try { await navigator.clipboard.writeText(field.value); copy.textContent = "Copied"; }
+        catch { field.select(); }
+      });
+    };
     const chosen = new Set(person.groups);
 
     MINISTRIES.forEach(m => {
@@ -878,7 +936,8 @@ function renderPeople(){
         st.textContent = "Saving…";
 
         try {
-          await call({ action:"admin.setgroups", passcode:PASS, handle:person.handle, groups:[...next] });
+          const out = await call({ action:"admin.setgroups", passcode:PASS, handle:person.handle, groups:[...next] });
+          explain(out);
           chosen.clear(); next.forEach(g => chosen.add(g));
           person.groups = [...next];
           st.className = "st ok";

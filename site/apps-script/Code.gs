@@ -40,7 +40,7 @@
  * and disagree, and the whole point of the marker is telling at a glance
  * whether a deploy took.
  */
-var VERSION = 12;
+var VERSION = 13;
 
 var SITE = 'https://calendars.greaterlifebaptistchurch.com';
 var EVENTS_JSON = SITE + '/events.json';
@@ -919,8 +919,42 @@ function handleAdminSetGroups_(body) {
   var found = findByToken_(sheet, headers, token);
   if (!found) return json_({ ok: false, error: 'That person is no longer in the sheet.' });
 
+  var before = feedUrlFor_(token, headers, found.values);
   writeGroups_(sheet, headers, found.row, groups, all);
-  return json_({ ok: true, handle: token, groups: groups });
+  var after = sheet.getRange(found.row, 1, 1, headers.length).getValues()[0];
+  var feedUrl = feedUrlFor_(token, headers, after);
+
+  // Adding somebody to a private group has to reach their phone, and neither
+  // route does that by itself.
+  //
+  // On the Google route their access has to be granted, and with an email this
+  // time: nobody is in front of a page to be handed add buttons.
+  //
+  // On the link route their address moves from a public combination feed to
+  // their own token feed, and nothing can make a subscription follow that. The
+  // phone quietly keeps the old feed, which still works and is now missing the
+  // very events they were just added to. So the leader is told, and given the
+  // address to send.
+  var emailCol = columnIndex_(headers, 'email');
+  var email = emailCol === -1 ? '' : String(after[emailCol] || '').trim();
+  var shared = null;
+  if (email) {
+    try {
+      if (isSharedWith_(email)) shared = syncCalendarSharing_(email, groups, true);
+    } catch (err) {
+      shared = { ok: false, failed: [err && err.message ? err.message : String(err)] };
+    }
+  }
+
+  return json_({
+    ok: true,
+    handle: token,
+    groups: groups,
+    email: email,
+    feedUrl: feedUrl,
+    feedChanged: feedUrl !== before,
+    shared: shared
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -1023,8 +1057,23 @@ function requestRebuild_(why) {
 // person then has to accept, which puts two extra steps between them and a
 // working calendar.
 
-/** Read access for one address on one calendar, without an email about it. */
-function grantCalendar_(calendarId, email) {
+/**
+ * Read access for one address on one calendar.
+ *
+ * notify says whether Google should email them about it, and the right answer
+ * depends entirely on who is acting:
+ *
+ *   - The person themselves, on the signup or preferences page: no email. They
+ *     are looking at the page, so it hands them add buttons instead, which is
+ *     faster and has no inbox in the way.
+ *   - A leader, adding somebody to a private group: email. That person is not
+ *     looking at anything, so Google's invitation is the only way to reach
+ *     them, and its "add this calendar" link is what puts it on their phone.
+ *
+ * Getting this backwards is silent either way: a grant with no notification
+ * and no page is access nobody ever sees.
+ */
+function grantCalendar_(calendarId, email, notify) {
   var cal = calendarService_();
   var ruleId = 'user:' + email;
   try {
@@ -1036,7 +1085,7 @@ function grantCalendar_(calendarId, email) {
   cal.Acl.insert(
     { scope: { type: 'user', value: email }, role: 'reader' },
     calendarId,
-    { sendNotifications: false }
+    { sendNotifications: !!notify }
   );
   return 'granted';
 }
@@ -1057,7 +1106,7 @@ function revokeCalendar_(calendarId, email) {
  * preferences page takes their access away rather than only hiding it from a
  * feed they may already have on their phone.
  */
-function syncCalendarSharing_(email, groups) {
+function syncCalendarSharing_(email, groups, notify) {
   var address = String(email || '').trim();
   if (!address || address.indexOf('@') === -1) {
     return { ok: false, reason: 'no email address on file' };
@@ -1071,7 +1120,7 @@ function syncCalendarSharing_(email, groups) {
     if (!m.calendarId) return;
     try {
       if (wanted[m.id]) {
-        if (grantCalendar_(m.calendarId, address) === 'granted') added.push(m.name);
+        if (grantCalendar_(m.calendarId, address, notify) === 'granted') added.push(m.name);
         // Everything they are entitled to, whether this run granted it or a
         // previous one did. Somebody who tries twice must still get their
         // links; saying "you already have those" and stopping is the dead end
