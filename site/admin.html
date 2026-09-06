@@ -107,6 +107,12 @@ button.danger:hover{border-color:var(--clay)}
 .person .after .u{display:flex;gap:7px;margin-top:8px}
 .person .after input{flex:1;min-width:0;font-family:var(--mono);font-size:.7rem;padding:7px 9px;border-radius:6px;border:1.5px solid #E4D3A8;background:#fff;color:#4A3A05}
 .person .after button{font-family:var(--body);font-size:.78rem;font-weight:700;border:none;border-radius:6px;padding:7px 13px;background:var(--pine);color:#fff;cursor:pointer}
+.person .acts{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px;padding-top:10px;border-top:1px solid var(--rule)}
+.person .acts button{font-family:var(--body);font-size:.78rem;font-weight:700;border:1.5px solid var(--rule);background:var(--card);color:var(--ink-soft);border-radius:7px;padding:7px 12px;cursor:pointer}
+.person .acts button:hover{border-color:var(--pine);color:var(--pine)}
+.person .acts button.danger{color:var(--clay)}
+.person .acts button.danger:hover{border-color:var(--clay);color:var(--clay)}
+.person .acts button[disabled]{opacity:.45;cursor:default}
 .groups{display:flex;flex-wrap:wrap;gap:6px}
 .gp{display:inline-flex;align-items:center;gap:6px;border:1.5px solid var(--rule);background:#fff;border-radius:100px;padding:6px 13px;cursor:pointer;font-family:var(--body);font-size:.82rem;font-weight:700;color:var(--ink-soft)}
 .gp .dot{width:9px;height:9px;border-radius:50%;opacity:.35}
@@ -849,7 +855,11 @@ function renderPeople(){
       '<div class="who"><b>' + esc(person.name || "(no name)") + '</b>' +
       (person.email ? '<span>' + esc(person.email) + '</span>' : "") +
       '<span class="st"></span></div><div class="groups"></div>' +
-      '<div class="after" hidden></div>';
+      '<div class="after" hidden></div>' +
+      '<div class="acts">' +
+        (person.email ? '<button type="button" class="share">Share to their Google account</button>' : '') +
+        '<button type="button" class="danger remove">Remove completely</button>' +
+      '</div>';
 
     const groups = card.querySelector(".groups");
     const st = card.querySelector(".st");
@@ -947,6 +957,52 @@ function renderPeople(){
       });
 
       groups.appendChild(b);
+    });
+
+    const shareBtn = card.querySelector(".share");
+    if (shareBtn) shareBtn.addEventListener("click", async () => {
+      shareBtn.disabled = true;
+      st.className = "st";
+      st.textContent = "Sharing…";
+      try {
+        const out = await call({ action:"admin.share", passcode:PASS, handle:person.handle });
+        st.className = "st ok";
+        st.textContent = "Shared";
+        explain({ shared: out.shared, email: out.email });
+      } catch (err) {
+        st.className = "st err";
+        st.textContent = (err && err.fromServer && err.message) || "Could not share";
+      } finally {
+        shareBtn.disabled = false;
+      }
+    });
+
+    const removeBtn = card.querySelector(".remove");
+    removeBtn.addEventListener("click", async () => {
+      // Naming them in the question, because the cards look alike and this is
+      // the one action here that cannot be undone from this page.
+      const who = person.name || person.email || "this person";
+      if (!confirm("Remove " + who + " completely?\n\n" +
+        "Their calendar stops working, and any church calendars shared with " +
+        "their Google account are taken away. This cannot be undone here.")) return;
+
+      removeBtn.disabled = true;
+      st.className = "st";
+      st.textContent = "Removing…";
+      try {
+        const out = await call({ action:"admin.remove", passcode:PASS, handle:person.handle });
+        PEOPLE = PEOPLE.filter(x => x.handle !== person.handle);
+        card.remove();
+        const gone = (out.revoked || []).length
+          ? " Google access to " + out.revoked.join(", ") + " was taken away."
+          : "";
+        notice("Removed " + (out.name || who),
+          "Their calendar stops working at the next sync." + gone);
+      } catch (err) {
+        st.className = "st err";
+        st.textContent = (err && err.fromServer && err.message) || "Could not remove";
+        removeBtn.disabled = false;
+      }
     });
 
     box.appendChild(card);

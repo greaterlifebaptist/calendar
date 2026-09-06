@@ -222,6 +222,32 @@ the natural next step and the one worth doing before the calendars get more
 sensitive. A shared sheet of allowed emails would work as the list, and would
 sit next to the membership sheet that already exists.
 
+## Removing somebody
+
+**Remove completely** on their card, not a hand-deleted row in the sheet.
+
+Deleting the row by hand does half the job. It stops their feed — the job
+serves only tokens it finds in the sheet, so the file disappears at the next
+run — but Google calendar access is granted per account and outlives the sheet
+entirely. Somebody removed that way keeps reading every calendar shared with
+them, private ones included, and there is nothing left in the sheet to show it
+or to undo it.
+
+The button revokes the Google access **first**, then deletes the row, and only
+if the revoke worked. The other order throws away the email address on the way
+to needing it, and leaves access nobody can find.
+
+It says what it took away. If Google refuses for any reason, the row is left
+exactly as it was rather than half-removed.
+
+Their calendar keeps working until the next sync, within the hour. That is the
+feed catching up, not access hanging around.
+
+**Share to their Google account** sits next to it, for somebody who has an
+email on file but is not on the Google route — a leader setting up a person who
+cannot manage the page themselves, or putting back access that was revoked. It
+grants what they have ticked and lets Google email them the link that adds it.
+
 ## Adding somebody to a private group
 
 Ticking a private ministry on a person's card writes the sheet. It does not, by

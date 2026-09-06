@@ -40,7 +40,7 @@
  * ahead of Google's counter and left two numbers that look like the same
  * thing and disagree, which defeats the only purpose the marker has.
  */
-var VERSION = 13;
+var VERSION = 14;
 
 var SITE = 'https://calendars.greaterlifebaptistchurch.com';
 var EVENTS_JSON = SITE + '/events.json';
@@ -280,7 +280,7 @@ function doGet() {
       'signup', 'load', 'save', 'rotate',
       'admin.hello', 'admin.list', 'admin.save', 'admin.delete',
       'share',
-      'admin.people', 'admin.setgroups'
+      'admin.people', 'admin.setgroups', 'admin.share', 'admin.remove'
     ],
     adminReady: !!adminPasscode_(),
     calendar: calendarOk,
@@ -317,6 +317,8 @@ function doPost(e) {
     if (action === 'admin.delete') return handleAdminDelete_(body);
     if (action === 'admin.people')    return handleAdminPeople_(body);
     if (action === 'admin.setgroups') return handleAdminSetGroups_(body);
+    if (action === 'admin.share')     return handleAdminShare_(body);
+    if (action === 'admin.remove')    return handleAdminRemove_(body);
     return json_({ ok: false, error: 'Unknown action.' });
   } catch (err) {
     return json_({ ok: false, error: String(err && err.message ? err.message : err) });
@@ -881,6 +883,109 @@ function handleAdminSetGroups_(body) {
     email: email,
     feedUrl: feedUrlFor_(token),
     shared: shared
+  });
+}
+
+/**
+ * Put somebody on the Google route deliberately.
+ *
+ * Changing their groups only re-syncs Google access for people who already
+ * have some, which is right — nobody's calendars should be pushed into an
+ * account that never asked. But it leaves a hole: revoke a person's last
+ * calendar and they stop counting as being on the Google route, so ticking it
+ * back on would silently grant nothing. This is the explicit way back in, and
+ * it is also how a leader sets somebody up who cannot manage the page.
+ *
+ * Notified, because that person is not looking at anything: Google's email
+ * carries the link that puts the calendar in their list.
+ */
+function handleAdminShare_(body) {
+  var bad = checkPasscode_(body.passcode);
+  if (bad) return json_({ ok: false, error: bad });
+
+  var token = String(body.handle || '').trim();
+  if (!validToken_(token)) return json_({ ok: false, error: 'Unknown person.' });
+
+  var sheet = sheet_();
+  var headers = headers_(sheet);
+  var found = findByToken_(sheet, headers, token);
+  if (!found) return json_({ ok: false, error: 'That person is no longer in the sheet.' });
+
+  var emailCol = columnIndex_(headers, 'email');
+  var email = emailCol === -1 ? '' : String(found.values[emailCol] || '').trim();
+  if (!email || email.indexOf('@') === -1) {
+    return json_({ ok: false, error: 'No email address on their row, so there is no account to share with.' });
+  }
+
+  var groups = groupsOf_(headers, found.values, allMinistryIds_());
+  if (!groups.length) return json_({ ok: false, error: 'They have no calendars ticked yet.' });
+
+  var result = syncCalendarSharing_(email, groups, true);
+  if (!result.ok && !(result.added || []).length) {
+    return json_({
+      ok: false,
+      error: 'Google would not share those. ' + ((result.failed || [])[0] || result.reason || '')
+    });
+  }
+  return json_({ ok: true, email: email, shared: result });
+}
+
+/**
+ * Remove somebody completely.
+ *
+ * Deleting the row alone was never enough. It stops their feed at the next
+ * sync, because the job serves only tokens it finds in the sheet — but Google
+ * calendar access is granted per account and outlives the sheet entirely. A
+ * removed person would have kept reading every calendar shared with them,
+ * private ones included, with nothing left in the sheet to show it or undo it.
+ *
+ * So access is revoked FIRST and the row deleted only if that worked. The
+ * other order loses the email address on the way to needing it, and leaves
+ * access nobody can find to revoke.
+ */
+function handleAdminRemove_(body) {
+  var bad = checkPasscode_(body.passcode);
+  if (bad) return json_({ ok: false, error: bad });
+
+  var token = String(body.handle || '').trim();
+  if (!validToken_(token)) return json_({ ok: false, error: 'Unknown person.' });
+
+  var sheet = sheet_();
+  var headers = headers_(sheet);
+  var found = findByToken_(sheet, headers, token);
+  if (!found) return json_({ ok: false, error: 'That person is no longer in the sheet.' });
+
+  var nameCol = columnIndex_(headers, 'name');
+  var emailCol = columnIndex_(headers, 'email');
+  var name = nameCol === -1 ? '' : String(found.values[nameCol] || '').trim();
+  var email = emailCol === -1 ? '' : String(found.values[emailCol] || '').trim();
+
+  var revoked = [];
+  if (email && email.indexOf('@') !== -1) {
+    // An empty group list means "should have none of them", which is exactly
+    // what removal means, so the ordinary sync does the work.
+    var result = syncCalendarSharing_(email, [], false);
+    if (!result.ok) {
+      return json_({
+        ok: false,
+        error: 'Could not take away their Google access, so the row has been left ' +
+          'alone: removing it now would hide access nobody can find. ' +
+          ((result.failed || [])[0] || result.reason || '')
+      });
+    }
+    revoked = result.removed || [];
+  }
+
+  sheet.deleteRow(found.row);
+
+  return json_({
+    ok: true,
+    name: name,
+    email: email,
+    revoked: revoked,
+    // Their feed is served from the sheet, so it stops existing on the next
+    // run rather than this instant.
+    rebuild: requestRebuild_('removal')
   });
 }
 
