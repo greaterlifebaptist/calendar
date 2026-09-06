@@ -320,7 +320,7 @@
     const everything = sel.length === total;
     const combo = DATA.feeds?.combo;
     const url = combo
-      ? combo + [...sel].sort().join("-") + ".ics"
+      ? combo + [...sel].sort().join("~") + ".ics"
       : (DATA.feeds?.base || "") + (single ? sel[0] + ".ics" : (DATA.feeds?.all || "all.ics"));
 
     btns.forEach(b => { b.classList.remove("off"); b.removeAttribute("aria-disabled"); });

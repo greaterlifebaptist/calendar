@@ -177,7 +177,11 @@ function publicMinistries_() {
 // revocable, and those people are set up by a leader rather than at a QR code.
 
 /**
- * The URL-safe name for a set of ministries: sorted, joined with hyphens.
+ * The URL-safe name for a set of ministries: sorted, joined with "~".
+ *
+ * Not "-": an id may contain a hyphen, and youth-leaders does. That one is
+ * private today, so a hyphen separator worked by luck; the day it went public
+ * every saved URL would have turned ambiguous at once.
  *
  * combo.ts in the job builds this same slug. The two must agree exactly or
  * somebody is handed a URL that was never built, so it is kept trivial and
@@ -189,7 +193,7 @@ function comboSlug_(ids) {
     var key = String(id).toLowerCase();
     if (!seen[key]) { seen[key] = true; out.push(key); }
   });
-  return out.sort().join('-');
+  return out.sort().join('~');
 }
 
 /**

@@ -16,12 +16,13 @@
  * Google Calendar, and this reads whatever is there at the moment of the
  * request, so a new event needs no rebuild here at all.
  *
- *   GET /c/church-youth.ics   ->  church + youth, as one calendar
+ *   GET /c/church~youth.ics   ->  church + youth, as one calendar
  *   GET /health               ->  plain text, for the hourly job to check
  *
- * The slug is sorted ministry ids joined with hyphens. job/src/combo.ts and
+ * The slug is sorted ministry ids joined with "~". job/src/combo.ts and
  * Code.gs build the same string; all three must agree or somebody is handed an
- * address that resolves to nothing.
+ * address that resolves to nothing. The separator is not "-" because an id may
+ * contain one, and youth-leaders does.
  */
 
 const SITE = 'https://calendars.greaterlifebaptistchurch.com';
@@ -198,7 +199,7 @@ export async function buildMerged(ids, names) {
 }
 
 async function handleCombo(slug, request, ctx) {
-  const parts = slug.split('-').filter(Boolean);
+  const parts = slug.split('~').filter(Boolean);
   if (!parts.length || parts.length > MAX_PARTS) {
     return text('Not a calendar address.', 400);
   }
@@ -221,7 +222,7 @@ async function handleCombo(slug, request, ctx) {
   // The slug is canonical: sorted, deduplicated. Anything else redirects to
   // the one true address, so the same selection cannot end up cached, shared
   // and bookmarked under half a dozen spellings.
-  const canonical = [...ids].sort().join('-');
+  const canonical = [...ids].sort().join('~');
   if (canonical !== slug) {
     return Response.redirect(new URL('/c/' + canonical + '.ics', request.url).toString(), 301);
   }
@@ -254,7 +255,7 @@ export default {
       }
     }
 
-    const match = /^\/c\/([a-z0-9-]{1,300})\.ics$/.exec(url.pathname);
+    const match = /^\/c\/([a-z0-9~-]{1,300})\.ics$/.exec(url.pathname);
     if (!match) {
       return text('Calendar feeds live at /c/<ministries>.ics — see ' + SITE, 404);
     }

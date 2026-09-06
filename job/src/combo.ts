@@ -25,9 +25,16 @@ import type { Config, Ministry } from './types.ts';
  * Sorted, so the order somebody ticked the boxes in cannot produce a second
  * URL for the same calendar. Alphabetical rather than config order, so
  * reordering config/ministries.json cannot silently change everybody's link.
+ *
+ * Joined with "~" rather than "-" because ids may contain a hyphen and one of
+ * them does: youth-leaders. It is private today, so a hyphen separator worked,
+ * but ids are locked and the list is not fixed, so the day that ministry went
+ * public "church-youth-leaders" would have had two readings and every saved
+ * URL would have become ambiguous at once. "~" cannot appear in an id and is
+ * unreserved in a URL, so this is settled permanently.
  */
 export function comboSlug(ids: string[]): string {
-  return [...new Set(ids)].sort().join('-');
+  return [...new Set(ids)].sort().join('~');
 }
 
 /** The ministries a person may pick for themselves: public, and actually online. */

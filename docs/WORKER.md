@@ -29,7 +29,7 @@ is fifteen source files, the same as one.
 ## What it does
 
 ```
-phone  ──GET /c/church-youth.ics──►  Worker
+phone  ──GET /c/church~youth.ics──►  Worker
                                        │  fetches /feeds/church.ics
                                        │          /feeds/youth.ics
                                        ▼
@@ -48,8 +48,8 @@ phone  ──GET /c/church-youth.ics──►  Worker
   calendar appears once, not twice.
 - **It refuses a partial answer.** If one source feed is missing, the request
   fails rather than quietly returning a calendar that is short a ministry.
-- **It canonicalises.** `/c/youth-church.ics` redirects to
-  `/c/church-youth.ics`, so one selection cannot end up cached and bookmarked
+- **It canonicalises.** `/c/youth~church.ics` redirects to
+  `/c/church~youth.ics`, so one selection cannot end up cached and bookmarked
   under several spellings.
 
 Merged results are cached at the edge for five minutes, so twenty phones asking
@@ -57,13 +57,21 @@ for the same combination cost one merge.
 
 ## The naming rule
 
-A slug is **sorted ministry ids joined with hyphens**: `church-womens-youth`.
+A slug is **sorted ministry ids joined with `~`**: `church~womens~youth`.
 
 Three places build that string independently — `comboSlug` in
 `job/src/combo.ts`, `comboSlug_` in `site/apps-script/Code.gs`, and the
 subscribe buttons on the calendar page. If they ever disagree, somebody is
-handed an address that resolves to nothing, so a test asserts that no public
-ministry id contains a hyphen.
+handed an address that resolves to nothing.
+
+**The separator is `~`, not `-`, and that matters.** One ministry id already
+contains a hyphen: `youth-leaders`. It is private today, so a hyphen separator
+worked by luck — but ids are locked and the ministry list is not fixed, so the
+day that one went public `church-youth-leaders` would have had two readings
+and every saved URL would have turned ambiguous at once, with no way to rename
+out of it. `~` cannot appear in an id and is unreserved in a URL. A test
+checks this against **every** ministry, public and private, so making a private
+one public can never be the moment it breaks.
 
 ## Where it runs
 
@@ -111,7 +119,7 @@ curl -sS https://calendar.greaterlifebaptist.workers.dev/health
 It answers `ok 7 ministries`. Then a real feed:
 
 ```bash
-curl -sS https://calendar.greaterlifebaptist.workers.dev/c/church-youth.ics | head -3
+curl -sS https://calendar.greaterlifebaptist.workers.dev/c/church~youth.ics | head -3
 ```
 
 `BEGIN:VCALENDAR` means it is working.

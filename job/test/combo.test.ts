@@ -7,17 +7,21 @@ const cfg = loadConfig();
 
 test('the slug does not depend on the order boxes were ticked', () => {
   assert.equal(comboSlug(['youth', 'church']), comboSlug(['church', 'youth']));
-  assert.equal(comboSlug(['church', 'youth']), 'church-youth');
+  assert.equal(comboSlug(['church', 'youth']), 'church~youth');
   assert.equal(comboSlug(['youth', 'youth']), 'youth');
 });
 
-test('public ministry ids stay hyphen-free, or the slug becomes ambiguous', () => {
+test('no ministry id contains the separator, or the slug becomes ambiguous', () => {
   // Three places build this string independently: here, comboSlug_ in
-  // Code.gs, and the subscribe buttons on the calendar page. A hyphen inside
-  // an id would make "a-b" mean two different selections depending on who
-  // split it, and the failure would be a URL that resolves to nothing.
-  for (const m of comboMinistries(cfg)) {
-    assert.ok(!m.id.includes('-'), m.id + ' contains a hyphen and would break the slug');
+  // Code.gs, and the subscribe buttons on the calendar page. A separator that
+  // could appear inside an id would make one slug mean two selections
+  // depending on who split it.
+  //
+  // Checked against EVERY ministry, not only the public ones, because a
+  // private ministry can be made public later and that must not be the moment
+  // every saved URL turns ambiguous.
+  for (const m of cfg.ministries) {
+    assert.ok(!m.id.includes('~'), m.id + ' contains the separator and would break the slug');
   }
 });
 

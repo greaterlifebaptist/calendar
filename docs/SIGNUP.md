@@ -49,7 +49,7 @@ Waiting is not an option there; that is where adoption is lost.
 
 So there are two addresses, and the endpoint decides which somebody gets.
 
-| | Combination `/c/church-youth.ics` | Token `/f/<token>.ics` |
+| | Combination `/c/church~youth.ics` | Token `/f/<token>.ics` |
 |---|---|---|
 | Who gets it | anyone whose groups are all public | anyone in a private ministry |
 | Exists | **already**, built ahead of time | after the next sync |
@@ -71,9 +71,8 @@ people rarely.
 
 **The slug is built in three places** — `comboSlug` in `job/src/combo.ts`,
 `comboSlug_` in `Code.gs`, and the subscribe buttons on the calendar page.
-Sorted ids joined with hyphens. If they ever disagree, people are handed URLs
-that resolve to nothing, so a test asserts no public ministry id contains a
-hyphen.
+Sorted ids joined with `~`. If they ever disagree, people are handed URLs
+that resolve to nothing, so a test asserts no ministry id contains `~`.
 
 | Action | Needs | Effect |
 |---|---|---|
