@@ -20,14 +20,41 @@ import {
   loadState, saveState, pruneState, statePath, nextReminders,
 } from './remind.ts';
 import { addMonths, startOfMonth } from './time.ts';
+import { appendFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { CalEvent, Config, Ministry } from './types.ts';
 
 /** How far ahead to read. Deep enough for next summer's trip to be pinned. */
 const HORIZON_MONTHS = 18;
 
+/**
+ * Everything the run said, kept so it can be repeated into the Actions run
+ * summary at the end.
+ *
+ * A step's output on the run page is collapsed behind a disclosure triangle,
+ * and the lines saying whether personal feeds were built are exactly what
+ * somebody needs when a subscription will not add. Nobody thinks to expand a
+ * step that reported success, so the summary shows the whole run without a
+ * click.
+ */
+const transcript: string[] = [];
+
 function log(msg: string): void {
+  transcript.push(msg);
   process.stdout.write(msg + '\n');
+}
+
+/** Repeat the run into the Actions summary. Never allowed to fail the run. */
+function writeRunSummary(ok: boolean): void {
+  const file = process.env.GITHUB_STEP_SUMMARY;
+  if (!file) return;
+  try {
+    appendFileSync(file,
+      '## Calendar sync' + (ok ? '' : ' — FAILED') + '\n\n' +
+      '```\n' + transcript.join('\n').trim() + '\n```\n');
+  } catch (err) {
+    process.stdout.write('  [warn] could not write the run summary: ' + err + '\n');
+  }
 }
 
 /**
@@ -249,8 +276,10 @@ export async function run(): Promise<number> {
 }
 
 run()
-  .then((code) => process.exit(code))
+  .then((code) => { writeRunSummary(code === 0); process.exit(code); })
   .catch((err) => {
     console.error(err);
+    log(String(err && err.stack ? err.stack : err));
+    writeRunSummary(false);
     process.exit(1);
   });
