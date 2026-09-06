@@ -7,6 +7,17 @@ name: Calendar sync
 on:
   schedule:
     - cron: '7 * * * *'
+  # A change to the site or the job is not live until this runs, and until now
+  # nothing but the clock made it run. So every fix sat in the repo looking
+  # deployed for up to an hour, which is exactly long enough to test the old
+  # page and conclude the fix did not work.
+  push:
+    branches: [main]
+    paths:
+      - 'site/**'
+      - 'job/**'
+      - '.github/workflows/sync.yml'
+
   # Signing up, changing groups or replacing a link asks for a rebuild, so a
   # personal feed exists within a minute or two instead of on the hour.
   # Without it, the first thing a new person does is tap their own link and
