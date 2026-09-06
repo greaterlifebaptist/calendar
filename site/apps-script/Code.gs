@@ -34,13 +34,13 @@
  * not take looks identical to one that did. Open the /exec URL and read the
  * version back.
  *
- * Bump this ONLY when the file is handed over to be deployed, never on an
- * edit in between. Bumping per edit ran this number ahead of Google's own
- * deployment counter, which left two numbers that look like the same thing
- * and disagree, and the whole point of the marker is telling at a glance
- * whether a deploy took.
+ * This is Google's NEXT deployment number, not a count of how many times the
+ * file has changed. Two handovers between deploys is one deployment, so the
+ * number stays put until one is actually deployed. Bumping per change ran it
+ * ahead of Google's counter and left two numbers that look like the same
+ * thing and disagree, which defeats the only purpose the marker has.
  */
-var VERSION = 14;
+var VERSION = 13;
 
 var SITE = 'https://calendars.greaterlifebaptistchurch.com';
 var EVENTS_JSON = SITE + '/events.json';
