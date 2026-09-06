@@ -237,6 +237,16 @@ The button revokes the Google access **first**, then deletes the row, and only
 if the revoke worked. The other order throws away the email address on the way
 to needing it, and leaves access nobody can find.
 
+It takes two presses. The first arms the button, which turns red and asks
+"Really remove Jane Doe?" with a line saying what is about to happen; the
+second does it. It disarms itself after six seconds, so a stray press decays
+rather than lying in wait for the next one.
+
+That is deliberately in the page rather than a browser confirm box. A confirm
+is one reflex away from being dismissed, and a browser told to stop showing
+dialogs suppresses it silently — which would turn this back into the single
+accidental click it exists to prevent.
+
 It says what it took away. If Google refuses for any reason, the row is left
 exactly as it was rather than half-removed.
 

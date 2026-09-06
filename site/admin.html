@@ -112,6 +112,11 @@ button.danger:hover{border-color:var(--clay)}
 .person .acts button:hover{border-color:var(--pine);color:var(--pine)}
 .person .acts button.danger{color:var(--clay)}
 .person .acts button.danger:hover{border-color:var(--clay);color:var(--clay)}
+/* Armed: the second press is the one that does it, and it should not look
+   anything like the first. */
+.person .acts button.armed{background:var(--clay);border-color:var(--clay);color:#fff}
+.person .acts button.armed:hover{color:#fff}
+.person .arming{margin-top:7px;font-size:.78rem;color:var(--clay);font-weight:600}
 .person .acts button[disabled]{opacity:.45;cursor:default}
 .groups{display:flex;flex-wrap:wrap;gap:6px}
 .gp{display:inline-flex;align-items:center;gap:6px;border:1.5px solid var(--rule);background:#fff;border-radius:100px;padding:6px 13px;cursor:pointer;font-family:var(--body);font-size:.82rem;font-weight:700;color:var(--ink-soft)}
@@ -859,7 +864,7 @@ function renderPeople(){
       '<div class="acts">' +
         (person.email ? '<button type="button" class="share">Share to their Google account</button>' : '') +
         '<button type="button" class="danger remove">Remove completely</button>' +
-      '</div>';
+      '</div><p class="arming" hidden></p>';
 
     const groups = card.querySelector(".groups");
     const st = card.querySelector(".st");
@@ -978,13 +983,37 @@ function renderPeople(){
     });
 
     const removeBtn = card.querySelector(".remove");
+    const arming = card.querySelector(".arming");
+    const who = person.name || person.email || "this person";
+
+    // Two deliberate presses, in the page rather than a browser dialog.
+    //
+    // A native confirm() is one reflex away from being dismissed, and a
+    // browser that has been told to stop showing dialogs suppresses it
+    // silently — which would turn this into the single accidental click it is
+    // meant to prevent. This cannot be suppressed, it names the person on the
+    // button itself, and it disarms on its own so a stray first press decays
+    // instead of lying in wait.
+    let armed = null;
+    const disarm = () => {
+      clearTimeout(armed);
+      armed = null;
+      removeBtn.classList.remove("armed");
+      removeBtn.textContent = "Remove completely";
+      arming.hidden = true;
+    };
+
     removeBtn.addEventListener("click", async () => {
-      // Naming them in the question, because the cards look alike and this is
-      // the one action here that cannot be undone from this page.
-      const who = person.name || person.email || "this person";
-      if (!confirm("Remove " + who + " completely?\n\n" +
-        "Their calendar stops working, and any church calendars shared with " +
-        "their Google account are taken away. This cannot be undone here.")) return;
+      if (!armed) {
+        removeBtn.classList.add("armed");
+        removeBtn.textContent = "Really remove " + who + "?";
+        arming.hidden = false;
+        arming.textContent = "Press again to confirm. Their calendar stops working and any " +
+          "church calendars shared with their Google account are taken away. This cannot be undone.";
+        armed = setTimeout(disarm, 6000);
+        return;
+      }
+      disarm();
 
       removeBtn.disabled = true;
       st.className = "st";
