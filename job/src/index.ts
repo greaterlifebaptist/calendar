@@ -39,7 +39,17 @@ function log(msg: string): void {
 async function publishPersonalFeeds(cfg: Config, masters: CalEvent[]) {
   if (USE_FIXTURES()) return null;
   if (!process.env.SHEET_ID?.trim()) {
-    log('  personal     skipped, no SHEET_ID configured');
+    // Skipping is fine before membership is set up. It stops being fine the
+    // moment the signup page is live, because from then on the page hands out
+    // feed URLs that resolve to a 404 page. Apple Calendar reports that as
+    // "validation failed", which reads as a bad link rather than as a missing
+    // secret, so it has to be loud where somebody will see it.
+    if (cfg.site.signupEndpoint) {
+      log('::error::Signup is switched on but SHEET_ID is not set, so no personal ' +
+        'feeds are being built. Everyone who signs up gets a link that 404s.');
+    } else {
+      log('  personal     skipped, no SHEET_ID configured');
+    }
     return null;
   }
   const sheet = await readPeople(cfg);

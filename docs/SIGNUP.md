@@ -178,6 +178,26 @@ deployments**, so the two agree and there is only one number to think about.
 That only holds if every handed-over version is actually deployed; skipping
 one puts them out of step until the next bump catches up.
 
+## "Validation failed" when adding the calendar
+
+Apple Calendar says this when what it downloaded is not a calendar. Almost
+always that means the feed URL returned GitHub Pages' 404 page, so the feed
+does not exist yet. Check, in order:
+
+1. **Does the feed exist?** Open the URL in a browser. It should start
+   `BEGIN:VCALENDAR`. An HTML page means no.
+2. **Is `SHEET_ID` set as an Actions secret?** Without it the job skips
+   personal feeds entirely and every signup link 404s. The run log says so,
+   and now says it as an error once the signup endpoint is configured.
+3. **Can the service account read the sheet?** It needs to be shared with the
+   service account's address, same as the calendars.
+4. **Has a sync run since the signup?** Feeds appear when the job writes them.
+
+An "insecure connection" warning just before it is a different problem:
+`webcal://` resolves to `http://`, so it appears whenever the site is
+reachable over plain HTTP. Turn on **Settings > Pages > Enforce HTTPS** and it
+stops.
+
 ## What it deliberately does not do
 
 - It does not delete anybody. Removing a person is a leader editing the sheet.
