@@ -158,8 +158,27 @@ jobs:
           git config user.name 'glbc-calendar-bot'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
-          if git diff --cached --quiet; then
-            echo 'Calendars unchanged since the last snapshot.'
+
+          # Commit when a CALENDAR changed, not when the clock did. The
+          # manifest carries a capture time and so differs every run; the
+          # per-calendar files are pure content. Gating on those keeps the
+          # history readable, which is the entire value of a backup: finding
+          # the week somebody deleted a recurring series is impossible among
+          # 8,760 identical snapshots a year.
+          if git diff --cached --quiet -- backup/calendars; then
+            LAST=$(git log -1 --format=%ct 2>/dev/null || echo 0)
+            AGE_DAYS=$(( ( $(date +%s) - LAST ) / 86400 ))
+            if [ "$AGE_DAYS" -ge 30 ]; then
+              # So the repository itself says the backup is alive. Without
+              # this, "last commit four months ago" reads the same whether
+              # nothing changed or the whole thing quietly broke.
+              git commit -m "Still backing up, calendars unchanged $(date -u +'%Y-%m-%d')"
+              git push
+              echo 'Calendars unchanged; pushed a liveness commit.'
+            else
+              echo "Calendars unchanged since the last snapshot (${AGE_DAYS}d ago)."
+              git reset --quiet
+            fi
           else
             git commit -m "Snapshot $(date -u +'%Y-%m-%d %H:%M UTC')"
             git push

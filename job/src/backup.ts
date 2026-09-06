@@ -13,6 +13,15 @@
  *
  * They include private ministries, so they must never be written anywhere
  * public. The workflow pushes them to a separate private repository.
+ *
+ * The per-calendar files deliberately carry NO timestamp. They used to, and it
+ * meant every file differed on every run, so the backup repository took a
+ * commit an hour forever — 8,760 snapshots a year, almost all of them
+ * recording nothing but the clock. The history is the whole point of a backup;
+ * being able to find the week somebody deleted a recurring series matters more
+ * than knowing which hour a byte-identical copy was taken. So a calendar file
+ * changes only when the calendar did, and the capture time lives once, in the
+ * manifest.
  */
 
 import { mkdirSync, writeFileSync, rmSync, existsSync } from 'node:fs';
@@ -61,7 +70,6 @@ export function writeBackup(
           name: r.ministry.name,
           visibility: r.ministry.visibility,
           calendarId: r.ministry.calendarId,
-          capturedAt: now.toISOString(),
           timeZone: cfg.timezone,
           count: items.length,
           // Verbatim API resources. Do not normalise; a restore needs these

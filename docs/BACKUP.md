@@ -1,5 +1,40 @@
 # Backups
 
+## How long it keeps things
+
+**Forever, and that is deliberate.** The working copy in the backup repository
+is always one snapshot — the current state of every calendar. The value is in
+the git history behind it: every version of every calendar since the day this
+started, which is what lets you answer "a leader deleted a recurring series
+some time last month, what was in it?"
+
+That history is cheap. The snapshots are small JSON, git stores them as deltas,
+and a decade of real changes is a few thousand commits and a few tens of
+megabytes. There is no need to prune it, and pruning a backup is the wrong
+instinct anyway.
+
+What did need fixing was the noise. Every snapshot file used to carry the time
+it was taken, so all ten files differed on every run and the repository took a
+commit an hour whether or not a single calendar had changed — 8,760 snapshots a
+year, almost all recording nothing but the clock. Disk was never the problem;
+legibility was. Finding the week something was deleted is hopeless in a list of
+identical hourly commits.
+
+So now:
+
+- Per-calendar files carry **no timestamp**. They change only when the calendar
+  does, and a test asserts that two captures of identical data are byte for
+  byte the same.
+- The capture time lives once, in `manifest.json`.
+- The workflow commits only when something under `backup/calendars/` differs.
+- If nothing has changed for 30 days it pushes a liveness commit anyway, so
+  the repository itself says the backup is still running. Without it, "last
+  commit four months ago" reads the same whether nothing changed or the whole
+  thing quietly broke.
+
+A year of a normally busy church calendar should be a few hundred commits, each
+one an actual change worth looking at.
+
 ## What can actually go wrong
 
 Google losing your data is not the risk worth planning for. Calendar is

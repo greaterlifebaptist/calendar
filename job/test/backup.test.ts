@@ -13,10 +13,18 @@ const cfg = loadConfig();
 const NOW = new Date('2026-09-04T12:00:00-04:00');
 const DIR = join(tmpdir(), 'glbc-backup-test');
 
-async function snapshot() {
+async function snapshot(now: Date = NOW) {
   const ministries = activeMinistries(cfg);
   const results = await fetchAll(cfg, ministries, NOW, NOW);
-  return writeBackup(cfg, results, DIR, NOW);
+  return writeBackup(cfg, results, DIR, now);
+}
+
+/** Every calendar file as one string, for comparing two captures. */
+function calendarBytes(): string {
+  return readdirSync(join(DIR, 'calendars'))
+    .sort()
+    .map((f) => readFileSync(join(DIR, 'calendars', f), 'utf8'))
+    .join('|');
 }
 
 test('the backup covers private ministries, unlike everything published', async () => {
@@ -54,6 +62,23 @@ test('a removed ministry does not leave a stale snapshot behind', async () => {
   assert.ok(existsSync(strayPath));
   await snapshot();
   assert.equal(existsSync(strayPath), false, 'stale snapshot survived a later run');
+});
+
+test('a calendar file changes only when the calendar does', async () => {
+  // The backup repository commits whenever a file differs, so a timestamp in
+  // here would mean a commit every hour forever, and a history in which
+  // finding the week a recurring series was deleted is hopeless. Two captures
+  // an hour apart, of identical data, must be byte-identical.
+  await snapshot(new Date('2026-09-06T01:00:00Z'));
+  const first = calendarBytes();
+  await snapshot(new Date('2026-09-06T02:00:00Z'));
+  assert.equal(calendarBytes(), first);
+});
+
+test('the manifest still records when the capture happened', async () => {
+  await snapshot(new Date('2026-09-06T02:00:00Z'));
+  const m = JSON.parse(readFileSync(join(DIR, 'manifest.json'), 'utf8'));
+  assert.equal(m.capturedAt, '2026-09-06T02:00:00.000Z');
 });
 
 test('the manifest totals match the files on disk', async () => {

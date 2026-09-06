@@ -149,7 +149,7 @@ async function main() {
   const skippedOverrides = snap.items.filter((e) => e.recurringEventId && e.status !== 'cancelled').length;
 
   console.log('\nRestore ' + MINISTRY + ' (' + snap.name + ')');
-  console.log('  from    ' + entry.file + ', captured ' + snap.capturedAt);
+  console.log('  from    ' + entry.file + ', captured ' + m.capturedAt);
   console.log('  into    ' + target);
   console.log('  mode    ' + (CONFIRM ? 'WRITING' : 'dry run, nothing will be written'));
 
