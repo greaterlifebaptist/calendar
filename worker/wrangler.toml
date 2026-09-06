@@ -1,0 +1,16 @@
+# The Worker that merges per-ministry feeds on request. See worker/src/index.js
+# for why nothing is pre-built.
+#
+# Deployed by .github/workflows/worker.yml, which runs only when this directory
+# changes. It has nothing to do with the hourly calendar sync.
+
+name = "calendar"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+
+# Serves on https://calendar.greaterlifebaptist.workers.dev
+workers_dev = true
+
+# No bindings, no storage, no secrets. It reads public files from the site and
+# returns a merged calendar; there is nothing here worth stealing and nothing
+# to restore if it is ever deleted.

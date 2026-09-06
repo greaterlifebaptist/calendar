@@ -45,7 +45,10 @@ var VERSION = 11;
 var SITE = 'https://calendars.greaterlifebaptistchurch.com';
 var EVENTS_JSON = SITE + '/events.json';
 var FEED_BASE = SITE + '/f/';
-var COMBO_BASE = SITE + '/c/';
+// A different host from the site on purpose: merged feeds are assembled on
+// request by the Cloudflare Worker in worker/, because pre-building every
+// combination is 2^n files and runs out at about eight ministries.
+var COMBO_BASE = 'https://calendar.greaterlifebaptist.workers.dev/c/';
 var TAB = 'People';
 
 /**

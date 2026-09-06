@@ -58,10 +58,10 @@ So there are two addresses, and the endpoint decides which somebody gets.
 | Changing groups | gives a **new** address | keeps the same address |
 | Replaceable | nothing to replace | yes, `rotate` |
 
-The job builds every combination of public ministries in advance — 127 files
-for seven ministries, a few hundred KB — so whatever somebody picks, the URL
-is already there. Nothing in a public combination needs hiding: every event in
-it is already on the website.
+Combined feeds are assembled the moment they are asked for, by the Worker in
+[WORKER.md](WORKER.md), so whatever somebody picks the URL works immediately
+and nothing is built in advance. Nothing in a public combination needs hiding:
+every event in it is already on the website.
 
 The cost is that a combination address is derived from the ticks, so changing
 them changes the address and the phone has to be told. The preferences page
@@ -69,10 +69,11 @@ says so before saving and hands over the new one after. That trade is worth
 making: signing up happens to everyone once, changing groups happens to a few
 people rarely.
 
-**The slug is built in two places** — `comboSlug` in `job/src/combo.ts` and
-`comboSlug_` in `Code.gs`. Sorted ids joined with hyphens. If they ever
-disagree, people are handed URLs that were never built, so a test asserts no
-public ministry id contains a hyphen.
+**The slug is built in three places** — `comboSlug` in `job/src/combo.ts`,
+`comboSlug_` in `Code.gs`, and the subscribe buttons on the calendar page.
+Sorted ids joined with hyphens. If they ever disagree, people are handed URLs
+that resolve to nothing, so a test asserts no public ministry id contains a
+hyphen.
 
 | Action | Needs | Effect |
 |---|---|---|
@@ -222,7 +223,8 @@ does not exist yet. Check, in order:
 
 1. **Does the feed exist?** Open the URL in a browser. It should start
    `BEGIN:VCALENDAR`. An HTML page means no. A `/c/` address should always
-   exist; a `/f/` one appears at the next sync.
+   work — if it does not, see [WORKER.md](WORKER.md). A `/f/` one appears at
+   the next sync.
 2. **Is `SHEET_ID` set as an Actions secret?** Without it the job skips
    personal feeds entirely and every signup link 404s. The run log says so,
    and now says it as an error once the signup endpoint is configured.

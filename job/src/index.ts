@@ -15,7 +15,7 @@ import { publish } from './publish.ts';
 import { writeBackup } from './backup.ts';
 import { readPeople, duplicateTokens } from './sheet.ts';
 import { writePersonalFeeds } from './personal.ts';
-import { writeComboFeeds } from './combo.ts';
+import { comboMinistries, comboSlug } from './combo.ts';
 import {
   planReminders, planDigest, sendReminders,
   loadState, saveState, pruneState, statePath, nextReminders,
@@ -97,6 +97,40 @@ async function publishPersonalFeeds(cfg: Config, masters: CalEvent[]) {
   return writePersonalFeeds(cfg, sheet.people, masters, outputDir());
 }
 
+
+/**
+ * Confirm the merge service is actually serving calendars.
+ *
+ * Merged feeds are assembled on request by the Worker, so nothing in this run
+ * proves they work. If it is down, every subscription quietly stops updating
+ * and phones sit on their last copy, which is the failure nobody notices.
+ *
+ * Reported as an error annotation rather than a failed run on purpose: a
+ * Worker outage must not stop the site and the per-ministry feeds publishing,
+ * since those are what the Worker reads to recover.
+ */
+async function checkMergedFeeds(cfg: Config): Promise<void> {
+  const base = cfg.site.comboFeedBase;
+  const first = comboMinistries(cfg)[0];
+  if (!base || !first) return;
+
+  const url = base + comboSlug([first.id]) + '.ics';
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
+    const body = res.ok ? await res.text() : '';
+    if (!body.startsWith('BEGIN:VCALENDAR')) {
+      log('::error::Merged feeds are not being served. ' + url + ' answered ' +
+        res.status + '. Subscriptions will stop updating until this is fixed. ' +
+        'See worker/ and docs/SIGNUP.md.');
+      return;
+    }
+    log('  merged       ok, served by ' + new URL(base).host);
+  } catch (err) {
+    log('::error::Could not reach the merge service at ' + url + ': ' +
+      (err instanceof Error ? err.message : String(err)) +
+      '. Subscriptions will stop updating until this is fixed.');
+  }
+}
 
 /** Say when the next reminders land, so a quiet run is not a mystery. */
 function reportUpcoming(
@@ -250,18 +284,6 @@ export async function run(): Promise<number> {
   log('  by type      ' + [...counts].map(([k, v]) => k + '=' + v).join(' ') + '  pinned=' + pinned);
   log('  feeds        ' + result.feedPaths.length + ' .ics files');
 
-  // Every combination of public ministries, built ahead of anyone asking, so
-  // signing up hands over a URL that already exists instead of one that 404s
-  // until the next deploy.
-  const combo = writeComboFeeds(cfg, masters, outputDir());
-  log('  combos       ' + combo.written + ' feeds, ' +
-    Math.round(combo.bytes / 1024) + ' KB' +
-    (combo.removed ? ', ' + combo.removed + ' retired' : ''));
-  if (combo.tooBig) {
-    log('::warning::Combination feeds are now ' + Math.round(combo.bytes / 1048576) +
-      ' MB and are rebuilt and redeployed every hour. Time to merge on request ' +
-      'instead of building every combination. See docs/SIGNUP.md.');
-  }
 
   // Personal feeds last: they are the only place private ministries appear,
   // and they are rebuilt from the sheet every run so a removed row or a
@@ -272,6 +294,8 @@ export async function run(): Promise<number> {
       ' with nothing selected, ' + personal.removed + ' revoked)');
   }
   log('  backup       ' + backup.events + ' raw events from ' + backup.calendars + ' calendars');
+
+  await checkMergedFeeds(cfg);
 
   // ---- reminders ----
   // Last, and behind every guard in remind.ts. Everything above this point

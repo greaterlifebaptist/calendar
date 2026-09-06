@@ -16,7 +16,8 @@ deploying the endpoint. The admin form is in
 [docs/ADMIN.md](docs/ADMIN.md). Reminders, and how to switch
 them on safely, are in [docs/REMINDERS.md](docs/REMINDERS.md). Why an Android
 phone cannot add a calendar from a link, and what we do about it, is in
-[docs/ANDROID.md](docs/ANDROID.md).
+[docs/ANDROID.md](docs/ANDROID.md). How merged feeds are assembled on request,
+and why they are not built in advance, is in [docs/WORKER.md](docs/WORKER.md).
 This file covers only how to run what exists.
 
 ## Status
@@ -73,7 +74,8 @@ site/embed.js        generated widget for the church website, see docs/WORDPRESS
 job/src/             the hourly job
 job/config/          ministries.json — ids are locked, see CLAUDE.md section 3
 job/fixtures/        sample Google API responses for credential-free runs
-job/test/            classification, ICS, and privacy tests
+job/test/            classification, ICS, privacy and merge tests
+worker/              merges feeds on request, see docs/WORKER.md
 public/              job output, served by GitHub Pages
 ```
 

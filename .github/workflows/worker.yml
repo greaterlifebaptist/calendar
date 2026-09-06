@@ -1,0 +1,53 @@
+name: Deploy calendar worker
+
+# Separate from the hourly sync on purpose. The Worker changes about once a
+# year; the calendar data changes hourly. Tying them together would redeploy
+# code twenty-four times a day to no end, and would mean a Worker problem
+# could stop the calendar publishing.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'worker/**'
+      - '.github/workflows/worker.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: calendar-worker
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: worker
+
+      # A deploy that reported success and serves nothing is the failure mode
+      # worth catching, since nobody looks at a green tick.
+      - name: Check it answers
+        run: |
+          URL="https://calendar.greaterlifebaptist.workers.dev/health"
+          for attempt in 1 2 3 4 5; do
+            BODY=$(curl -fsS --max-time 10 "$URL" || true)
+            case "$BODY" in
+              ok*) echo "Worker is up: $BODY"; exit 0 ;;
+            esac
+            echo "Attempt $attempt: $BODY"
+            sleep 5
+          done
+          echo "::error::The worker deployed but /health did not answer 'ok'."
+          exit 1
