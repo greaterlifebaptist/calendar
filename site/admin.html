@@ -807,6 +807,16 @@ $("title").addEventListener("input", () => {
 // who gets which calendars
 // ---------------------------------------------------------------------------
 
+/**
+ * How long "Remove completely" stays armed, and how soon after arming a press
+ * is treated as part of the same gesture rather than a decision.
+ *
+ * Long enough to read the warning and mean it; short enough that a stray press
+ * does not sit armed while somebody scrolls on to another card.
+ */
+const ARM_SECONDS = 10;
+const ARM_DEAD_MS = 800;
+
 let PEOPLE = [];
 let peopleLoaded = false;
 
@@ -995,9 +1005,11 @@ function renderPeople(){
     // button itself, and it disarms on its own so a stray first press decays
     // instead of lying in wait.
     let armed = null;
+    let armedAt = 0;
     const disarm = () => {
       clearTimeout(armed);
       armed = null;
+      armedAt = 0;
       removeBtn.classList.remove("armed");
       removeBtn.textContent = "Remove completely";
       arming.hidden = true;
@@ -1005,14 +1017,22 @@ function renderPeople(){
 
     removeBtn.addEventListener("click", async () => {
       if (!armed) {
+        armedAt = Date.now();
         removeBtn.classList.add("armed");
         removeBtn.textContent = "Really remove " + who + "?";
         arming.hidden = false;
         arming.textContent = "Press again to confirm. Their calendar stops working and any " +
           "church calendars shared with their Google account are taken away. This cannot be undone.";
-        armed = setTimeout(disarm, 6000);
+        armed = setTimeout(disarm, ARM_SECONDS * 1000);
         return;
       }
+
+      // A double click is two clicks a fraction of a second apart, and it
+      // would otherwise arm and fire in one gesture — the exact accident two
+      // presses exist to prevent. Anything this soon is the same gesture, not
+      // a decision, so it is ignored and the button stays armed.
+      if (Date.now() - armedAt < ARM_DEAD_MS) return;
+
       disarm();
 
       removeBtn.disabled = true;

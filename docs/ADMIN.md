@@ -239,8 +239,13 @@ to needing it, and leaves access nobody can find.
 
 It takes two presses. The first arms the button, which turns red and asks
 "Really remove Jane Doe?" with a line saying what is about to happen; the
-second does it. It disarms itself after six seconds, so a stray press decays
+second does it. It disarms itself after ten seconds, so a stray press decays
 rather than lying in wait for the next one.
+
+A double click cannot do both presses. Anything within 800ms of arming is the
+same gesture rather than a decision, so it is ignored and the button stays
+armed — otherwise the one accident most likely to happen on a row of buttons
+would sail straight through the guard built to stop it.
 
 That is deliberately in the page rather than a browser confirm box. A confirm
 is one reflex away from being dismissed, and a browser told to stop showing
