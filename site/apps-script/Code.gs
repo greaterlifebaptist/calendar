@@ -1219,6 +1219,16 @@ function handleAdminRsvps_(body) {
 //
 // Run once a day by a time trigger. Set it up by picking setupDailyDigest from
 // the dropdown at the top of the editor and pressing Run, once.
+//
+// Both functions below need scopes that nothing else here uses, and
+// appsscript.json lists scopes explicitly, so Apps Script asks for exactly
+// what is listed and refuses the rest:
+//
+//   script.scriptapp   to create the daily trigger
+//   script.send_mail   to send the digest
+//
+// If either is missing the failure is "Specified permissions are not
+// sufficient", naming the call rather than the manifest.
 
 function setupDailyDigest() {
   var existing = ScriptApp.getProjectTriggers();

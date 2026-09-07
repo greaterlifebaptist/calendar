@@ -88,10 +88,30 @@ the last one is still accurate.
 
 ## Switching the daily email on
 
-Once, in the Apps Script editor: pick **setupDailyDigest** from the function
-dropdown at the top and press **Run**. It creates the daily trigger and says so
-in the log. Running it again is safe; it replaces the existing trigger rather
-than adding a second.
+**First, the manifest.** `appsscript.json` lists OAuth scopes explicitly, so
+Apps Script asks for exactly what is listed and refuses everything else. Two of
+them exist only for this feature:
+
+| Scope | For |
+|---|---|
+| `script.scriptapp` | creating the daily trigger |
+| `script.send_mail` | sending the digest |
+
+Without them you get *"Specified permissions are not sufficient to call
+ScriptApp.getProjectTriggers"* — which names the call, not the manifest, and
+sends you looking in the wrong place. Paste the current
+[`appsscript.json`](../site/apps-script/appsscript.json) over the one in the
+editor and save. If you cannot see that file, Project Settings > tick **Show
+"appsscript.json" manifest file in editor**.
+
+**Then** pick **setupDailyDigest** from the function dropdown at the top and
+press **Run**. Google asks you to authorise the new permissions; accept. It
+creates the daily trigger and says so in the log. Running it again is safe; it
+replaces the existing trigger rather than adding a second.
+
+Running a function from the editor uses the **saved** file, not the deployed
+version, so this does not need a deploy first. Deploying is only what changes
+what the website talks to.
 
 Until you do, everything else works — responses are recorded and the RSVPs tab
 shows them. Only the email is missing.
