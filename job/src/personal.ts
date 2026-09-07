@@ -56,6 +56,9 @@ export function writePersonalFeeds(
 
     const ics = buildIcs(toIcsInputs(mine, cfg.timezone), cfg, {
       name: CALENDAR_NAME,
+      // One person's feed spans whatever they picked, so it takes the church
+      // colour rather than any one ministry's.
+      color: cfg.site.feedColor,
       description:
         'Greater Life Baptist Church — ' +
         (groups.size ? [...groups].map((g) => known.get(g)!.name).join(', ') : 'no groups selected'),

@@ -182,3 +182,8 @@ test('a feed is byte-identical across runs, so the hourly cron stays quiet', asy
   await new Promise((r) => setTimeout(r, 1100));
   assert.equal(build(events), first, 'feed contents drifted between runs');
 });
+
+test('a ministry feed carries that ministry\'s colour', () => {
+  const ics = buildIcs(toIcsInputs([cal({})], TZ), cfg, { name: 'Test', color: '#6B9A12' });
+  assert.ok(unfold(ics).includes('X-APPLE-CALENDAR-COLOR:#6B9A12'));
+});

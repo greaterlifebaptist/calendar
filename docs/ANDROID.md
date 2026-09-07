@@ -42,6 +42,24 @@ So one merged calendar means one colour, and a colour per ministry means a
 calendar per ministry. Choosing the Google route happens to give the colours,
 which is a real gain rather than a consolation.
 
+### What we can control
+
+Every feed declares the colour it would like to be, as
+`X-APPLE-CALENDAR-COLOR`:
+
+- A single ministry's feed carries that ministry's own colour.
+- Anything spanning several — the everything feed, a merged address, somebody's
+  personal feed — carries the church green, `site.feedColor` in the config.
+
+**Apple Calendar honours it**, so a subscriber sees the church's colour instead
+of whatever pastel Apple would have assigned. **Google Calendar ignores it** and
+picks its own; the person can change it in two taps, and so can Apple users.
+
+That is the whole extent of it. There is no way to set a colour inside somebody
+else's account: what colour a calendar is in your app is your preference, not
+the publisher's, which is also why sharing a calendar does not carry the
+owner's colour across.
+
 ## Name the calendars properly first
 
 A shared calendar shows **its own name in Google**, not the display name from

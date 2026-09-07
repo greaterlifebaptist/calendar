@@ -68,8 +68,11 @@ async function publicMinistries() {
   const data = await res.json();
   const out = new Map();
   for (const m of data.ministries || []) {
-    if (m && m.id && m.visibility === 'public' && m.calendarId) out.set(m.id, m.name || m.id);
+    if (m && m.id && m.visibility === 'public' && m.calendarId) {
+      out.set(m.id, { name: m.name || m.id, color: m.color || '' });
+    }
   }
+  out.feedColor = data.feedColor || '';
   return out;
 }
 
@@ -152,7 +155,7 @@ export function escapeText(value) {
     .replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
 }
 
-export async function buildMerged(ids, names) {
+export async function buildMerged(ids, names, color) {
   const responses = await Promise.all(
     ids.map((id) => fetch(SITE + '/feeds/' + id + '.ics', {
       cf: { cacheTtl: 60, cacheEverything: true },
@@ -196,6 +199,11 @@ export async function buildMerged(ids, names) {
     'REFRESH-INTERVAL;VALUE=DURATION:PT1H',
     fold('X-WR-CALDESC:' + escapeText('Greater Life Baptist Church — ' + names.join(', '))),
   ];
+  // Apple Calendar honours this and shows the church's colour instead of
+  // whatever it would have picked; Google ignores it. It colours the CALENDAR,
+  // never the events, which is why a feed of several ministries can only be
+  // one colour however many are in it.
+  if (color) rows.push('X-APPLE-CALENDAR-COLOR:' + color);
   rows.push(...timezone);
   for (const block of events) rows.push(...block);
   rows.push('END:VCALENDAR');
@@ -255,7 +263,7 @@ async function handlePersonal(token) {
   const ids = out.groups.filter((g) => known.has(g));
   if (!ids.length) return text('No calendar for that link.', 404);
 
-  return new Response(await buildMerged(ids, ids.map((id) => known.get(id))), {
+  return new Response(await buildMerged(ids, ids.map((id) => known.get(id).name), known.feedColor), {
     headers: {
       'content-type': 'text/calendar; charset=utf-8',
       // Deliberately short. The built file is minutes away and is the only one
@@ -284,7 +292,7 @@ async function handleCombo(slug, request, ctx) {
     }
     if (ids.includes(part)) continue;
     ids.push(part);
-    names.push(known.get(part));
+    names.push(known.get(part).name);
   }
 
   // The slug is canonical: sorted, deduplicated. Anything else redirects to
@@ -295,7 +303,9 @@ async function handleCombo(slug, request, ctx) {
     return Response.redirect(new URL('/c/' + canonical + '.ics', request.url).toString(), 301);
   }
 
-  const ics = await buildMerged(ids, names);
+  // One ministry can take its own colour; several have to share the church's.
+  const color = ids.length === 1 ? (known.get(ids[0]).color || known.feedColor) : known.feedColor;
+  const ics = await buildMerged(ids, names, color);
   return new Response(ics, {
     headers: {
       'content-type': 'text/calendar; charset=utf-8',

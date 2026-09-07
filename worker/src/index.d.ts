@@ -10,4 +10,4 @@ export function splitFeed(body: string): { events: string[][]; timezone: string[
 export function identity(block: string[]): string;
 export function fold(line: string): string;
 export function escapeText(value: string): string;
-export function buildMerged(ids: string[], names: string[]): Promise<string>;
+export function buildMerged(ids: string[], names: string[], color?: string): Promise<string>;

@@ -34,6 +34,8 @@ export type Config = {
     /** Pre-built feeds for a combination of public ministries, so signup is instant. */
     comboFeedBase: string;
     allFeed: string;
+    /** Colour for a feed covering more than one ministry. Apple honours it; Google does not. */
+    feedColor: string;
     /** Deployed Apps Script web app. Blank until it exists. */
     signupEndpoint?: string;
   };

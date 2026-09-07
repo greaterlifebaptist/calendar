@@ -159,3 +159,26 @@ test('fold splits on octets, not characters', () => {
   }
   assert.equal(folded.replace(/\r\n /g, ''), 'X-WR-CALDESC:' + 'é'.repeat(60));
 });
+
+test('a feed declares its colour, and only ever one', async () => {
+  await withFeeds(
+    { church: feed([cal('church', 'Alpha')], 'Church'), youth: feed([cal('youth', 'Beta')], 'Youth') },
+    async () => {
+      const ics = await buildMerged(['church', 'youth'], ['Church-wide', 'Greater Generation'], '#1B5E45');
+      const lines = unfold(ics);
+      const colors = lines.filter((l) => l.startsWith('X-APPLE-CALENDAR-COLOR'));
+      // One calendar, one colour. A merged feed cannot be several, whatever
+      // Google and Apple would do with a per-event COLOR, which is nothing.
+      assert.equal(colors.length, 1);
+      assert.equal(colors[0], 'X-APPLE-CALENDAR-COLOR:#1B5E45');
+      assert.ok(!lines.some((l) => l.startsWith('COLOR:')));
+    },
+  );
+});
+
+test('no colour asked for, none declared', async () => {
+  await withFeeds({ church: feed([cal('church', 'Alpha')], 'Church') }, async () => {
+    const ics = await buildMerged(['church'], ['Church-wide']);
+    assert.ok(!ics.includes('X-APPLE-CALENDAR-COLOR'));
+  });
+});

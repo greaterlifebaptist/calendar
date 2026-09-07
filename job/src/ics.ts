@@ -165,7 +165,23 @@ function vevent(input: IcsInput, tz: string): string[] {
   return l.rows;
 }
 
-export type CalendarMeta = { name: string; description?: string };
+export type CalendarMeta = {
+  name: string;
+  description?: string;
+  /**
+   * What colour this calendar should be in somebody's app.
+   *
+   * Apple Calendar honours it, so a subscriber gets the church's colour rather
+   * than whatever pastel Apple picks next. Google ignores it and assigns its
+   * own; the person can change it there in two taps.
+   *
+   * This colours the CALENDAR, not the events in it. There is a per-event
+   * COLOR property in the spec and neither Google nor Apple reads it in a
+   * subscription, which is why a merged feed is one colour however many
+   * ministries are in it.
+   */
+  color?: string;
+};
 
 /** Wrap VEVENTs in a VCALENDAR with the timezone definition. */
 export function buildIcs(inputs: IcsInput[], cfg: Config, meta: CalendarMeta): string {
@@ -182,6 +198,7 @@ export function buildIcs(inputs: IcsInput[], cfg: Config, meta: CalendarMeta): s
     'REFRESH-INTERVAL;VALUE=DURATION:PT1H',
   ];
   if (meta.description) rows.push(fold('X-WR-CALDESC:' + escapeText(meta.description)));
+  if (meta.color) rows.push('X-APPLE-CALENDAR-COLOR:' + meta.color);
   rows.push(...VTIMEZONE_NY);
   for (const input of inputs) rows.push(...vevent(input, tz));
   rows.push('END:VCALENDAR');

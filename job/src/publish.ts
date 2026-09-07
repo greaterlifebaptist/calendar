@@ -152,6 +152,9 @@ export function publish(input: PublishInput): PublishResult {
     JSON.stringify(
       {
         generated: generated.toISOString(),
+        // The Worker reads this file, and colours the feeds it assembles from
+        // it, so the colour lives here rather than being hardcoded twice.
+        feedColor: cfg.site.feedColor,
         ministries: ministries.map((m) => ({
           id: m.id,
           name: m.name,
@@ -176,6 +179,9 @@ export function publish(input: PublishInput): PublishResult {
     const ics = buildIcs(toIcsInputs(mine, tz), cfg, {
       name: ministryCalendarName(m),
       description: 'Greater Life Baptist Church — ' + m.name,
+      // One ministry, so it can be that ministry's colour. Anything spanning
+      // several cannot: a subscribed calendar has one colour, whatever is in it.
+      color: m.color,
     });
     const path = join(feedsDir, m.id + '.ics');
     wanted.add(m.id + '.ics');
@@ -188,6 +194,7 @@ export function publish(input: PublishInput): PublishResult {
   const allIcs = buildIcs(toIcsInputs(allPublicMasters, tz), cfg, {
     name: 'GLBC — Everything',
     description: 'Greater Life Baptist Church — all public ministries',
+    color: cfg.site.feedColor,
   });
   const allPath = join(feedsDir, cfg.site.allFeed);
   wanted.add(cfg.site.allFeed);
