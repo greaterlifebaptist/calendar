@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-07T03:34:20.813Z",
+  "generated": "2026-09-07T03:43:54.374Z",
   "timezone": "America/New_York",
   "feeds": {
     "base": "https://calendars.greaterlifebaptistchurch.com/feeds/",
@@ -59,7 +59,8 @@
       "start": "2026-09-17T19:00:00",
       "end": "2026-09-17T20:15:00",
       "location": "Fellowship Hall",
-      "notes": "Guest Evan Scofield preaching! Be sure to invite friends to attend!"
+      "notes": "Guest Evan Scofield preaching! Be sure to invite friends to attend!",
+      "contact": "Spencer Welch"
     },
     {
       "uid": "7qrjsamrrgnd726r7m4nmvrvi8@google.com",
@@ -69,7 +70,8 @@
       "start": "2026-09-18T19:00:00",
       "end": "2026-09-18T22:00:00",
       "location": "Fellowship Hall",
-      "notes": "Youth and adults invited to attend Youth Revival Night 2! We will have Evan Scofield back with us and have food, fellowship, and a bonfire afterwards!"
+      "notes": "Youth and adults invited to attend Youth Revival Night 2! We will have Evan Scofield back with us and have food, fellowship, and a bonfire afterwards!",
+      "contact": "Spencer Welch"
     },
     {
       "uid": "9jcse5nv2n7ng9h47v4m5q8ii8@google.com",
@@ -79,7 +81,8 @@
       "start": "2026-09-19T18:00:00",
       "end": "2026-09-19T21:00:00",
       "location": "Fellowship Hall",
-      "notes": "Youth and adults invited to attend Youth Revival Night 3! We will have Travis Kiriluk with us and have food, fellowship, and a kids vs parents kickball game afterwards!"
+      "notes": "Youth and adults invited to attend Youth Revival Night 3! We will have Travis Kiriluk with us and have food, fellowship, and a kids vs parents kickball game afterwards!",
+      "contact": "Spencer Welch"
     },
     {
       "uid": "3rfjdbbq5iuc363rs65046jp5c@google.com",
