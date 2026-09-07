@@ -127,6 +127,8 @@ button.danger:hover{border-color:var(--clay)}
 .rsvpev ul{margin:10px 0 0;padding-left:19px;font-size:.86rem;line-height:1.5}
 .rsvpev li{margin-bottom:4px}
 .rsvpev .note{color:var(--ink-soft);font-size:.82rem}
+.rsvpev.past{background:#FBF8F1;border-style:dashed}
+.rsvpev.past .who b{color:var(--ink-soft)}
 .person .acts button[disabled]{opacity:.45;cursor:default}
 .groups{display:flex;flex-wrap:wrap;gap:6px}
 .gp{display:inline-flex;align-items:center;gap:6px;border:1.5px solid var(--rule);background:#fff;border-radius:100px;padding:6px 13px;cursor:pointer;font-family:var(--body);font-size:.82rem;font-weight:700;color:var(--ink-soft)}
@@ -314,6 +316,11 @@ footer a{color:var(--clay)}
 <div id="paneRsvps" hidden>
   <p class="lede" style="font-size:.86rem">Who has said they are coming. The contact on each
     event gets one email a day with the whole list, on days when something changed.</p>
+  <label class="check" style="margin-top:12px">
+    <input type="checkbox" id="rsvpPast">
+    <span><span class="lab">Include events that have already happened</span>
+      <span class="hint">Nothing is ever deleted, so last year's numbers are still here.</span></span>
+  </label>
   <div id="rsvps"></div>
 </div>
 
@@ -884,21 +891,27 @@ $("tabRsvps").addEventListener("click", () => showTab("rsvps"));
  * Reloaded every time the tab is opened rather than cached, because the whole
  * reason to look is to find out what has come in since last time.
  */
+let RSVP_ROWS = [];
+
 async function loadRsvps(){
   const box = $("rsvps");
   box.innerHTML = '<p class="lede" style="font-size:.86rem;margin:0">Loading…</p>';
   try {
     const out = await call({ action:"admin.rsvps", passcode:PASS });
-    renderRsvps(out.rsvps || []);
+    RSVP_ROWS = out.rsvps || [];
+    renderRsvps(RSVP_ROWS);
   } catch (err) {
     box.innerHTML = '<p class="lede" style="font-size:.86rem;margin:0">' +
       esc((err && err.fromServer && err.message) || "Could not load responses.") + '</p>';
   }
 }
 
+$("rsvpPast").addEventListener("change", () => renderRsvps(RSVP_ROWS));
+
 function renderRsvps(rows){
   const box = $("rsvps");
   const now = new Date();
+  const withPast = $("rsvpPast").checked;
   const events = new Map();
   rows.forEach(r => {
     const key = r.eventId + "|" + r.starts;
@@ -908,14 +921,23 @@ function renderRsvps(rows){
     e.total += r.count;
   });
 
-  // A finished event is history; nobody is counting for it any more.
-  const list = [...events.values()]
-    .filter(e => !e.starts || new Date(e.starts) >= now)
-    .sort((a, b) => String(a.starts).localeCompare(String(b.starts)));
+  // Upcoming first and soonest first, because that is what somebody is usually
+  // here for. Past events are kept rather than dropped: "how many came to the
+  // fall festival last year" is a real question, and answering it is most of
+  // the reason this is worth recording at all.
+  const all = [...events.values()];
+  const list = withPast
+    ? all.sort((a, b) => String(b.starts).localeCompare(String(a.starts)))
+    : all.filter(e => !e.starts || new Date(e.starts) >= now)
+         .sort((a, b) => String(a.starts).localeCompare(String(b.starts)));
 
   if (!list.length){
+    const past = all.length;
     box.innerHTML = '<p class="lede" style="font-size:.86rem;margin:0">' +
-      'Nobody has responded to anything coming up.</p>';
+      (past
+        ? 'Nothing coming up. Tick the box above to see the ' + past +
+          ' event' + (past === 1 ? '' : 's') + ' already held.'
+        : 'Nobody has responded to anything yet.') + '</p>';
     return;
   }
 
@@ -927,8 +949,9 @@ function renderRsvps(rows){
       .map(pn => '<li><b>' + esc(pn.name) + '</b> — ' + pn.count +
         (pn.phone ? ' · ' + esc(pn.phone) : "") +
         (pn.note ? '<br><span class="note">' + esc(pn.note) + '</span>' : "") + '</li>').join("");
-    return '<div class="rsvpev"><div class="who"><b>' + esc(e.event) + '</b>' +
-      (when ? '<span>' + esc(when) + '</span>' : "") +
+    const done = e.starts && new Date(e.starts) < now;
+    return '<div class="rsvpev' + (done ? ' past' : '') + '"><div class="who"><b>' + esc(e.event) + '</b>' +
+      (when ? '<span>' + esc(when) + (done ? ' · held' : '') + '</span>' : "") +
       '<span class="tally">' + e.total + ' coming · ' + e.people.length +
       ' response' + (e.people.length === 1 ? "" : "s") + '</span></div>' +
       (e.contact ? '<p class="goesto">Emailed to ' + esc(e.contact) + '</p>' : "") +

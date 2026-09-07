@@ -1037,6 +1037,20 @@ function rsvpsSheet_() {
   ]);
 }
 
+/**
+ * Split an address cell into addresses.
+ *
+ * A contact is a role as often as a person: "Andrea Hutchins and Michelle
+ * Jenson" is one line on an event and two people who both need the headcount.
+ * Semicolon or comma separated, so it reads the way somebody would type it.
+ */
+function addresses_(cell) {
+  return String(cell || '')
+    .split(/[;,]/)
+    .map(function (a) { return a.trim(); })
+    .filter(function (a) { return a && a.indexOf('@') !== -1; });
+}
+
 /** Everyone who may be picked as a contact. Includes addresses; never returned to a browser. */
 function contacts_() {
   var sheet = contactsSheet_();
@@ -1052,19 +1066,19 @@ function contacts_() {
     // make a new row work; they should have to tick one to switch it off.
     if (!name) continue;
     if (active && /^(no|n|off|false|0)$/i.test(active)) continue;
-    out.push({ name: name, email: email });
+    out.push({ name: name, emails: addresses_(email) });
   }
   return out;
 }
 
-function contactEmail_(name) {
+function contactEmails_(name) {
   var wanted = String(name || '').trim().toLowerCase();
-  if (!wanted) return '';
+  if (!wanted) return [];
   var list = contacts_();
   for (var i = 0; i < list.length; i++) {
-    if (list[i].name.toLowerCase() === wanted) return list[i].email;
+    if (list[i].name.toLowerCase() === wanted) return list[i].emails;
   }
-  return '';
+  return [];
 }
 
 /**
@@ -1079,7 +1093,7 @@ function handleContacts_(body) {
   return json_({
     ok: true,
     contacts: contacts_().map(function (c) {
-      return { name: c.name, reachable: !!c.email };
+      return { name: c.name, reachable: c.emails.length > 0 };
     })
   });
 }
@@ -1163,7 +1177,14 @@ function handleRsvp_(body) {
   }
 }
 
-/** Every response, for the leaders' page. */
+/**
+ * Every response, for the leaders' page.
+ *
+ * Everything, including events long finished. Nothing is ever deleted here:
+ * "how many came to the fall festival last year" is the question that makes
+ * this worth keeping, and it cannot be answered from a list that quietly drops
+ * anything in the past. The page decides what to show; this returns the lot.
+ */
 function handleAdminRsvps_(body) {
   var bad = checkPasscode_(body.passcode);
   if (bad) return json_({ ok: false, error: bad });
@@ -1274,8 +1295,8 @@ function dailyRsvpDigest() {
 
   for (var name in byContact) {
     if (!byContact.hasOwnProperty(name)) continue;
-    var email = contactEmail_(name);
-    if (!email) continue;
+    var emails = contactEmails_(name);
+    if (!emails.length) continue;
 
     var events = byContact[name];
     var moved = [];
@@ -1310,7 +1331,9 @@ function dailyRsvpDigest() {
       : 'RSVPs for ' + heading.length + ' events';
 
     MailApp.sendEmail({
-      to: email,
+      // Everyone on that contact row, in one message, so they can see each
+      // other has it and nobody chases the same family twice.
+      to: emails.join(','),
       subject: subject,
       body: 'Hello ' + name + ',\n\n' +
         'Here is everybody who has responded so far. This is the full list, not ' +

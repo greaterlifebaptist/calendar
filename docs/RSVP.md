@@ -20,19 +20,32 @@ deliberately not to send any; that is now one exception, made on purpose.
 
 ## Two tabs in the Sheet
 
+**In the Calendar Permissions spreadsheet**, alongside `People` — the same
+file the signup page writes to. Not on the website; the website only ever
+shows what is in them.
+
 Both are created automatically the first time they are needed, with their
-headers. Nothing to set up by hand.
+headers. Nothing to set up by hand: deploy the script, and the tabs appear
+the first time somebody opens the admin form or sends an RSVP.
+
+The **RSVPs** tab on the admin page is a view of the `RSVPs` sheet, nothing
+more. Every response lives in the spreadsheet, where it can be sorted,
+filtered, printed or copied into anything else.
 
 **`Contacts`** — the small list the dropdown reads.
 
 | name | email | active |
 |---|---|---|
 | Spencer Welch | spencer@… | |
-| JC Cross | jc@… | |
+| Andrea Hutchins and Michelle Jenson | andrea@… ; michelle@… | |
 | Buddy Thompson | | no |
 
 - A blank `active` means yes. You should have to tick a box to switch somebody
   **off**, not to make a new row work.
+- **A contact can be more than one person.** Separate the addresses with a
+  semicolon or a comma and everyone on that row gets the same message, so they
+  can see each other has it and nobody chases the same family twice. A contact
+  is a role as often as a person.
 - Somebody with no email can still be named on an event; they simply get no
   digest, and the admin dropdown says "(no email on file)".
 - **Fix an address here and every future email is right.** The event stores the
@@ -60,8 +73,12 @@ none at all.
 ## What a leader sees
 
 The **RSVPs** tab on the admin page: every response grouped by event, soonest
-first, with a running total. Past events drop off — nobody is counting for a
-Sunday that has been and gone.
+first, with a running total.
+
+Events already held are hidden by default and reachable with one tick, newest
+first. **Nothing is ever deleted.** "How many came to the fall festival last
+year" is a real question a year later, and answering it is most of the reason
+this is worth recording at all.
 
 And one email a day, around 7am, but only on days when something changed. It
 carries the **whole** list rather than the day's additions, because the
@@ -92,8 +109,9 @@ above any real Sunday. Names and notes are length-limited.
 
 ## Contacts and the ministry defaults
 
-`job/config/ministries.json` still carries a suggested contact per ministry,
-which the form pre-selects. Those need to match a row in `Contacts` to be
-useful — and one of them, "Andrea Hutchins or Michelle Jenson", is two people.
-Pick one as the ministry default and add both to `Contacts`; an event can only
-send to one person.
+`job/config/ministries.json` carries a suggested contact per ministry, which
+the form pre-selects. Each of those names needs a matching row in `Contacts`
+to be useful — spelled the same, because that is what the lookup matches on.
+
+"Andrea Hutchins and Michelle Jenson" is one row with two addresses, not two
+rows. The names in config were updated to match.

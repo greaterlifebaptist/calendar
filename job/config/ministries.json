@@ -92,7 +92,19 @@
       "notify": [],
       "reminders": null,
       "calendarId": "9c4da1865b4da67c68c6ed2518444e6fcddee7f701f9ed89daf0b3037e65801f@group.calendar.google.com",
-      "contact": "Andrea Hutchins or Michelle Jenson"
+      "contact": "Andrea Hutchins and Michelle Jenson"
+    },
+    {
+      "id": "children-leaders",
+      "name": "Children Leaders",
+      "visibility": "private",
+      "enabled": true,
+      "color": "#A85015",
+      "calendarIdEnv": "CAL_CHILDREN_LEADERS",
+      "notify": [],
+      "reminders": null,
+      "calendarId": "ed7399ff494361c1ac0dfa150b344c84440ad8e36937e3f0f7f79b4717b42c47@group.calendar.google.com",
+      "contact": "Andrea Hutchins and Michelle Jenson"
     },
     {
       "id": "youngadults",
