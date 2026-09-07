@@ -118,6 +118,24 @@ body{background:var(--ivory);color:var(--ink);font-family:var(--body);font-size:
 .ev{font-size:10.5px;line-height:1.28;padding:2px 5px;border-radius:4px;margin-bottom:2px;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
 .ev.dl{background:var(--clay)!important;font-weight:700}
 
+/* ---------- rsvp ---------- */
+.rsvpbtn{margin-top:10px;font-family:var(--body);font-size:.82rem;font-weight:700;border:1.5px solid var(--pine);background:#fff;color:var(--pine);border-radius:8px;padding:8px 15px;cursor:pointer}
+.rsvpbtn:hover{background:var(--pine);color:#fff}
+.rsvpbtn.done{border-color:var(--rule);color:var(--ink-soft);cursor:default}
+.rsvpform{margin-top:11px;border:1.5px solid var(--pine);border-radius:9px;padding:12px 13px;background:#F5FAF7}
+.rsvpform p.ask{margin:0 0 10px;font-size:.84rem;color:var(--ink-soft)}
+.rsvpform .fields{display:flex;flex-wrap:wrap;gap:8px}
+.rsvpform label{flex:1;min-width:130px;font-size:.76rem;font-weight:700;color:var(--ink-soft)}
+.rsvpform label.wide{flex-basis:100%}
+.rsvpform input{width:100%;margin-top:3px;font-family:var(--body);font-size:.95rem;padding:8px 10px;border:1.5px solid var(--rule);border-radius:7px;background:#fff;color:var(--ink)}
+.rsvpform input:focus{outline:2px solid var(--sun);outline-offset:1px}
+.rsvpform .go{margin-top:10px;display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+.rsvpform button{font-family:var(--body);font-size:.85rem;font-weight:700;border:none;border-radius:8px;padding:10px 18px;background:var(--pine);color:#fff;cursor:pointer}
+.rsvpform button[disabled]{opacity:.45;cursor:default}
+.rsvpform .st{font-size:.82rem;color:var(--ink-soft)}
+.rsvpform .st.err{color:var(--clay);font-weight:700}
+.rsvpform .st.ok{color:var(--pine);font-weight:700}
+
 /* ---------- subscribe ---------- */
 .subscribe{margin-top:32px;background:var(--pine);border-radius:11px;padding:15px 17px 14px;color:#EAF3EE}
 .subscribe h2{font-family:var(--display);font-size:1.12rem;margin:0 0 9px;color:#fff}
@@ -445,6 +463,86 @@ function renderPinned(){
     }).join("");
 }
 
+/**
+ * Let somebody say they are coming, and how many.
+ *
+ * The page never learns anybody's email address. It sends the event id and
+ * what was typed; the endpoint looks up who to tell. That keeps every leader's
+ * address off a public page which also happens to carry a form.
+ *
+ * Answering twice replaces the first answer rather than adding a second, so
+ * changing your numbers is just filling it in again.
+ */
+function addRsvp(card, e){
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "rsvpbtn";
+  btn.textContent = "I'm coming";
+  card.appendChild(btn);
+
+  btn.addEventListener("click", () => {
+    if (card.querySelector(".rsvpform")) return;
+    btn.hidden = true;
+
+    const form = document.createElement("div");
+    form.className = "rsvpform";
+    form.innerHTML =
+      '<p class="ask">Let ' + esc(e.contact) + ' know you are coming.</p>' +
+      '<div class="fields">' +
+        '<label>Your name<input type="text" class="r-name" maxlength="80" autocomplete="name"></label>' +
+        '<label>How many<input type="number" class="r-count" min="1" max="99" value="1" inputmode="numeric"></label>' +
+        '<label class="wide">Phone <span style="font-weight:400">(optional)</span>' +
+          '<input type="tel" class="r-phone" maxlength="30" autocomplete="tel"></label>' +
+        '<label class="wide">Anything they should know <span style="font-weight:400">(optional)</span>' +
+          '<input type="text" class="r-note" maxlength="300"></label>' +
+      '</div>' +
+      '<div class="go"><button type="button">Send</button><span class="st"></span></div>';
+    card.appendChild(form);
+    form.querySelector(".r-name").focus();
+
+    const st = form.querySelector(".st");
+    const send = form.querySelector("button");
+    send.addEventListener("click", async () => {
+      const name = form.querySelector(".r-name").value.trim();
+      const count = parseInt(form.querySelector(".r-count").value, 10);
+      if (name.length < 2){ st.className = "st err"; st.textContent = "Please put your name."; return; }
+      if (!(count >= 1)){ st.className = "st err"; st.textContent = "How many are coming?"; return; }
+
+      send.disabled = true;
+      st.className = "st";
+      st.textContent = "Sending…";
+      try {
+        const res = await fetch(DATA.signup, {
+          method: "POST",
+          headers: { "content-type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({
+            action: "rsvp",
+            eventId: e.uid,
+            starts: e.start,
+            name: name,
+            count: count,
+            phone: form.querySelector(".r-phone").value.trim(),
+            note: form.querySelector(".r-note").value.trim(),
+          }),
+        });
+        const out = await res.json();
+        if (!out.ok) throw new Error(out.error || "That did not go through.");
+        form.remove();
+        btn.hidden = false;
+        btn.classList.add("done");
+        btn.disabled = true;
+        btn.textContent = out.updated
+          ? "Updated — " + count + " of you"
+          : "You're down for " + count;
+      } catch (err) {
+        st.className = "st err";
+        st.textContent = (err && err.message) || "Could not reach the church server.";
+        send.disabled = false;
+      }
+    });
+  });
+}
+
 function renderAgenda(){
   const host = $("agenda"), btn = $("moreBtn");
   const all = upcoming(), cut = windowEnd();
@@ -489,6 +587,9 @@ function renderAgenda(){
       (e.notes ? '<p class="note">' + esc(e.notes) + '</p>' : "") +
       (e.link ? '<a class="cta" href="' + esc(e.link) + '">' + esc(e.linkText || "Details") + ' &rarr;</a>' : "") +
       '</div>';
+    // Only where somebody is named to answer to, and only for the endpoint
+    // that records it. An RSVP button with nowhere to send is worse than none.
+    if (e.contact && DATA.signup) addRsvp(row.querySelector(".card"), e);
     host.appendChild(row);
   });
 

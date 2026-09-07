@@ -16,7 +16,8 @@ deploying the endpoint. The admin form is in
 [docs/ADMIN.md](docs/ADMIN.md). Reminders, and how to switch
 them on safely, are in [docs/REMINDERS.md](docs/REMINDERS.md). Why an Android
 phone cannot add a calendar from a link, and what we do about it, is in
-[docs/ANDROID.md](docs/ANDROID.md). How merged feeds are assembled on request,
+[docs/ANDROID.md](docs/ANDROID.md). RSVPs, the contact list and the one email
+this system sends are in [docs/RSVP.md](docs/RSVP.md). How merged feeds are assembled on request,
 and why they are not built in advance, is in [docs/WORKER.md](docs/WORKER.md).
 This file covers only how to run what exists.
 

@@ -40,7 +40,7 @@
  * ahead of Google's counter and left two numbers that look like the same
  * thing and disagree, which defeats the only purpose the marker has.
  */
-var VERSION = 14;
+var VERSION = 15;
 
 var SITE = 'https://calendars.greaterlifebaptistchurch.com';
 var EVENTS_JSON = SITE + '/events.json';
@@ -49,6 +49,12 @@ var EVENTS_JSON = SITE + '/events.json';
 // That is what lets one address serve somebody from signup onwards.
 var FEED_BASE = 'https://calendar.greaterlifebaptist.workers.dev/f/';
 var TAB = 'People';
+
+/** Who may be an event's contact. Small, leader-maintained, never public. */
+var CONTACTS_TAB = 'Contacts';
+
+/** One row per response. Append-only, and it grows. */
+var RSVPS_TAB = 'RSVPs';
 
 /**
  * Fallback spreadsheet id, for a script that is not bound to the sheet.
@@ -280,7 +286,8 @@ function doGet() {
       'signup', 'load', 'save', 'rotate',
       'admin.hello', 'admin.list', 'admin.save', 'admin.delete',
       'share',
-      'admin.people', 'admin.setgroups', 'admin.share', 'admin.remove'
+      'admin.people', 'admin.setgroups', 'admin.share', 'admin.remove',
+      'contacts', 'rsvp', 'admin.rsvps'
     ],
     adminReady: !!adminPasscode_(),
     calendar: calendarOk,
@@ -317,6 +324,9 @@ function doPost(e) {
     if (action === 'admin.delete') return handleAdminDelete_(body);
     if (action === 'admin.people')    return handleAdminPeople_(body);
     if (action === 'admin.setgroups') return handleAdminSetGroups_(body);
+    if (action === 'contacts')        return handleContacts_(body);
+    if (action === 'rsvp')            return handleRsvp_(body);
+    if (action === 'admin.rsvps')     return handleAdminRsvps_(body);
     if (action === 'admin.share')     return handleAdminShare_(body);
     if (action === 'admin.remove')    return handleAdminRemove_(body);
     return json_({ ok: false, error: 'Unknown action.' });
@@ -987,6 +997,330 @@ function handleAdminRemove_(body) {
     // run rather than this instant.
     rebuild: requestRebuild_('removal')
   });
+}
+
+// ---------------------------------------------------------------------------
+// Contacts, and RSVPs to events
+// ---------------------------------------------------------------------------
+//
+// An event names a person to respond to. People say they are coming, and that
+// person needs a headcount.
+//
+// Two rules shape all of this.
+//
+// Email addresses never leave the server. The dropdown gets names; an RSVP
+// carries an event id. The address is looked up here, at the moment of
+// sending, which also means correcting somebody's address in one cell fixes
+// every future email rather than leaving it wrong on two hundred past events.
+//
+// And the contact is sent one message a day with the WHOLE list, not one per
+// reply. Forty families answering a trip would otherwise be forty emails, and
+// the church account can send to about a hundred recipients a day in total.
+
+/** Make a tab with these headers if it is not there yet. */
+function tab_(name, headers) {
+  var ss = spreadsheet_();
+  var sheet = ss.getSheetByName(name);
+  if (!sheet) {
+    sheet = ss.insertSheet(name);
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
+function contactsSheet_() { return tab_(CONTACTS_TAB, ['name', 'email', 'active']); }
+function rsvpsSheet_() {
+  return tab_(RSVPS_TAB, [
+    'when', 'eventId', 'starts', 'event', 'ministry',
+    'name', 'count', 'phone', 'note', 'contact'
+  ]);
+}
+
+/** Everyone who may be picked as a contact. Includes addresses; never returned to a browser. */
+function contacts_() {
+  var sheet = contactsSheet_();
+  var last = sheet.getLastRow();
+  if (last < 2) return [];
+  var rows = sheet.getRange(2, 1, last - 1, 3).getValues();
+  var out = [];
+  for (var i = 0; i < rows.length; i++) {
+    var name = String(rows[i][0] || '').trim();
+    var email = String(rows[i][1] || '').trim();
+    var active = String(rows[i][2] || '').trim();
+    // A blank "active" means yes. Leaders should not have to tick a box to
+    // make a new row work; they should have to tick one to switch it off.
+    if (!name) continue;
+    if (active && /^(no|n|off|false|0)$/i.test(active)) continue;
+    out.push({ name: name, email: email });
+  }
+  return out;
+}
+
+function contactEmail_(name) {
+  var wanted = String(name || '').trim().toLowerCase();
+  if (!wanted) return '';
+  var list = contacts_();
+  for (var i = 0; i < list.length; i++) {
+    if (list[i].name.toLowerCase() === wanted) return list[i].email;
+  }
+  return '';
+}
+
+/**
+ * The names the admin form offers.
+ *
+ * Names only. The page has no use for an address, and a passcode on a page is
+ * not a reason to hand every leader's email to a browser.
+ */
+function handleContacts_(body) {
+  var bad = checkPasscode_(body.passcode);
+  if (bad) return json_({ ok: false, error: bad });
+  return json_({
+    ok: true,
+    contacts: contacts_().map(function (c) {
+      return { name: c.name, reachable: !!c.email };
+    })
+  });
+}
+
+/**
+ * Find a published event, which is also how an RSVP is authorised.
+ *
+ * events.json contains public events only, by construction. Requiring a match
+ * means nobody can RSVP to a private meeting, invent an event id, or attach
+ * responses to something that does not exist — without this endpoint needing
+ * any idea of what is private.
+ */
+function publishedEvent_(eventId, starts) {
+  var res = UrlFetchApp.fetch(EVENTS_JSON, { muteHttpExceptions: true });
+  if (res.getResponseCode() !== 200) throw new Error('Could not read the calendar.');
+  var events = (JSON.parse(res.getContentText()).events || []);
+  for (var i = 0; i < events.length; i++) {
+    if (events[i].uid === eventId && String(events[i].start) === String(starts)) return events[i];
+  }
+  return null;
+}
+
+function handleRsvp_(body) {
+  var eventId = String(body.eventId || '').trim();
+  var starts = String(body.starts || '').trim();
+  var name = String(body.name || '').trim();
+  var count = parseInt(body.count, 10);
+  var phone = String(body.phone || '').trim();
+  var note = String(body.note || '').trim();
+
+  if (!eventId || !starts) return json_({ ok: false, error: 'Which event is this for?' });
+  if (name.length < 2) return json_({ ok: false, error: 'Please give your name.' });
+  if (name.length > 80) return json_({ ok: false, error: 'That name is too long.' });
+  if (!(count >= 1 && count <= 99)) return json_({ ok: false, error: 'How many are coming?' });
+  if (phone.length > 30) return json_({ ok: false, error: 'That phone number is too long.' });
+  if (note.length > 300) return json_({ ok: false, error: 'Please keep the note shorter.' });
+
+  // Nothing here is behind a login, so it must not be usable as a way to
+  // flood the sheet. A quiet cap, well above any real Sunday.
+  var cache = CacheService.getScriptCache();
+  var minute = 'rsvp-rate-' + Math.floor(Date.now() / 60000);
+  var recent = parseInt(cache.get(minute) || '0', 10);
+  if (recent > 60) return json_({ ok: false, error: 'Too many responses at once. Try again in a minute.' });
+  cache.put(minute, String(recent + 1), 120);
+
+  var event = publishedEvent_(eventId, starts);
+  if (!event) return json_({ ok: false, error: 'That event is not on the calendar any more.' });
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var sheet = rsvpsSheet_();
+    var headers = headers_(sheet);
+    var row = [
+      new Date(), eventId, starts, event.title || '', event.ministry || '',
+      name, count, phone, note, event.contact || ''
+    ];
+
+    // Answering again replaces the earlier answer rather than adding a second
+    // one. People change their minds about numbers, and a leader counting a
+    // list should not have to work out which "Jane Doe" is current.
+    var last = sheet.getLastRow();
+    var replaced = false;
+    if (last > 1) {
+      var existing = sheet.getRange(2, 1, last - 1, headers.length).getValues();
+      for (var r = 0; r < existing.length; r++) {
+        if (String(existing[r][1]) === eventId &&
+            String(existing[r][2]) === starts &&
+            String(existing[r][5]).trim().toLowerCase() === name.toLowerCase()) {
+          sheet.getRange(r + 2, 1, 1, row.length).setValues([row]);
+          replaced = true;
+          break;
+        }
+      }
+    }
+    if (!replaced) sheet.appendRow(row);
+
+    return json_({ ok: true, event: event.title || '', updated: replaced });
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/** Every response, for the leaders' page. */
+function handleAdminRsvps_(body) {
+  var bad = checkPasscode_(body.passcode);
+  if (bad) return json_({ ok: false, error: bad });
+
+  var sheet = rsvpsSheet_();
+  var last = sheet.getLastRow();
+  if (last < 2) return json_({ ok: true, rsvps: [] });
+
+  var rows = sheet.getRange(2, 1, last - 1, 10).getValues();
+  var out = [];
+  for (var i = 0; i < rows.length; i++) {
+    if (!String(rows[i][1] || '').trim()) continue;
+    out.push({
+      when: rows[i][0] ? new Date(rows[i][0]).toISOString() : '',
+      eventId: String(rows[i][1]),
+      starts: String(rows[i][2]),
+      event: String(rows[i][3] || ''),
+      ministry: String(rows[i][4] || ''),
+      name: String(rows[i][5] || ''),
+      count: Number(rows[i][6]) || 0,
+      phone: String(rows[i][7] || ''),
+      note: String(rows[i][8] || ''),
+      contact: String(rows[i][9] || '')
+    });
+  }
+  return json_({ ok: true, rsvps: out });
+}
+
+// ---------------------------------------------------------------------------
+// The daily digest
+// ---------------------------------------------------------------------------
+//
+// Run once a day by a time trigger. Set it up by picking setupDailyDigest from
+// the dropdown at the top of the editor and pressing Run, once.
+
+function setupDailyDigest() {
+  var existing = ScriptApp.getProjectTriggers();
+  for (var i = 0; i < existing.length; i++) {
+    if (existing[i].getHandlerFunction() === 'dailyRsvpDigest') {
+      ScriptApp.deleteTrigger(existing[i]);
+    }
+  }
+  ScriptApp.newTrigger('dailyRsvpDigest')
+    .timeBased()
+    .atHour(7)
+    .everyDays(1)
+    .inTimezone('America/New_York')
+    .create();
+  Logger.log('Daily RSVP digest will run each morning around 7am Eastern.');
+}
+
+function todayKey_(date) {
+  return Utilities.formatDate(date, 'America/New_York', 'yyyy-MM-dd');
+}
+
+/**
+ * One email per contact, once a day, only when something moved.
+ *
+ * It carries the WHOLE list rather than the day's additions, because the
+ * question a leader is holding is "how many am I cooking for", not "who
+ * replied since yesterday". A digest of additions makes them add up numbers
+ * across a week of emails.
+ *
+ * Silence is meaningful: no email means nobody responded yesterday, and the
+ * last one they received is still accurate.
+ */
+function dailyRsvpDigest() {
+  var sheet = rsvpsSheet_();
+  var last = sheet.getLastRow();
+  if (last < 2) return;
+
+  var rows = sheet.getRange(2, 1, last - 1, 10).getValues();
+  var today = todayKey_(new Date());
+  var now = new Date();
+
+  // contact -> event key -> { title, starts, ministry, people[], changed }
+  var byContact = {};
+  for (var i = 0; i < rows.length; i++) {
+    var contact = String(rows[i][9] || '').trim();
+    if (!contact) continue;
+
+    var starts = String(rows[i][2] || '');
+    // A finished event is not something anybody still needs a headcount for.
+    if (starts && new Date(starts) < now) continue;
+
+    var key = String(rows[i][1]) + '|' + starts;
+    if (!byContact[contact]) byContact[contact] = {};
+    if (!byContact[contact][key]) {
+      byContact[contact][key] = {
+        title: String(rows[i][3] || ''),
+        starts: starts,
+        ministry: String(rows[i][4] || ''),
+        people: [],
+        total: 0,
+        changed: false
+      };
+    }
+    var entry = byContact[contact][key];
+    entry.people.push({
+      name: String(rows[i][5] || ''),
+      count: Number(rows[i][6]) || 0,
+      phone: String(rows[i][7] || ''),
+      note: String(rows[i][8] || '')
+    });
+    entry.total += Number(rows[i][6]) || 0;
+    if (rows[i][0] && todayKey_(new Date(rows[i][0])) === today) entry.changed = true;
+  }
+
+  for (var name in byContact) {
+    if (!byContact.hasOwnProperty(name)) continue;
+    var email = contactEmail_(name);
+    if (!email) continue;
+
+    var events = byContact[name];
+    var moved = [];
+    for (var k in events) {
+      if (events.hasOwnProperty(k) && events[k].changed) moved.push(events[k]);
+    }
+    if (!moved.length) continue;
+
+    var lines = [];
+    var heading = [];
+    for (var k2 in events) {
+      if (!events.hasOwnProperty(k2)) continue;
+      var e = events[k2];
+      var when = e.starts ? Utilities.formatDate(new Date(e.starts), 'America/New_York', 'EEEE d MMMM') : '';
+      lines.push('');
+      lines.push(e.title + (when ? '  —  ' + when : ''));
+      lines.push(e.total + ' coming, ' + e.people.length + ' response' + (e.people.length === 1 ? '' : 's'));
+      lines.push('');
+      e.people.sort(function (a, b) { return a.name.toLowerCase() < b.name.toLowerCase() ? -1 : 1; });
+      for (var pi = 0; pi < e.people.length; pi++) {
+        var person = e.people[pi];
+        var bits = ['  ' + person.name + ' — ' + person.count];
+        if (person.phone) bits.push('  ' + person.phone);
+        if (person.note) bits.push('  "' + person.note + '"');
+        lines.push(bits.join('\n'));
+      }
+      if (e.changed) heading.push(e.title);
+    }
+
+    var subject = heading.length === 1
+      ? 'RSVPs for ' + heading[0]
+      : 'RSVPs for ' + heading.length + ' events';
+
+    MailApp.sendEmail({
+      to: email,
+      subject: subject,
+      body: 'Hello ' + name + ',\n\n' +
+        'Here is everybody who has responded so far. This is the full list, not ' +
+        'just yesterday\'s replies, so you can read the numbers straight off it.\n' +
+        lines.join('\n') + '\n\n' +
+        'You only get this on days when something changed. No email means the ' +
+        'list above is still what it was.\n\n' +
+        SITE + '\n'
+    });
+  }
 }
 
 // ---------------------------------------------------------------------------

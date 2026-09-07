@@ -117,6 +117,16 @@ button.danger:hover{border-color:var(--clay)}
 .person .acts button.armed{background:var(--clay);border-color:var(--clay);color:#fff}
 .person .acts button.armed:hover{color:#fff}
 .person .arming{margin-top:7px;font-size:.78rem;color:var(--clay);font-weight:600}
+
+.rsvpev{border:1.5px solid var(--rule);background:var(--card);border-radius:10px;padding:13px 15px;margin-bottom:10px}
+.rsvpev .who{display:flex;flex-wrap:wrap;gap:9px;align-items:baseline}
+.rsvpev .who b{font-family:var(--display);font-size:1.05rem;color:var(--pine)}
+.rsvpev .who span{font-size:.82rem;color:var(--ink-soft)}
+.rsvpev .who .tally{margin-left:auto;font-weight:700;color:var(--clay)}
+.rsvpev .goesto{margin:6px 0 0;font-size:.78rem;color:var(--ink-soft)}
+.rsvpev ul{margin:10px 0 0;padding-left:19px;font-size:.86rem;line-height:1.5}
+.rsvpev li{margin-bottom:4px}
+.rsvpev .note{color:var(--ink-soft);font-size:.82rem}
 .person .acts button[disabled]{opacity:.45;cursor:default}
 .groups{display:flex;flex-wrap:wrap;gap:6px}
 .gp{display:inline-flex;align-items:center;gap:6px;border:1.5px solid var(--rule);background:#fff;border-radius:100px;padding:6px 13px;cursor:pointer;font-family:var(--body);font-size:.82rem;font-weight:700;color:var(--ink-soft)}
@@ -167,6 +177,7 @@ footer a{color:var(--clay)}
   <div class="tabs" role="tablist">
     <button type="button" role="tab" id="tabEvents" aria-selected="true">Events</button>
     <button type="button" role="tab" id="tabPeople" aria-selected="false">Who gets what</button>
+    <button type="button" role="tab" id="tabRsvps" aria-selected="false">RSVPs</button>
   </div>
 
 <div id="paneEvents">
@@ -275,7 +286,7 @@ footer a{color:var(--clay)}
       </label>
       <div class="row">
         <label><span class="lab">Cost</span><input type="text" id="cost" maxlength="60"></label>
-        <label><span class="lab">Contact</span><input type="text" id="contact" maxlength="80" placeholder="Example: Bro. Spencer"></label>
+        <label><span class="lab">Contact</span><select id="contact"></select></label>
       </div>
       <label>
         <span class="lab">Link</span>
@@ -298,6 +309,12 @@ footer a{color:var(--clay)}
       <div class="list" id="list"></div>
     </fieldset>
   </section>
+</div>
+
+<div id="paneRsvps" hidden>
+  <p class="lede" style="font-size:.86rem">Who has said they are coming. The contact on each
+    event gets one email a day with the whole list, on days when something changed.</p>
+  <div id="rsvps"></div>
 </div>
 
 <div id="panePeople" hidden>
@@ -380,6 +397,32 @@ function fail(el, err){
 // ---------------------------------------------------------------------------
 // form state
 // ---------------------------------------------------------------------------
+
+/**
+ * The people who may be an event's contact, from the Contacts tab.
+ *
+ * A dropdown rather than a text box because this name is now load-bearing:
+ * RSVPs are emailed to whoever it names, and "Bro. Spencer" instead of
+ * "Spencer Welch" would silently send nothing to nobody. Addresses stay on the
+ * server; only names come back here.
+ */
+let CONTACTS = [];
+
+function fillContacts(selected){
+  const sel = $("contact");
+  const want = selected !== undefined ? selected : sel.value;
+  sel.innerHTML = '<option value="">Nobody in particular</option>' +
+    CONTACTS.map(c => '<option value="' + esc(c.name) + '">' + esc(c.name) +
+      (c.reachable ? "" : " (no email on file)") + '</option>').join("");
+
+  // An event set up before somebody left the Contacts tab still names them.
+  // Dropping that quietly would reassign the event to nobody.
+  if (want && !CONTACTS.some(c => c.name === want)){
+    sel.insertAdjacentHTML("beforeend",
+      '<option value="' + esc(want) + '">' + esc(want) + ' (not in Contacts)</option>');
+  }
+  sel.value = want || "";
+}
 
 /** The contact this ministry usually points people at, if one is configured. */
 function contactFor(id){
@@ -594,7 +637,7 @@ function clearForm(){
   $("pinned").checked = false;
   endDateTouched = false;
   endTimeTouched = false;
-  $("contact").value = contactFor($("ministry").value);
+  fillContacts(contactFor($("ministry").value));
   $("repeat").value = "";
   $("repeatEnds").value = "count";
   $("repeatCount").value = 4;
@@ -638,7 +681,7 @@ function loadIntoForm(ev){
   const parts = splitDescription(ev.description);
   $("notes").value = parts.notes;
   $("cost").value = parts.cost;
-  $("contact").value = parts.contact;
+  fillContacts(parts.contact);
   $("link").value = parts.link;
 
   const r = readRrule(ev.rrule);
@@ -821,16 +864,77 @@ let PEOPLE = [];
 let peopleLoaded = false;
 
 function showTab(which){
-  const people = which === "people";
-  $("tabEvents").setAttribute("aria-selected", String(!people));
-  $("tabPeople").setAttribute("aria-selected", String(people));
-  $("paneEvents").hidden = people;
-  $("panePeople").hidden = !people;
-  if (people && !peopleLoaded) loadPeople();
+  const panes = { events: "paneEvents", people: "panePeople", rsvps: "paneRsvps" };
+  const tabs = { events: "tabEvents", people: "tabPeople", rsvps: "tabRsvps" };
+  Object.keys(panes).forEach(k => {
+    $(panes[k]).hidden = k !== which;
+    $(tabs[k]).setAttribute("aria-selected", String(k === which));
+  });
+  if (which === "people" && !peopleLoaded) loadPeople();
+  if (which === "rsvps") loadRsvps();
 }
 
 $("tabEvents").addEventListener("click", () => showTab("events"));
 $("tabPeople").addEventListener("click", () => showTab("people"));
+$("tabRsvps").addEventListener("click", () => showTab("rsvps"));
+
+/**
+ * Responses, grouped by event, soonest first.
+ *
+ * Reloaded every time the tab is opened rather than cached, because the whole
+ * reason to look is to find out what has come in since last time.
+ */
+async function loadRsvps(){
+  const box = $("rsvps");
+  box.innerHTML = '<p class="lede" style="font-size:.86rem;margin:0">Loading…</p>';
+  try {
+    const out = await call({ action:"admin.rsvps", passcode:PASS });
+    renderRsvps(out.rsvps || []);
+  } catch (err) {
+    box.innerHTML = '<p class="lede" style="font-size:.86rem;margin:0">' +
+      esc((err && err.fromServer && err.message) || "Could not load responses.") + '</p>';
+  }
+}
+
+function renderRsvps(rows){
+  const box = $("rsvps");
+  const now = new Date();
+  const events = new Map();
+  rows.forEach(r => {
+    const key = r.eventId + "|" + r.starts;
+    if (!events.has(key)) events.set(key, { ...r, people: [], total: 0 });
+    const e = events.get(key);
+    e.people.push(r);
+    e.total += r.count;
+  });
+
+  // A finished event is history; nobody is counting for it any more.
+  const list = [...events.values()]
+    .filter(e => !e.starts || new Date(e.starts) >= now)
+    .sort((a, b) => String(a.starts).localeCompare(String(b.starts)));
+
+  if (!list.length){
+    box.innerHTML = '<p class="lede" style="font-size:.86rem;margin:0">' +
+      'Nobody has responded to anything coming up.</p>';
+    return;
+  }
+
+  box.innerHTML = list.map(e => {
+    const when = e.starts ? new Date(e.starts).toLocaleDateString(undefined,
+      { weekday:"long", day:"numeric", month:"long" }) : "";
+    const people = e.people
+      .sort((a, b) => a.name.toLowerCase() < b.name.toLowerCase() ? -1 : 1)
+      .map(pn => '<li><b>' + esc(pn.name) + '</b> — ' + pn.count +
+        (pn.phone ? ' · ' + esc(pn.phone) : "") +
+        (pn.note ? '<br><span class="note">' + esc(pn.note) + '</span>' : "") + '</li>').join("");
+    return '<div class="rsvpev"><div class="who"><b>' + esc(e.event) + '</b>' +
+      (when ? '<span>' + esc(when) + '</span>' : "") +
+      '<span class="tally">' + e.total + ' coming · ' + e.people.length +
+      ' response' + (e.people.length === 1 ? "" : "s") + '</span></div>' +
+      (e.contact ? '<p class="goesto">Emailed to ' + esc(e.contact) + '</p>' : "") +
+      '<ul>' + people + '</ul></div>';
+  }).join("");
+}
 
 async function loadPeople(){
   const box = $("people");
@@ -1083,7 +1187,14 @@ async function unlock(pass, quiet){
     fillTimeOptions();
     setType("event");
     syncAllDay(); syncRepeat();
-    $("contact").value = contactFor($("ministry").value);
+
+    // Contacts are their own call: a missing or empty Contacts tab must not
+    // stop the form opening, it just means the picker offers nobody.
+    try {
+      const c = await call({ action:"contacts", passcode:pass });
+      CONTACTS = c.contacts || [];
+    } catch { CONTACTS = []; }
+    fillContacts(contactFor($("ministry").value));
     peopleLoaded = false;
     PEOPLE = [];
     showTab("events");
