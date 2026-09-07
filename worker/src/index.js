@@ -62,7 +62,10 @@ function text(body, status, type) {
  */
 async function publicMinistries() {
   const res = await fetch(SITE + '/ministries.json', {
-    cf: { cacheTtl: 600, cacheEverything: true },
+    // Short, because this is how a config change reaches here. Ten minutes of
+    // a stale copy is ten minutes of new ministries missing and new fields
+    // reading as absent.
+    cf: { cacheTtl: 120, cacheEverything: true },
   });
   if (!res.ok) throw new Error('ministries.json returned ' + res.status);
   const data = await res.json();
@@ -72,7 +75,11 @@ async function publicMinistries() {
       out.set(m.id, { name: m.name || m.id, color: m.color || '' });
     }
   }
-  out.feedColor = data.feedColor || '';
+  // Falling back rather than leaving it blank. A ministries.json published
+  // before this field existed — or simply a stale copy in the edge cache —
+  // would otherwise silently produce uncoloured feeds, and a missing colour is
+  // exactly the kind of nothing nobody notices.
+  out.feedColor = data.feedColor || (out.get('church') || {}).color || '#1B5E45';
   return out;
 }
 
@@ -327,7 +334,9 @@ export default {
     if (url.pathname === '/health') {
       try {
         const known = await publicMinistries();
-        return text('ok ' + known.size + ' ministries', 200);
+        // The colour is in here because it went missing once, silently, and
+        // there was no way to see what this had actually read.
+        return text('ok ' + known.size + ' ministries, colour ' + known.feedColor, 200);
       } catch (err) {
         return text('unhealthy: ' + (err && err.message ? err.message : err), 503);
       }
