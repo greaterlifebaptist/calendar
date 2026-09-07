@@ -77,9 +77,10 @@ The church account can **grant access** to a calendar. It cannot **put that
 calendar in somebody's list** — only they can do that. Normally the invitation
 email papers over the gap: its "add this calendar" link does the second half.
 
-Sharing here is sent with notifications **off**, to spare people the two
-acceptance steps. Which means the access lands silently and nothing appears —
-indistinguishable, from the reader's side, from the share having failed.
+Sharing here is sent with notifications **off**, everywhere, to spare people
+the two acceptance steps. Which means the access lands silently and nothing
+appears — indistinguishable, from the reader's side, from the share having
+failed.
 
 So the page hands over an add link per calendar instead:
 

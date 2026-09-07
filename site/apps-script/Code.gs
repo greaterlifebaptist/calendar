@@ -27,20 +27,26 @@
  */
 
 /**
- * The deployment number this file is meant to become.
+ * Which copy of this file is running, as a datestamp.
  *
  * Apps Script serves the DEPLOYED version, not the saved one, and the editor
  * gives no hint which is live. Without a marker, a deploy that silently did
- * not take looks identical to one that did. Open the /exec URL and read the
- * version back.
+ * not take looks identical to one that did. Open the /exec URL and read this
+ * back; if it does not match the file, the deploy did not happen.
  *
- * This is Google's NEXT deployment number, not a count of how many times the
- * file has changed. Two handovers between deploys is one deployment, so the
- * number stays put until one is actually deployed. Bumping per change ran it
- * ahead of Google's counter and left two numbers that look like the same
- * thing and disagree, which defeats the only purpose the marker has.
+ * It is deliberately NOT Google's deployment number. Trying to keep the two in
+ * step failed four times: a version handed over but not deployed, or two
+ * handed over between deploys, and the numbers drift — and two numbers that
+ * look like the same thing and disagree are worse than no marker at all. Worse
+ * still, they can collide and read as a match when nothing was deployed, which
+ * is a false pass on the one question this exists to answer.
+ *
+ * A datestamp cannot be mistaken for a deployment number, so nobody expects it
+ * to match Manage deployments, and it never collides. Bump it whenever this
+ * file is handed over: the date, plus a letter if more than one goes out that
+ * day.
  */
-var VERSION = 15;
+var VERSION = '2026-09-06a';
 
 var SITE = 'https://calendars.greaterlifebaptistchurch.com';
 var EVENTS_JSON = SITE + '/events.json';
@@ -869,18 +875,18 @@ function handleAdminSetGroups_(body) {
   writeGroups_(sheet, headers, found.row, groups, all);
   var after = sheet.getRange(found.row, 1, 1, headers.length).getValues()[0];
 
-  // On the link route this now needs nothing from anybody: their address never
+  // On the link route this needs nothing from anybody: their address never
   // changes, so the new group simply appears at the next sync.
   //
-  // On the Google route it still does. Access has to be granted, and with an
-  // email this time, because that person is not in front of a page to be
-  // handed add buttons.
+  // On the Google route the access has to be granted, and then somebody has to
+  // add the calendar to their own list, which only they can do. No email is
+  // sent; the leader is handed the add link to pass on instead.
   var emailCol = columnIndex_(headers, 'email');
   var email = emailCol === -1 ? '' : String(after[emailCol] || '').trim();
   var shared = null;
   if (email) {
     try {
-      if (isSharedWith_(email)) shared = syncCalendarSharing_(email, groups, true);
+      if (isSharedWith_(email)) shared = syncCalendarSharing_(email, groups, false);
     } catch (err) {
       shared = { ok: false, failed: [err && err.message ? err.message : String(err)] };
     }
@@ -906,8 +912,10 @@ function handleAdminSetGroups_(body) {
  * back on would silently grant nothing. This is the explicit way back in, and
  * it is also how a leader sets somebody up who cannot manage the page.
  *
- * Notified, because that person is not looking at anything: Google's email
- * carries the link that puts the calendar in their list.
+ * No email: the response carries an add link per calendar, which the leader
+ * sends however they already talk to that person. Google's invitation would
+ * only have carried the same link, wrapped in two acceptance steps and a
+ * message nobody expects.
  */
 function handleAdminShare_(body) {
   var bad = checkPasscode_(body.passcode);
@@ -930,7 +938,7 @@ function handleAdminShare_(body) {
   var groups = groupsOf_(headers, found.values, allMinistryIds_());
   if (!groups.length) return json_({ ok: false, error: 'They have no calendars ticked yet.' });
 
-  var result = syncCalendarSharing_(email, groups, true);
+  var result = syncCalendarSharing_(email, groups, false);
   if (!result.ok && !(result.added || []).length) {
     return json_({
       ok: false,
@@ -1459,18 +1467,19 @@ function requestRebuild_(why) {
 /**
  * Read access for one address on one calendar.
  *
- * notify says whether Google should email them about it, and the right answer
- * depends entirely on who is acting:
+ * notify says whether Google should email them about it. Nothing here sets it
+ * any more, and the reason is worth keeping.
  *
- *   - The person themselves, on the signup or preferences page: no email. They
- *     are looking at the page, so it hands them add buttons instead, which is
- *     faster and has no inbox in the way.
- *   - A leader, adding somebody to a private group: email. That person is not
- *     looking at anything, so Google's invitation is the only way to reach
- *     them, and its "add this calendar" link is what puts it on their phone.
+ * Access and subscription are separate: the church account can grant a
+ * calendar, but only the person can put it in their own list. Google's
+ * invitation email is not permission, it is just a carrier for the "add this
+ * calendar" link that does the second half.
  *
- * Getting this backwards is silent either way: a grant with no notification
- * and no page is access nobody ever sees.
+ * We can carry that link ourselves. So a leader adding somebody gets the link
+ * to pass on however they already talk to that person, and nobody has to go
+ * and find an email from Google, accept twice, and end up somewhere they were
+ * not expecting. The parameter stays because the distinction is real and might
+ * be wanted one day; it is simply always false today.
  */
 function grantCalendar_(calendarId, email, notify) {
   var cal = calendarService_();

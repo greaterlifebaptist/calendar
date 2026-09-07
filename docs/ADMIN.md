@@ -261,7 +261,7 @@ feed catching up, not access hanging around.
 **Share to their Google account** sits next to it, for somebody who has an
 email on file but is not on the Google route — a leader setting up a person who
 cannot manage the page themselves, or putting back access that was revoked. It
-grants what they have ticked and lets Google email them the link that adds it.
+grants what they have ticked and hands you a link per calendar to send on.
 
 ## Adding somebody to a private group
 
@@ -270,10 +270,23 @@ itself, put anything on their phone — and the two routes fail differently, so
 the card now says which one applies and what is left to do.
 
 **If they took the Google route** (their calendars are shared into their Google
-account), the new calendar is granted and Google emails them. That email's
-"add this calendar" link is what puts it in their list. This is the one place
-the invitation email is the right tool: they are not looking at a page, so
-there are no add buttons to hand them.
+account), the new calendar is granted and the card hands you a link to send
+them. **No email is sent.**
+
+That link is the part that matters, and it is worth understanding why it is
+needed at all. Access and subscription are separate things in Google Calendar.
+The church account can grant somebody a calendar; only they can put it in
+their own list. Google's invitation email is not permission — it is just a
+carrier for the "add this calendar" link that does the second half.
+
+Since we can carry that link ourselves, we do. Send it however you already talk
+to that person. It saves them finding an email from Google, accepting twice,
+and landing somewhere they were not expecting — and it works the same whether
+or not they already have other church calendars, because each one has to be
+added to their list separately.
+
+Only the newly shared calendars get a link. Ones they already had are left
+alone.
 
 **If they use a subscription link**, their address changes. A public-only
 selection is served by a shared combination feed; the moment a private group is

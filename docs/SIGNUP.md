@@ -200,7 +200,7 @@ Open the `/exec` URL in a browser. It reports the version of the code that is
 really running:
 
 ```json
-{"ok":true,"service":"glbc-signup","version":2,
+{"ok":true,"service":"glbc-signup","version":"2026-09-06a",
  "actions":["signup","load","save","rotate"],"sheet":true,"detail":""}
 ```
 
@@ -209,10 +209,16 @@ deployment did not take, whatever the editor said. This marker exists because
 a deploy that silently failed is indistinguishable from one that worked until
 somebody hits the missing feature.
 
-It is kept in step with the deployment number Google shows in **Manage
-deployments**, so the two agree and there is only one number to think about.
-That only holds if every handed-over version is actually deployed; skipping
-one puts them out of step until the next bump catches up.
+It is a **datestamp, not Google's deployment number**, and deliberately so.
+
+Keeping the two in step failed four times. A version handed over but not
+deployed, or two handed over between deploys, and they drift — and two numbers
+that look like the same thing while disagreeing are worse than no marker.
+Worse still, they can collide and read as a match when nothing was deployed,
+which is a false pass on the one question the marker exists to answer.
+
+A datestamp cannot be mistaken for a deployment number, so nobody expects it to
+match Manage deployments, and it never collides.
 
 ## "Validation failed" when adding the calendar
 
