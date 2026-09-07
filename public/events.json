@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-07T02:34:20.206Z",
+  "generated": "2026-09-07T03:34:20.813Z",
   "timezone": "America/New_York",
   "feeds": {
     "base": "https://calendars.greaterlifebaptistchurch.com/feeds/",
@@ -31,6 +31,26 @@
     }
   ],
   "events": [
+    {
+      "uid": "58hfr11d7u23eajef15k7k1mqk@google.com",
+      "ministry": "youth",
+      "type": "event",
+      "title": "Test Event",
+      "start": "2026-09-07T17:00:00",
+      "end": "2026-09-07T18:00:00",
+      "notes": "Testing a new event",
+      "contact": "Spencer Welch"
+    },
+    {
+      "uid": "ng0i0e6dap6brt733mj0o2rajo@google.com",
+      "ministry": "youth",
+      "type": "event",
+      "title": "Test 1 week",
+      "start": "2026-09-14T16:00:00",
+      "end": "2026-09-14T17:00:00",
+      "notes": "testing another event",
+      "contact": "Spencer Welch"
+    },
     {
       "uid": "jhrefasg3q4q1rrqdsovs3hsmk@google.com",
       "ministry": "youth",
@@ -97,6 +117,15 @@
       "end": "2026-10-04T18:00:00",
       "location": "Greater Life Baptist Church, 305 Old Grey Rock Rd, Midland, GA 31820, USA",
       "notes": "Join us for Women's Fellowship"
+    },
+    {
+      "uid": "e33fsra1el2n8dtj0tvsveb1s4@google.com",
+      "ministry": "youth",
+      "type": "event",
+      "title": "testing 30 day event",
+      "start": "2026-10-07T19:00:00",
+      "end": "2026-10-07T20:00:00",
+      "contact": "Spencer Welch"
     },
     {
       "uid": "1n6g9up6k4n57j8066um1odmfd@google.com",
