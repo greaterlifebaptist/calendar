@@ -1030,14 +1030,16 @@ function renderPeople(){
 
       let html = "";
       if (added.length){
-        // Access is granted; putting the calendar in their list is something
-        // only they can do. No email was sent, so this link is the whole of
-        // that second half — send it however you already talk to them.
+        // Nothing lets an owner put a calendar into somebody else's list, so
+        // that person has to tap a link either way. Google's email carries it
+        // and costs the leader nothing, which is why it is the default here.
+        // The link is shown too, for when the email does not arrive or a text
+        // is simply how that person is actually reachable.
         const links = ((out.shared && out.shared.calendars) || [])
           .filter(c => added.indexOf(c.name) !== -1);
         html += "<b>" + esc(added.join(", ")) + " shared with " + esc(out.email) + "</b>" +
-          "They can see it now, but it will not appear until they add it. Send them " +
-          (links.length === 1 ? "this link" : "these links") + " — no email was sent:" +
+          "Google has emailed them a link to add it, so there is nothing for you to do. " +
+          "If it does not turn up, send " + (links.length === 1 ? "this" : "these") + " instead:" +
           links.map(c =>
             '<span class="u"><input type="text" readonly value="' + esc(c.add) + '">' +
             '<button type="button">Copy</button></span>').join("");

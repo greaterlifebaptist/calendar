@@ -270,23 +270,28 @@ itself, put anything on their phone — and the two routes fail differently, so
 the card now says which one applies and what is left to do.
 
 **If they took the Google route** (their calendars are shared into their Google
-account), the new calendar is granted and the card hands you a link to send
-them. **No email is sent.**
+account), the new calendar is granted and **Google emails them a link to add
+it**. Nothing for you to do.
 
-That link is the part that matters, and it is worth understanding why it is
-needed at all. Access and subscription are separate things in Google Calendar.
-The church account can grant somebody a calendar; only they can put it in
-their own list. Google's invitation email is not permission — it is just a
-carrier for the "add this calendar" link that does the second half.
+Why a link is needed at all is worth understanding, because it is the thing
+people expect to be able to skip. Access and subscription are separate in
+Google Calendar. The church account can grant somebody a calendar; only they
+can put it in their own list, and nothing anywhere lets an owner do it for
+them — not even when that person already has five other church calendars, and
+not on the signup page either, where what looks automatic is really the person
+tapping an add button that appeared in front of them.
 
-Since we can carry that link ourselves, we do. Send it however you already talk
-to that person. It saves them finding an email from Google, accepting twice,
-and landing somewhere they were not expecting — and it works the same whether
-or not they already have other church calendars, because each one has to be
-added to their list separately.
+So somebody has to hand them a link. The only question is who, and the
+recipient taps once either way:
 
-Only the newly shared calendars get a link. Ones they already had are left
-alone.
+| Route | Leader's work | Their work |
+|---|---|---|
+| Google's invitation email | none | open email, tap link, accept |
+| You send the link | copy it, text it | tap link, accept |
+
+Email wins for a leader adding a leader. The card shows the link too, for when
+the email does not arrive or a text is simply how that person is reachable.
+Only newly shared calendars get one; ones they already had are left alone.
 
 **If they use a subscription link**, their address changes. A public-only
 selection is served by a shared combination feed; the moment a private group is

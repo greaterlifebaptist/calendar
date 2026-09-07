@@ -46,7 +46,7 @@
  * file is handed over: the date, plus a letter if more than one goes out that
  * day.
  */
-var VERSION = '2026-09-06a';
+var VERSION = '2026-09-06b';
 
 var SITE = 'https://calendars.greaterlifebaptistchurch.com';
 var EVENTS_JSON = SITE + '/events.json';
@@ -878,15 +878,16 @@ function handleAdminSetGroups_(body) {
   // On the link route this needs nothing from anybody: their address never
   // changes, so the new group simply appears at the next sync.
   //
-  // On the Google route the access has to be granted, and then somebody has to
-  // add the calendar to their own list, which only they can do. No email is
-  // sent; the leader is handed the add link to pass on instead.
+  // On the Google route the access is granted and Google emails them the link
+  // that adds it, because nobody is in front of a page to be shown buttons.
+  // The card also shows that link, for when the email does not arrive or a
+  // text is simply the way that person is actually reachable.
   var emailCol = columnIndex_(headers, 'email');
   var email = emailCol === -1 ? '' : String(after[emailCol] || '').trim();
   var shared = null;
   if (email) {
     try {
-      if (isSharedWith_(email)) shared = syncCalendarSharing_(email, groups, false);
+      if (isSharedWith_(email)) shared = syncCalendarSharing_(email, groups, true);
     } catch (err) {
       shared = { ok: false, failed: [err && err.message ? err.message : String(err)] };
     }
@@ -912,10 +913,9 @@ function handleAdminSetGroups_(body) {
  * back on would silently grant nothing. This is the explicit way back in, and
  * it is also how a leader sets somebody up who cannot manage the page.
  *
- * No email: the response carries an add link per calendar, which the leader
- * sends however they already talk to that person. Google's invitation would
- * only have carried the same link, wrapped in two acceptance steps and a
- * message nobody expects.
+ * Notified, because nobody is in front of a page here. The response also
+ * carries the add links, so a leader can send one directly when the email does
+ * not arrive or a text is how that person is actually reachable.
  */
 function handleAdminShare_(body) {
   var bad = checkPasscode_(body.passcode);
@@ -938,7 +938,7 @@ function handleAdminShare_(body) {
   var groups = groupsOf_(headers, found.values, allMinistryIds_());
   if (!groups.length) return json_({ ok: false, error: 'They have no calendars ticked yet.' });
 
-  var result = syncCalendarSharing_(email, groups, false);
+  var result = syncCalendarSharing_(email, groups, true);
   if (!result.ok && !(result.added || []).length) {
     return json_({
       ok: false,
@@ -1467,19 +1467,24 @@ function requestRebuild_(why) {
 /**
  * Read access for one address on one calendar.
  *
- * notify says whether Google should email them about it. Nothing here sets it
- * any more, and the reason is worth keeping.
+ * notify says whether Google should email them, and the answer turns on
+ * whether anybody is looking at a page.
  *
- * Access and subscription are separate: the church account can grant a
- * calendar, but only the person can put it in their own list. Google's
- * invitation email is not permission, it is just a carrier for the "add this
- * calendar" link that does the second half.
+ * Access and subscription are separate. The church account can grant a
+ * calendar; only the account holder can put it in their own list, and nothing
+ * anywhere lets an owner do that for them. So SOMEBODY has to hand that person
+ * a link, and the only question is who.
  *
- * We can carry that link ourselves. So a leader adding somebody gets the link
- * to pass on however they already talk to that person, and nobody has to go
- * and find an email from Google, accept twice, and end up somewhere they were
- * not expecting. The parameter stays because the distinction is real and might
- * be wanted one day; it is simply always false today.
+ *   - The person themselves, on signup or preferences: no email. They are
+ *     looking at the page, so it shows them add buttons. Sending them to their
+ *     inbox instead, mid-signup, in a church foyer, loses people.
+ *   - A leader adding somebody to a private calendar: email. That person is
+ *     not looking at anything, and the alternative is the leader copying a
+ *     link and sending it by hand. Google's invitation carries exactly the
+ *     same link and costs the leader nothing.
+ *
+ * Same number of taps for the recipient either way. The difference is only
+ * whether the leader does the delivering.
  */
 function grantCalendar_(calendarId, email, notify) {
   var cal = calendarService_();
