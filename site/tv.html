@@ -193,6 +193,21 @@ const REFRESH  = 15 * 60 * 1000;
 const STALE_MS = 24 * 60 * 60 * 1000;
 const CACHE    = "glbc.events.v1";
 
+/* Reload once a night, in the 4am hour.
+   
+   Data refreshes itself every fifteen minutes, but the CODE never does: this
+   page runs whatever JavaScript it loaded when the screen was switched on,
+   which on a wall display is months. A change would sit undelivered until
+   somebody thought to reboot it.
+   
+   4am because nobody is looking, and because it is safely past the 2am
+   daylight-saving change rather than inside it. A browser that never runs more
+   than a day also cannot accumulate a month of memory. */
+const RELOAD_HOUR    = 4;
+const RELOAD_WINDOW  = 5;               // minutes past the hour to act within
+const MIN_UPTIME     = 30 * 60 * 1000;  // so a 4am boot does not reload itself
+const BOOTED         = Date.now();
+
 /* Timings, all tunable. The grid hold is the one that matters: without it the
    screen is never showing the plain overview. */
 const HOLD_GRID = 4200;
@@ -532,6 +547,39 @@ async function load(){
   renderAll();
 }
 
+/**
+ * Is this the moment for the nightly reload?
+ *
+ * A window rather than an instant, and an uptime floor, so a reload at 4:00
+ * cannot immediately qualify again at 4:01 and leave the wall reloading in a
+ * loop for an hour. Booting inside the window simply skips that night.
+ */
+function dueForReload(now, uptimeMs){
+  return now.getHours() === RELOAD_HOUR
+    && now.getMinutes() < RELOAD_WINDOW
+    && uptimeMs > MIN_UPTIME;
+}
+
+/**
+ * Reload, but only once we know there is something to reload into.
+ *
+ * This is the whole risk of a nightly reload: run it while the network is down
+ * and a working screen showing yesterday's calendar becomes a browser error
+ * page, at 4am, with nobody awake to notice. Everything else here is built to
+ * keep the wall showing something — refetching rather than reloading, falling
+ * back to a saved copy — and a blind reload would undo all of it once a month.
+ *
+ * So it asks for the data first. If that fails, the screen carries on exactly
+ * as it was and tries again tomorrow.
+ */
+async function nightlyReload(){
+  try {
+    const res = await fetch("./events.json?t=" + Date.now(), { cache:"no-store" });
+    if (!res.ok) return;
+  } catch { return; }
+  location.reload();
+}
+
 function keepAwake(){
   if (!("wakeLock" in navigator)) return;
   const hold = async () => {
@@ -552,11 +600,14 @@ load();
 // wall until the network returns.
 setInterval(load, REFRESH);
 
-// The day has to roll over on a screen that runs for months.
+// The day has to roll over on a screen that runs for months, and once a night
+// the screen picks up any new version of itself.
 let lastDay = dayKey(new Date());
 setInterval(() => {
-  const now = dayKey(new Date());
+  const at = new Date();
+  const now = dayKey(at);
   if (now !== lastDay){ lastDay = now; if (DATA) renderAll(); }
+  if (dueForReload(at, Date.now() - BOOTED)) nightlyReload();
 }, 60000);
 </script>
 </body>

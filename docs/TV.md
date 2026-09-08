@@ -89,6 +89,42 @@ stands watching the men's calendar for twenty seconds.
 `?ministry=` should still filter, so a future tablet in the youth building can
 show youth and church-wide only.
 
+## Running for months
+
+This screen is switched on and then left alone, so everything below is about
+what happens on day ninety rather than day one.
+
+**Data refreshes every fifteen minutes**, by refetching `events.json` rather
+than reloading the page. That distinction matters: a reload during a network
+blip leaves a blank wall until the network returns, where a failed refetch
+leaves the last good calendar on screen. If the fetch fails there is a saved
+copy in `localStorage` behind it, and a banner saying how old it is.
+
+**The date rolls over on its own.** A minute tick watches for the day changing
+and redraws, so the grid and the "today" outline move at midnight without
+anybody touching it.
+
+**The page reloads itself once a night, in the 4am hour.** Not for the data —
+that refreshes anyway — but for the CODE. Without it the wall runs whatever
+JavaScript it loaded when it was switched on, for months, and a change to this
+page would sit undelivered. It also means the browser never runs more than a
+day, so it cannot accumulate a month of memory.
+
+Three things guard it:
+
+- **It checks the site answers before reloading.** A blind reload while the
+  network is down would turn a working screen showing yesterday's calendar into
+  a browser error page, at 4am, with nobody awake to see it — undoing every
+  other decision on this page. If the check fails it carries on and tries again
+  tomorrow.
+- **It acts within a five minute window**, and only after thirty minutes of
+  uptime, so a reload at 4:00 cannot qualify again at 4:01 and leave the screen
+  reloading in a loop for an hour.
+- **4am, not midnight**, so it is safely past the 2am daylight saving change
+  rather than inside it.
+
+Booting during the window simply skips that night.
+
 ## Verified
 
 - Four rolling weeks, always starting with the current week.
