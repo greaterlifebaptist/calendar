@@ -89,6 +89,43 @@ stands watching the men's calendar for twenty seconds.
 `?ministry=` should still filter, so a future tablet in the youth building can
 show youth and church-wide only.
 
+## The wall notice
+
+One message, across the top of the right column, above everything else. For
+"service moved to 6pm" on the morning it happens — which is the case that
+decided how it is built.
+
+Set it on the admin page, **Wall notice** tab. It shows what is currently on
+the screen, so nobody has to remember whether they took the last one down.
+
+**It appears within two minutes**, because the TV polls the endpoint directly
+rather than waiting for the hourly job. Anything going through the job could
+sit for fifty-five minutes, by which time the service has started, and that
+single case is the whole reason this feature exists.
+
+**An end date is enforced on the server, not the screen.** A wall display that
+has been running since spring is the last thing that should be judging whether
+a message is still true, and its clock is one power cut away from being wrong.
+The notice shows through the END of the chosen day: "until Sunday" means
+Sunday, and one vanishing mid-service would be worse than one lingering an
+afternoon.
+
+Leaving the date blank keeps it up until somebody takes it down. A date is
+safer — nothing looks worse on a wall than last month's urgent notice.
+
+Clearing is the same action as setting, with the message emptied, so whoever
+put one up in a hurry can take it down from the box they typed it into. An
+empty **save** is refused rather than treated as a clear, so a stray click
+cannot take a notice down silently.
+
+**The rail pages when it no longer fits.** A notice pushes "Coming up" down,
+and on a busy week the last item or two would fall off the bottom with nothing
+to say so. It holds a page for nine seconds, fades, and moves on, looping.
+
+Paging rather than a continuous crawl: somebody glances at this for two
+seconds, and still text is readable where moving text is not. `PAGE_RAIL` at
+the top of the script switches it off if a crawl is ever preferred.
+
 ## Running for months
 
 This screen is switched on and then left alone, so everything below is about

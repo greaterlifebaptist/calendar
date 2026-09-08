@@ -128,6 +128,14 @@ button.danger:hover{border-color:var(--clay)}
 .rsvpev ul{margin:10px 0 0;padding-left:19px;font-size:.86rem;line-height:1.5}
 .rsvpev li{margin-bottom:4px}
 .rsvpev .note{color:var(--ink-soft);font-size:.82rem}
+
+#paneNotice textarea{min-height:70px}
+#paneNotice .live{margin:0 0 14px;padding:11px 13px;border-radius:9px;font-size:.86rem;background:#E9F2EC;border:1.5px solid #BCD9C8;color:#17503B}
+#paneNotice .live b{display:block;font-family:var(--display);font-size:1rem;margin-bottom:3px}
+#paneNotice .live.gone{background:#FBF8F1;border-color:var(--rule);color:var(--ink-soft)}
+#paneNotice .quick{display:flex;gap:6px;flex-wrap:wrap;padding-top:2px}
+#paneNotice .quick button{font-family:var(--body);font-size:.78rem;font-weight:700;border:1.5px solid var(--rule);background:#fff;color:var(--ink-soft);border-radius:7px;padding:9px 12px;cursor:pointer}
+#paneNotice .quick button:hover{border-color:var(--pine);color:var(--pine)}
 .rsvpev.past{background:#FBF8F1;border-style:dashed}
 .rsvpev.past .who b{color:var(--ink-soft)}
 .person .acts button[disabled]{opacity:.45;cursor:default}
@@ -181,6 +189,7 @@ footer a{color:var(--clay)}
     <button type="button" role="tab" id="tabEvents" aria-selected="true">Events</button>
     <button type="button" role="tab" id="tabPeople" aria-selected="false">Who gets what</button>
     <button type="button" role="tab" id="tabRsvps" aria-selected="false">RSVPs</button>
+    <button type="button" role="tab" id="tabNotice" aria-selected="false">Wall notice</button>
   </div>
 
 <div id="paneEvents">
@@ -312,6 +321,38 @@ footer a{color:var(--clay)}
       <div class="list" id="list"></div>
     </fieldset>
   </section>
+</div>
+
+<div id="paneNotice" hidden>
+  <p class="lede" style="font-size:.86rem">A message across the top of the TV in the foyer,
+    above everything else. For "service moved to 6pm" — it appears within a couple of
+    minutes, without waiting for the hourly sync.</p>
+
+  <div class="card">
+    <p class="live" id="noticeLive" hidden></p>
+    <label>
+      <span class="lab">Message <span class="hint">— it has to be readable across a room, so keep it short</span></span>
+      <textarea id="noticeText" maxlength="240" placeholder="No evening service tonight"></textarea>
+    </label>
+    <div class="row">
+      <label>
+        <span class="lab">Show until <span class="hint">— end of that day</span></span>
+        <input type="date" id="noticeUntil">
+      </label>
+      <label>
+        <span class="lab">&nbsp;</span>
+        <span class="quick" id="noticeQuick"></span>
+      </label>
+    </div>
+    <div class="actions">
+      <button type="button" class="primary" id="noticeSave">Put it on the TV</button>
+      <button type="button" class="ghost danger" id="noticeClear">Take it down</button>
+      <span class="status" id="noticeStatus"></span>
+    </div>
+    <p class="lede" style="font-size:.8rem;margin-top:12px">Leaving the end date blank keeps it
+      up until somebody takes it down. A date is safer: nothing looks worse on a wall than last
+      month's urgent notice.</p>
+  </div>
 </div>
 
 <div id="paneRsvps" hidden>
@@ -872,19 +913,113 @@ let PEOPLE = [];
 let peopleLoaded = false;
 
 function showTab(which){
-  const panes = { events: "paneEvents", people: "panePeople", rsvps: "paneRsvps" };
-  const tabs = { events: "tabEvents", people: "tabPeople", rsvps: "tabRsvps" };
+  const panes = { events: "paneEvents", people: "panePeople", rsvps: "paneRsvps", notice: "paneNotice" };
+  const tabs = { events: "tabEvents", people: "tabPeople", rsvps: "tabRsvps", notice: "tabNotice" };
   Object.keys(panes).forEach(k => {
     $(panes[k]).hidden = k !== which;
     $(tabs[k]).setAttribute("aria-selected", String(k === which));
   });
   if (which === "people" && !peopleLoaded) loadPeople();
   if (which === "rsvps") loadRsvps();
+  if (which === "notice") loadNotice();
 }
 
 $("tabEvents").addEventListener("click", () => showTab("events"));
 $("tabPeople").addEventListener("click", () => showTab("people"));
 $("tabRsvps").addEventListener("click", () => showTab("rsvps"));
+$("tabNotice").addEventListener("click", () => showTab("notice"));
+
+// ---------------------------------------------------------------------------
+// the wall notice
+// ---------------------------------------------------------------------------
+
+function ymd(d){
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") +
+    "-" + String(d.getDate()).padStart(2, "0");
+}
+
+/** Show what is currently on the wall, so nobody has to remember. */
+function paintNotice(out){
+  const el = $("noticeLive");
+  const n = out.notice;
+  if (!n){
+    el.hidden = false;
+    el.className = "live gone";
+    el.innerHTML = "<b>Nothing on the TV right now</b>The screen is showing the calendar as usual.";
+    $("noticeText").value = "";
+    $("noticeUntil").value = "";
+    return;
+  }
+  el.hidden = false;
+  el.className = "live";
+  el.innerHTML = "<b>On the TV now</b>" + esc(n.text) +
+    (n.until ? '<br><span style="opacity:.75">Comes down after ' + esc(n.until) + '</span>' : "");
+  $("noticeText").value = n.text;
+  $("noticeUntil").value = n.until || "";
+}
+
+async function loadNotice(){
+  const st = $("noticeStatus");
+  st.className = "status";
+  st.textContent = "Loading…";
+  try {
+    const out = await call({ action:"admin.notice", passcode:PASS, read:true });
+    paintNotice(out);
+    // Typing a date is fiddly on a phone, which is where this gets used.
+    const today = new Date();
+    $("noticeUntil").min = ymd(today);
+    $("noticeQuick").innerHTML = "";
+    [["Today", 0], ["Tomorrow", 1], ["A week", 7]].forEach(([label, days]) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = label;
+      b.addEventListener("click", () => {
+        const d = new Date();
+        d.setDate(d.getDate() + days);
+        $("noticeUntil").value = ymd(d);
+      });
+      $("noticeQuick").appendChild(b);
+    });
+    st.textContent = "";
+  } catch (err) {
+    st.className = "status err";
+    st.textContent = (err && err.fromServer && err.message) || "Could not load it.";
+  }
+}
+
+async function saveNotice(text, until){
+  const st = $("noticeStatus");
+  $("noticeSave").disabled = true;
+  $("noticeClear").disabled = true;
+  st.className = "status";
+  st.textContent = "Saving…";
+  try {
+    const out = await call({ action:"admin.notice", passcode:PASS, text, until });
+    paintNotice(out);
+    st.className = "status ok";
+    st.textContent = out.cleared
+      ? "Taken down. The TV clears within two minutes."
+      : "Up. The TV shows it within two minutes.";
+  } catch (err) {
+    st.className = "status err";
+    st.textContent = (err && err.fromServer && err.message) || "Could not save it.";
+  } finally {
+    $("noticeSave").disabled = false;
+    $("noticeClear").disabled = false;
+  }
+}
+
+$("noticeSave").addEventListener("click", () => {
+  const text = $("noticeText").value.trim();
+  if (!text){
+    $("noticeStatus").className = "status err";
+    $("noticeStatus").textContent = "Type the message first, or use Take it down.";
+    return;
+  }
+  saveNotice(text, $("noticeUntil").value);
+});
+
+$("noticeClear").addEventListener("click", () => saveNotice("", ""));
 
 /**
  * Responses, grouped by event, soonest first.

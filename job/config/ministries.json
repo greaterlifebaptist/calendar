@@ -76,7 +76,7 @@
       "name": "Youth Leaders",
       "visibility": "private",
       "enabled": true,
-      "color": "#7A3E6E",
+      "color": "#4A6B0D",
       "calendarIdEnv": "CAL_YOUTH_LEADERS",
       "notify": [],
       "reminders": null,

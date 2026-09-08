@@ -46,7 +46,7 @@
  * file is handed over: the date, plus a letter if more than one goes out that
  * day.
  */
-var VERSION = '2026-09-06b';
+var VERSION = '2026-09-08a';
 
 var SITE = 'https://calendars.greaterlifebaptistchurch.com';
 var EVENTS_JSON = SITE + '/events.json';
@@ -293,7 +293,7 @@ function doGet() {
       'admin.hello', 'admin.list', 'admin.save', 'admin.delete',
       'share',
       'admin.people', 'admin.setgroups', 'admin.share', 'admin.remove',
-      'contacts', 'rsvp', 'admin.rsvps'
+      'contacts', 'rsvp', 'admin.rsvps', 'notice', 'admin.notice'
     ],
     adminReady: !!adminPasscode_(),
     calendar: calendarOk,
@@ -330,6 +330,8 @@ function doPost(e) {
     if (action === 'admin.delete') return handleAdminDelete_(body);
     if (action === 'admin.people')    return handleAdminPeople_(body);
     if (action === 'admin.setgroups') return handleAdminSetGroups_(body);
+    if (action === 'notice')          return handleNotice_(body);
+    if (action === 'admin.notice')    return handleAdminNotice_(body);
     if (action === 'contacts')        return handleContacts_(body);
     if (action === 'rsvp')            return handleRsvp_(body);
     if (action === 'admin.rsvps')     return handleAdminRsvps_(body);
@@ -1005,6 +1007,107 @@ function handleAdminRemove_(body) {
     // run rather than this instant.
     rebuild: requestRebuild_('removal')
   });
+}
+
+// ---------------------------------------------------------------------------
+// The notice on the wall display
+// ---------------------------------------------------------------------------
+//
+// One message, shown above everything else on the TV. For "service moved to
+// 6pm" on a Sunday morning, which is the case that decides how this is built.
+//
+// It lives in a script property rather than the sheet or the repo, because the
+// whole point is that it changes in seconds from a phone. Anything that has to
+// go through the hourly job could sit for fifty-five minutes, by which time the
+// service has started.
+//
+// The end date is stored, and expiry is enforced HERE rather than on the
+// screen. A stale "Revival this week!" three weeks later is worse than no
+// notice at all, and a screen that has been running since spring should not be
+// the thing deciding whether a message is still true.
+
+var NOTICE_KEY = 'TV_NOTICE';
+
+/** Today in church time, as yyyy-MM-dd, for comparing against the end date. */
+function todayLocal_() {
+  return Utilities.formatDate(new Date(), 'America/New_York', 'yyyy-MM-dd');
+}
+
+function readNotice_() {
+  var raw = PropertiesService.getScriptProperties().getProperty(NOTICE_KEY);
+  if (!raw) return null;
+  try {
+    var n = JSON.parse(raw);
+    if (!n || !n.text) return null;
+    return n;
+  } catch (err) {
+    return null;
+  }
+}
+
+/**
+ * The notice, if it is still current.
+ *
+ * Public and unauthenticated, because the wall display has no way to hold a
+ * passcode and this is a message intended for a room full of people anyway.
+ * It returns only what is on screen: nothing about who set it or when.
+ */
+function handleNotice_(body) {
+  var n = readNotice_();
+  if (!n) return json_({ ok: true, notice: null });
+
+  // Shown through the END of the chosen day, not from some time on it. "Until
+  // Sunday" means Sunday, and a notice vanishing mid-service would be worse
+  // than one lingering an afternoon.
+  if (n.until && n.until < todayLocal_()) return json_({ ok: true, notice: null });
+
+  return json_({ ok: true, notice: { text: n.text, until: n.until || '' } });
+}
+
+/**
+ * Read, set or clear it. Leaders only.
+ *
+ * Sending no text clears it. That is deliberately the same action rather than
+ * a separate one: whoever put a notice up in a hurry should be able to take it
+ * down by emptying the box they typed it into.
+ */
+function handleAdminNotice_(body) {
+  var bad = checkPasscode_(body.passcode);
+  if (bad) return json_({ ok: false, error: bad });
+
+  var props = PropertiesService.getScriptProperties();
+
+  if (body.read) {
+    var current = readNotice_();
+    return json_({
+      ok: true,
+      notice: current ? { text: current.text, until: current.until || '' } : null,
+      expired: !!(current && current.until && current.until < todayLocal_()),
+      today: todayLocal_()
+    });
+  }
+
+  var text = String(body.text || '').trim();
+  if (!text) {
+    props.deleteProperty(NOTICE_KEY);
+    return json_({ ok: true, notice: null, cleared: true });
+  }
+  if (text.length > 240) {
+    return json_({ ok: false, error: 'Keep it under 240 characters — it has to be readable across a room.' });
+  }
+
+  var until = String(body.until || '').trim();
+  if (until && !/^\d{4}-\d{2}-\d{2}$/.test(until)) {
+    return json_({ ok: false, error: 'That end date does not look right.' });
+  }
+  if (until && until < todayLocal_()) {
+    // Saving something already expired would take it down the moment it went
+    // up, and look like the save had failed.
+    return json_({ ok: false, error: 'That date has already passed, so nothing would show.' });
+  }
+
+  props.setProperty(NOTICE_KEY, JSON.stringify({ text: text, until: until }));
+  return json_({ ok: true, notice: { text: text, until: until } });
 }
 
 // ---------------------------------------------------------------------------
