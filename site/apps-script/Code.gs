@@ -46,7 +46,7 @@
  * file is handed over: the date, plus a letter if more than one goes out that
  * day.
  */
-var VERSION = '2026-09-09b';
+var VERSION = '2026-09-09c';
 
 var SITE = 'https://calendars.greaterlifebaptistchurch.com';
 var EVENTS_JSON = SITE + '/events.json';
@@ -304,7 +304,8 @@ function doGet() {
       'admin.hello', 'admin.list', 'admin.save', 'admin.delete',
       'share',
       'admin.people', 'admin.setgroups', 'admin.share', 'admin.remove',
-      'contacts', 'rsvp', 'admin.rsvps', 'notice', 'admin.notice', 'admin.settings'
+      'contacts', 'rsvp', 'admin.rsvps', 'notice', 'admin.notice', 'admin.settings',
+      'card.mail'
     ],
     adminReady: !!adminPasscode_(),
     calendar: calendarOk,
@@ -344,6 +345,7 @@ function doPost(e) {
     if (action === 'notice')          return handleNotice_(body);
     if (action === 'admin.notice')    return handleAdminNotice_(body);
     if (action === 'admin.settings')  return handleAdminSettings_(body);
+    if (action === 'card.mail')       return handleCardMail_(body);
     if (action === 'contacts')        return handleContacts_(body);
     if (action === 'rsvp')            return handleRsvp_(body);
     if (action === 'admin.rsvps')     return handleAdminRsvps_(body);
@@ -1070,16 +1072,104 @@ function handleAdminSettings_(body) {
   if (bad) return json_({ ok: false, error: bad });
 
   if (body.read) {
-    return json_({ ok: true, cardNotes: readSetting_('cardNotes') });
+    return json_({
+      ok: true,
+      cardNotes: readSetting_('cardNotes'),
+      cardEmail: readSetting_('cardEmail')
+    });
   }
 
-  var notes = String(body.cardNotes === undefined ? '' : body.cardNotes).trim();
-  if (notes.length > 400) {
-    return json_({ ok: false, error: 'That is longer than the foot of a card can hold.' });
+  if (body.cardNotes !== undefined) {
+    var notes = String(body.cardNotes).trim();
+    if (notes.length > 400) {
+      return json_({ ok: false, error: 'That is longer than the foot of a card can hold.' });
+    }
+    writeSetting_('cardNotes', notes,
+      'Standing notes printed at the foot of the calendar card, one per line.');
   }
-  writeSetting_('cardNotes', notes,
-    'Standing notes printed at the foot of the calendar card, one per line.');
-  return json_({ ok: true, cardNotes: notes });
+
+  if (body.cardEmail !== undefined) {
+    var who = String(body.cardEmail).trim();
+    // A name from the Contacts tab, not an address. The address is resolved
+    // when the card is sent, so correcting somebody's email in one cell fixes
+    // this too, and no address is ever handed to a browser.
+    if (who && !contactEmails_(who).length) {
+      return json_({ ok: false, error: 'That contact has no email address on the Contacts tab.' });
+    }
+    writeSetting_('cardEmail', who,
+      'Who the generated calendar card is emailed to. A name from the Contacts tab.');
+  }
+
+  return json_({
+    ok: true,
+    cardNotes: readSetting_('cardNotes'),
+    cardEmail: readSetting_('cardEmail')
+  });
+}
+
+/**
+ * Email the finished calendar card, or say why there isn't one.
+ *
+ * The card is built by a GitHub Action, which has no way to send mail; this
+ * script does, and it already knows how to turn a contact's name into
+ * addresses. So the Action hands the PDF over and this posts it.
+ *
+ * The bytes come through the request rather than being fetched from the site,
+ * because the site does not have the new card yet: it is published by the same
+ * run and takes a couple of minutes to deploy. Waiting on that would make
+ * sending depend on a deploy, which is the sort of timing bug that works every
+ * time until the one time it matters.
+ *
+ * A failed build sends mail too. Silence is the worst outcome — somebody would
+ * be waiting on a card that was never coming, and would find out when the
+ * printer asked.
+ */
+function handleCardMail_(body) {
+  var bad = checkPasscode_(body.passcode);
+  if (bad) return json_({ ok: false, error: bad });
+
+  var who = String(body.contact || '').trim();
+  if (!who) return json_({ ok: false, error: 'Nobody is set to receive the card.' });
+
+  var to = contactEmails_(who);
+  if (!to.length) {
+    return json_({ ok: false, error: 'No email address on the Contacts tab for ' + who + '.' });
+  }
+
+  var months = String(body.months || 'the next two months');
+
+  if (body.error) {
+    MailApp.sendEmail({
+      to: to.join(','),
+      subject: 'The calendar card could NOT be made',
+      body: 'The calendar card for ' + months + ' failed to build, so there is ' +
+        'nothing to send.\n\n' + String(body.error).slice(0, 1500) + '\n\n' +
+        'Nothing has been published, and the last card is untouched.\n' +
+        SITE + '\n'
+    });
+    return json_({ ok: true, sent: to.length, kind: 'failure' });
+  }
+
+  if (!body.pdf) return json_({ ok: false, error: 'No card was attached.' });
+
+  var name = String(body.filename || 'calendar-card.pdf').replace(/[^A-Za-z0-9._-]/g, '');
+  var blob = Utilities.newBlob(
+    Utilities.base64Decode(String(body.pdf)), 'application/pdf', name);
+
+  MailApp.sendEmail({
+    to: to.join(','),
+    subject: 'Calendar card: ' + months,
+    body: 'The calendar card for ' + months + ' is attached, ready to send to ' +
+      'the printer.\n\n' +
+      'Half sheet, 5.5 by 8.5 inches, printed both sides. It prints in colour ' +
+      'or black and white from this same file.\n\n' +
+      'If something needs changing, fix it on the calendar and run "Make the ' +
+      'calendar card" again — this file is only a copy, nothing has been sent ' +
+      'anywhere else.\n\n' + SITE + '\n',
+    attachments: [blob]
+  });
+
+  return json_({ ok: true, sent: to.length, kind: 'card' });
 }
 
 // ---------------------------------------------------------------------------

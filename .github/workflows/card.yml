@@ -42,6 +42,10 @@ jobs:
           GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
           SHEET_ID: ${{ secrets.SHEET_ID }}
           CARD_MONTH: ${{ inputs.month }}
+          # Lets the run hand the finished card to the Apps Script endpoint to
+          # email. Without it the card is still built and published; only the
+          # email is skipped, and the log says so.
+          ADMIN_PASSCODE: ${{ secrets.ADMIN_PASSCODE }}
         run: npm run card
 
       - name: Publish it

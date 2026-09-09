@@ -131,6 +131,26 @@ A calendar that cannot be read stops the whole run. A card printed with a
 ministry silently missing is worse than no card, because it would be handed out
 and nobody would know what had been left off.
 
+### Emailing it
+
+Set **Email the card to** on the admin page, under Notices. It picks from the
+same Contacts list as the RSVP digest, so there is one place where anybody's
+address lives — correct it there and everything that mails them is fixed.
+
+When a card is built it is attached and sent. **When the build fails, that is
+sent too**, saying what went wrong. Silence is the worst outcome: somebody
+would be waiting on a card that was never coming and would find out when the
+printer asked for it.
+
+The bytes travel from the Action to Apps Script in the request rather than
+being fetched back off the site, because the site does not have the new card
+yet — it is published by the same run and takes a couple of minutes to deploy.
+Waiting on that would make sending depend on a deploy, which is the sort of
+timing bug that works every time until the one time it matters.
+
+It needs `ADMIN_PASSCODE` as a repository secret. Without it the card is still
+built and published and only the email is skipped, which the log says plainly.
+
 ### The year rollover
 
 November's run produces December and **January of the next year**, and the

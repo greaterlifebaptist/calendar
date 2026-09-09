@@ -176,13 +176,14 @@ function wrap(text: string, font: PDFFont, size: number, width: number): string[
  * places, so the column of days came out ragged. The weekday sits left, the
  * number is right-aligned under itself, and the eye can run straight down.
  */
-const DOW_COL = 0.42 * PT;    // "Sun", left-aligned
-const NUM_COL = 0.2 * PT;     // the day number, right-aligned after it
+const DOW_COL = 0.34 * PT;    // "Sun", left-aligned
+const NUM_COL = 0.19 * PT;    // the day number, right-aligned close after it
 const DATE_COL = DOW_COL + NUM_COL;
-const DUE_COL = 0.3 * PT;     // and the DUE marker beside that
+/** The band between the numbers and the titles. DUE is centred in it. */
+const DUE_COL = 0.42 * PT;
 const LINE_SIZE = 10;
 const LINE_GAP = 5;
-const TITLE_W = () => CONTENT_W - DATE_COL - DUE_COL - 8;
+const TITLE_W = () => CONTENT_W - DATE_COL - DUE_COL;
 
 /** Height one entry will take once wrapped. */
 function lineHeight(l: Line, f: CardFonts): number {
@@ -204,8 +205,12 @@ function drawLine(page: PDFPage, l: Line, y: number, f: CardFonts): number {
   // The marker, not the colour, is what says "deadline" — it survives a mono
   // print, a photocopy and a fridge in a dim kitchen.
   if (l.deadline) {
+    // Centred in the gap rather than butted against the number, which read as
+    // part of it: "15DUE".
+    const size = LINE_SIZE - 3.2;
+    const w = f.bodyBold.widthOfTextAtSize('DUE', size);
     page.drawText('DUE', {
-      x: L + DATE_COL, y: y - LINE_SIZE + 0.4, size: LINE_SIZE - 3.2,
+      x: L + DATE_COL + (DUE_COL - w) / 2, y: y - LINE_SIZE + 0.4, size,
       font: f.bodyBold, color: rgb(0.82, 0.306, 0.169),
     });
   }
@@ -214,7 +219,7 @@ function drawLine(page: PDFPage, l: Line, y: number, f: CardFonts): number {
   let ry = y;
   for (const row of rows) {
     page.drawText(row, {
-      x: L + DATE_COL + DUE_COL + 8, y: ry - LINE_SIZE, size: LINE_SIZE,
+      x: L + DATE_COL + DUE_COL, y: ry - LINE_SIZE, size: LINE_SIZE,
       font: l.deadline ? f.bodyBold : f.body, color: INK,
     });
     ry -= LINE_SIZE + 2.4;

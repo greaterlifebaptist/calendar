@@ -371,6 +371,11 @@ footer a{color:var(--clay)}
       <textarea id="cardNotes" maxlength="400"
         placeholder="Supper served 1st &amp; 3rd Thursday at 5:30, during the school year."></textarea>
     </label>
+    <label>
+      <span class="lab">Email the card to <span class="hint">— when one is generated, and if
+        it fails to build</span></span>
+      <select id="cardEmail"></select>
+    </label>
     <div class="actions">
       <button type="button" class="primary" id="cardNotesSave">Save</button>
       <span class="status" id="cardNotesStatus"></span>
@@ -1053,6 +1058,21 @@ async function loadCardNotes(){
   try {
     const out = await call({ action:"admin.settings", passcode:PASS, read:true });
     $("cardNotes").value = out.cardNotes || "";
+
+    // The same people as everywhere else. Only names come back; the address is
+    // resolved on the server when the card is actually sent, so correcting an
+    // email in one cell fixes this too.
+    const want = out.cardEmail || "";
+    const sel = $("cardEmail");
+    sel.innerHTML = '<option value="">Nobody — just publish it</option>' +
+      CONTACTS.map(c => '<option value="' + esc(c.name) + '"' +
+        (c.reachable ? "" : " disabled") + '>' + esc(c.name) +
+        (c.reachable ? "" : " (no email on file)") + '</option>').join("");
+    if (want && !CONTACTS.some(c => c.name === want)){
+      sel.insertAdjacentHTML("beforeend",
+        '<option value="' + esc(want) + '">' + esc(want) + ' (not in Contacts)</option>');
+    }
+    sel.value = want;
   } catch {
     // The wall notice above still works; this section simply stays empty.
   }
@@ -1064,9 +1084,15 @@ $("cardNotesSave").addEventListener("click", async () => {
   st.className = "status";
   st.textContent = "Saving…";
   try {
-    await call({ action:"admin.settings", passcode:PASS, cardNotes: $("cardNotes").value });
+    await call({
+      action:"admin.settings", passcode:PASS,
+      cardNotes: $("cardNotes").value,
+      cardEmail: $("cardEmail").value,
+    });
     st.className = "status ok";
-    st.textContent = "Saved. It appears on the next card generated.";
+    st.textContent = $("cardEmail").value
+      ? "Saved. The next card generated goes to " + $("cardEmail").value + "."
+      : "Saved. It appears on the next card generated.";
   } catch (err) {
     st.className = "status err";
     st.textContent = (err && err.fromServer && err.message) || "Could not save.";
