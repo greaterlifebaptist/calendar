@@ -256,7 +256,13 @@ export async function buildCard(input: CardInput): Promise<CardResult> {
   }
 
   const TOP = PAGE_H - BLEED - SAFE - 6;
-  const FOOT = BLEED + SAFE + 74;      // room the QR and standing notes need
+
+  // The QR sits in the same place on both sides, so both sides stop short of
+  // the same line. On the front the standing notes share that band.
+  const QR_SIZE = 62;
+  const QR_X = R - QR_SIZE;
+  const QR_Y = BLEED + SAFE + 2;
+  const FOOT = QR_Y + QR_SIZE + 12;
 
   // ---- masthead ----
   let y = TOP;
@@ -274,26 +280,26 @@ export async function buildCard(input: CardInput): Promise<CardResult> {
   }
 
   /*
-   * A month a side, which is how these cards have always been laid out.
+   * Fill the front, then spill onto the back.
    *
-   * It also produces the same shape every month, so a card looks deliberate
-   * rather than differently arranged each time — and it buys the type room to
-   * be read at arm's length on a fridge.
-   *
-   * A month too long for its side spills onto the next, and the notes lines
-   * give up whatever room that takes. Notes are the filler here, not the point.
+   * Not a month a side: a quiet month would leave a third of the front empty
+   * while the back carried ten lines. Packing the front means the card is as
+   * short as the events allow, and the back picks up whatever did not fit —
+   * repeating the month's heading so a reader landing there is not looking at
+   * a list of dates with no month attached.
    */
   let page = front;
   let onBack = false;
-  let bottom = FOOT;
+  const toBack = () => { page = back; onBack = true; y = TOP; };
 
-  const toBack = () => { page = back; onBack = true; y = TOP; bottom = BLEED + SAFE + 12; };
+  for (const { month, lines } of byMonth) {
+    const name = MONTHS[month.getMonth()] + ' ' + month.getFullYear();
 
-  for (let i = 0; i < byMonth.length; i++) {
-    const { month, lines } = byMonth[i]!;
-    if (i === 1 && !onBack) toBack();
-
-    y = monthHeading(page, MONTHS[month.getMonth()] + ' ' + month.getFullYear(), y, f);
+    // A heading with no room for even one line under it belongs on the next
+    // page, not stranded at the foot of this one.
+    const firstHeight = lines.length ? lineHeight(lines[0]!, f) : LINE_SIZE + 10;
+    if (y - 32 - firstHeight < FOOT && !onBack) toBack();
+    y = monthHeading(page, name, y, f);
 
     if (!lines.length) {
       page.drawText('Nothing scheduled yet.', {
@@ -304,73 +310,87 @@ export async function buildCard(input: CardInput): Promise<CardResult> {
     }
 
     for (const l of lines) {
-      if (y - lineHeight(l, f) < bottom) {
+      if (y - lineHeight(l, f) < FOOT) {
         if (onBack) break;                   // there is no third side
         toBack();
-        y = monthHeading(page, MONTHS[month.getMonth()] + ' (continued)', y, f);
+        y = monthHeading(page, name + ' (continued)', y, f);
       }
       y = drawLine(page, l, y, f);
     }
     y -= 10;
   }
 
-  // ---- don't forget, then notes, filling whatever the back has left ----
+  /*
+   * Notes never begin on the front.
+   *
+   * Somebody looking at the card should see dates there, not ruled lines. If
+   * everything fitted on the front then the whole back is notes, which is the
+   * right answer for a quiet month: a card people can write on.
+   */
+  if (!onBack) toBack();
+  else y -= 6;
+
   const deadlines = byMonth.flatMap(({ month, lines }) =>
     lines.filter((l) => l.deadline).map((l) => ({ ...l, month: month.getMonth() })));
 
-  let ny = onBack ? y - 6 : TOP;
-  if (deadlines.length) {
-    ny -= 6;
+  if (deadlines.length && y - 26 - deadlines.length * 15 > FOOT) {
     back.drawText("DON'T FORGET", {
-      x: L, y: ny - 11, size: 11, font: f.displayBold, color: rgb(0.82, 0.306, 0.169),
+      x: L, y: y - 11, size: 11, font: f.displayBold, color: rgb(0.82, 0.306, 0.169),
     });
     back.drawLine({
-      start: { x: L, y: ny - 15 }, end: { x: R, y: ny - 15 },
+      start: { x: L, y: y - 15 }, end: { x: R, y: y - 15 },
       thickness: 0.9, color: rgb(0.82, 0.306, 0.169),
     });
-    ny -= 26;
+    y -= 26;
     for (const d of deadlines) {
-      const label = MONTHS[d.month]!.slice(0, 3) + ' ' + d.day;
-      back.drawText(label, {
-        x: L, y: ny - 9, size: 9, font: f.bodyBold, color: SOFT,
+      back.drawText(MONTHS[d.month]!.slice(0, 3) + ' ' + d.day, {
+        x: L, y: y - 9, size: 9, font: f.bodyBold, color: SOFT,
       });
       back.drawText(wrap(d.title, f.body, 9.4, CONTENT_W - DATE_COL - 8)[0]!, {
-        x: L + DATE_COL + 8, y: ny - 9, size: 9.4, font: f.body, color: INK,
+        x: L + DATE_COL + 8, y: y - 9, size: 9.4, font: f.body, color: INK,
       });
-      ny -= 15;
+      y -= 15;
     }
-    ny -= 8;
+    y -= 10;
   }
 
-  // Ruled lines to the bottom of the page. On a quiet month that is most of
-  // the back, which is the point: it is a card people write on.
-  back.drawText('NOTES', { x: L, y: ny - 10, size: 10, font: f.displayBold, color: SOFT });
-  ny -= 22;
-  while (ny > BLEED + SAFE + 14) {
-    back.drawLine({ start: { x: L, y: ny }, end: { x: R, y: ny }, thickness: 0.5, color: RULE });
-    ny -= 19;
+  // Ruled lines down the rest of the back. The ones that reach the QR's band
+  // stop short of it rather than the whole block stopping early, which would
+  // waste the width of the page for the sake of one corner.
+  if (y - 30 > QR_Y) {
+    back.drawText('NOTES', { x: L, y: y - 10, size: 10, font: f.displayBold, color: SOFT });
+    y -= 22;
+    while (y > QR_Y + 4) {
+      const nearQr = y < QR_Y + QR_SIZE + 8;
+      back.drawLine({
+        start: { x: L, y }, end: { x: nearQr ? QR_X - 12 : R, y },
+        thickness: 0.5, color: RULE,
+      });
+      y -= 19;
+    }
   }
 
-  // ---- footer: the standing notes and the QR, front only ----
+  // ---- the standing notes, front only, and the QR on both ----
   const notes = cfg.card?.standingNotes ?? [];
-  let fy = BLEED + SAFE + 58;
+  let fy = QR_Y + QR_SIZE - 10;
   for (const n of notes) {
-    for (const row of wrap(n, f.body, 8.4, CONTENT_W - 96)) {
+    for (const row of wrap(n, f.body, 8.4, CONTENT_W - QR_SIZE - 100)) {
       front.drawText(row, { x: L, y: fy, size: 8.4, font: f.body, color: SOFT });
       fy -= 11;
     }
   }
 
   if (input.qrPdf) {
-    const [qr] = await doc.embedPdf(input.qrPdf);
-    const size = 62;
-    front.drawPage(qr!, { x: R - size, y: BLEED + SAFE + 2, width: size, height: size });
-    front.drawText('Scan for the', {
-      x: R - size - 86, y: BLEED + SAFE + 36, size: 8.4, font: f.body, color: SOFT,
-    });
-    front.drawText('live calendar', {
-      x: R - size - 86, y: BLEED + SAFE + 24, size: 9.6, font: f.bodyBold, color: INK,
-    });
+    const [qrFront, qrBack] = await doc.embedPdf(input.qrPdf, [0, 0]);
+    for (const [pg, qr] of [[front, qrFront], [back, qrBack]] as const) {
+      pg.drawPage(qr!, { x: QR_X, y: QR_Y, width: QR_SIZE, height: QR_SIZE });
+      pg.drawText('Scan for the', {
+        x: QR_X - 86, y: QR_Y + 34, size: 8.4, font: f.body, color: SOFT,
+      });
+      pg.drawText('live calendar', {
+        x: QR_X - 86, y: QR_Y + 22, size: 9.6, font: f.bodyBold, color: INK,
+      });
+    }
   }
 
   mkdirSync(outDir, { recursive: true });

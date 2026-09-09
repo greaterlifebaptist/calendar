@@ -69,14 +69,23 @@ fainter than everything else, the exact opposite of the point. They are bold
 black now with a DUE marker, and the colour sits on top of a distinction that
 already works without it.
 
-### A month a side
+### How it flows
 
-Which is how these cards have always been laid out, and it holds for two more
-reasons: the same shape every month looks deliberate rather than rearranged,
-and it buys the type enough size to read at arm's length on a fridge.
+The front is packed first, then it spills onto the back, repeating the month's
+heading there so a reader landing on the back is not looking at a list of dates
+with no month attached.
 
-A month too long for its side spills onto the next, and the notes lines give up
-whatever room that takes. Notes are the filler, not the point.
+Not a month a side: a quiet month would leave a third of the front empty while
+the back carried ten lines.
+
+**Notes never begin on the front.** Somebody looking at the card should see
+dates there, not ruled lines. If everything fitted on the front then the whole
+back is notes, which is the right answer for a quiet month — a card people can
+write on.
+
+The QR sits in the same place on both sides. The ruled lines that reach its
+band stop short of it rather than the whole block ending early, which would
+waste the width of the page for the sake of one corner.
 
 ## Titles
 
