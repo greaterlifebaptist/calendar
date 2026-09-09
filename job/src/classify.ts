@@ -174,6 +174,7 @@ export function classify(ev: RawEvent, tz: string, now: Date = new Date()): Clas
   const { title, forceType, forcePinned } = stripPrefixes(ev.summary ?? '');
   const fields = parseFields(ev.description ?? '');
 
+  const propCard = readProp(ev, 'glbcCard');
   const propType = readProp(ev, 'glbcType');
   const propPinned = readProp(ev, 'glbcPinned');
 
@@ -242,5 +243,5 @@ export function classify(ev: RawEvent, tz: string, now: Date = new Date()): Clas
     pinned = false;
   }
 
-  return { type, pinned, title, reason, ...fields };
+  return { type, pinned, title, cardTitle: (propCard ?? '').trim(), reason, ...fields };
 }

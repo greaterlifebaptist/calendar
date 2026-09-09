@@ -296,6 +296,11 @@ footer a{color:var(--clay)}
         <span class="lab">Notes</span>
         <textarea id="notes" maxlength="2000" placeholder="Example: Signed form and medical release. No form, no seat on the van."></textarea>
       </label>
+      <label>
+        <span class="lab">Calendar card <span class="hint">— optional, only if the title is too
+          long or too detailed for a printed line</span></span>
+        <input type="text" id="card" maxlength="80" placeholder="Leave blank to use the title">
+      </label>
       <div class="row">
         <label><span class="lab">Cost</span><input type="text" id="cost" maxlength="60"></label>
         <label><span class="lab">Contact</span><select id="contact"></select></label>
@@ -680,7 +685,7 @@ function splitDescription(text){
 
 function clearForm(){
   editingId = null;
-  ["title","location","startDate","startTime","endDate","endTime","notes","cost","contact","link"]
+  ["title","location","startDate","startTime","endDate","endTime","notes","cost","card","contact","link"]
     .forEach(id => { $(id).value = ""; });
   $("allDay").checked = false;
   $("pinned").checked = false;
@@ -731,6 +736,7 @@ function loadIntoForm(ev){
   $("notes").value = parts.notes;
   $("cost").value = parts.cost;
   fillContacts(parts.contact);
+  $("card").value = ev.card || "";
   $("link").value = parts.link;
 
   const r = readRrule(ev.rrule);
@@ -828,6 +834,7 @@ $("save").addEventListener("click", async () => {
         pinned: $("pinned").checked,
         notes: $("notes").value.trim(),
         cost: $("cost").value.trim(),
+        card: $("card").value.trim(),
         contact: $("contact").value.trim(),
         link: $("link").value.trim(),
       },

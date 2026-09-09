@@ -65,6 +65,7 @@ export function toPublicEvent(ev: CalEvent, tz: string): PublicEvent {
   if (ev.notes) out.notes = ev.notes;
   if (ev.cost) out.cost = ev.cost;
   if (ev.contact) out.contact = ev.contact;
+  if (ev.cardTitle) out.cardTitle = ev.cardTitle;
   if (ev.link) {
     out.link = ev.link;
     out.linkText = ev.linkText ?? 'Details';

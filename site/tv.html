@@ -200,7 +200,6 @@ body{
   <div class="stale" id="stale" hidden></div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
 /* ---------------------------------------------------------------------------
    Wall display for the overflow room.
@@ -759,16 +758,21 @@ function layoutRail(){
   else if (RAIL_MODE === "scroll" || RAIL_MODE === "page") pageRail(box, items, view);
 }
 
+/**
+ * The church's own QR code, as a file rather than one generated here.
+ *
+ * The address it points at never changes, so there is nothing to generate. A
+ * fixed image also means it matches the branded codes already printed on other
+ * church material — logo in the middle — which a library drawing plain squares
+ * cannot.
+ *
+ * It points at greaterlifebaptistchurch.com/calendar, the church's own front
+ * door, not this subdomain. That is the address on the printed cards, and the
+ * one that keeps working if the calendar ever moves hosts.
+ */
 function renderQr(){
-  const url = location.origin + "/";
   const box = $("qr");
-  box.innerHTML = "";
-  if (window.QRCode){
-    try { new QRCode(box, { text:url, width:220, height:220, correctLevel: QRCode.CorrectLevel.M }); }
-    catch { box.hidden = true; }
-  } else {
-    box.hidden = true;
-  }
+  box.innerHTML = '<img src="./qr-calendar.svg" alt="Scan for the church calendar">';
 }
 
 function renderStale(){

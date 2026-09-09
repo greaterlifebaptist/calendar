@@ -46,7 +46,7 @@
  * file is handed over: the date, plus a letter if more than one goes out that
  * day.
  */
-var VERSION = '2026-09-08a';
+var VERSION = '2026-09-09a';
 
 var SITE = 'https://calendars.greaterlifebaptistchurch.com';
 var EVENTS_JSON = SITE + '/events.json';
@@ -660,7 +660,11 @@ function toResource_(ev) {
     extendedProperties: {
       shared: {
         glbcType: type,
-        glbcPinned: ev.pinned ? 'true' : 'false'
+        glbcPinned: ev.pinned ? 'true' : 'false',
+        // What the printed card should call this, when the real title is too
+        // long or too detailed for a line on a card. Blank means use the title,
+        // which is what it will be nearly always.
+        glbcCard: String(ev.card || '').trim().slice(0, 80)
       }
     }
   };
@@ -754,6 +758,7 @@ function handleAdminList_(body) {
       description: e.description || '',
       type: shared.glbcType || '',
       pinned: shared.glbcPinned === 'true',
+      card: shared.glbcCard || '',
       rrule: (e.recurrence || []).filter(function (r) { return r.indexOf('RRULE') === 0; })[0] || ''
     };
   }).sort(function (a, b) { return a.start < b.start ? -1 : 1; });

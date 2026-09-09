@@ -92,6 +92,13 @@ export type Classified = {
   link: string | null;
   linkText: string | null;
   contact: string | null;
+  /**
+   * What the printed card should call this, when the real title is too long or
+   * too detailed for a line on a card. Empty means use the title, which it will
+   * be nearly always — a title good enough for the website is usually good
+   * enough for print, and a field leaders must remember is a field they skip.
+   */
+  cardTitle: string;
   /** Which path decided the type — useful when auditing misclassification. */
   reason: string;
 };
@@ -135,4 +142,6 @@ export type PublicEvent = {
   contact?: string;
   link?: string;
   linkText?: string;
+  /** Only present when a leader wanted the printed card to say something else. */
+  cardTitle?: string;
 };
