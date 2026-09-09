@@ -47,24 +47,65 @@ All of this is done once, on the church Google account.
 
 ### 1. Make an OAuth client
 
-In the Google Cloud console, in the project that already holds the calendar
-service account:
+This lives in the **Google Auth Platform** section of the Google Cloud console.
+Any project will do — nothing ties sign-in to the project holding the calendar
+service account — but it must belong to the **church** Google account, for the
+same reason as everything else here.
 
-1. **APIs & Services → OAuth consent screen**. External. App name "Greater Life
-   Baptist Calendar", support email and developer email both the church address.
-2. Scopes: leave it alone. Sign-in needs only name, email and profile, which are
-   granted without asking for anything.
-3. **Publishing status → Publish app.** Left in Testing, only accounts added by
-   hand can sign in and their sessions expire after a week. With only those
-   three scopes there is nothing to be verified for, so publishing is instant.
-4. **Credentials → Create credentials → OAuth client ID → Web application.**
-   Name it "Admin page".
-5. **Authorised JavaScript origins** — the page is refused without these, and
-   they must have no trailing slash:
-   - `https://calendars.greaterlifebaptistchurch.com`
-   - `http://localhost:4173` (only for testing from a computer; harmless to omit)
-6. Copy the client ID. It ends in `.apps.googleusercontent.com`. It is not a
-   secret — it ships in the page — but it is what ties a token to this church.
+Branding has to be filled in before a client can be created, which is why the
+console sends you there first.
+
+**Branding**
+
+| Field | Value |
+|---|---|
+| App name | Greater Life Baptist Church Calendar — leaders see this on the sign-in screen |
+| User support email | the church address |
+| App logo | **leave empty** |
+| App home page, Privacy policy, Terms of service | leave empty |
+| Authorized domains | leave empty |
+| Developer contact information | the church address |
+
+Two of those are deliberate rather than lazy.
+
+**No logo.** Uploading one sends the app into brand verification, which takes
+weeks and changes nothing about how sign-in works. The app name shows either way.
+
+**No app domain links.** Fill any one of them in and an Authorized domain
+becomes required, which the console may want proved through Search Console.
+That buys nothing here.
+
+**Audience**
+
+The user type will be External; Internal only exists on Workspace accounts.
+Press **Publish app**.
+
+Publishing matters more than it sounds. Left in Testing, only addresses added by
+hand can sign in — a second list to keep in step with the Leaders tab, whose
+failure mode is a leader refused for a reason invisible from inside this system.
+There is nothing to wait for: verification is triggered by *sensitive* scopes,
+and sign-in asks only for name, email and profile, which are not sensitive.
+Leaders see no "unverified app" warning either, for the same reason.
+
+**Data access**
+
+Nothing. Do not add scopes; the sign-in button asks for the three it needs.
+
+**Clients → Create client**
+
+- Application type: **Web application**
+- Name: Admin client
+- **Authorised JavaScript origins**:
+  - `https://calendars.greaterlifebaptistchurch.com`
+  - `http://localhost:4173` (only for testing from a computer; harmless to omit)
+- **Authorised redirect URIs**: none. The button hands the token to the page;
+  nothing redirects.
+
+The origin must match exactly — `https`, no trailing slash, no path. A mismatch
+does not report itself: the button simply never appears.
+
+Copy the client ID. It ends in `.apps.googleusercontent.com`. It is not a
+secret — it ships in the page — but it is what ties a token to this church.
 
 ### 2. Tell the endpoint
 
@@ -82,6 +123,9 @@ the `signIn` block:
 ```
 
 `clientId: false` means the property did not save or the deploy did not take.
+
+Changes to the authorised origins can take a few minutes to reach Google. A
+button that has not appeared yet is worth blaming on that before the code.
 
 ### 3. Put yourself on the list
 
