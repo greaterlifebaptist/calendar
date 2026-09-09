@@ -16,7 +16,7 @@ ours and any printer that takes a PDF can print it.
 | Bleed | 0.125in on every edge |
 | Safe margin | 0.25in inside the trim |
 | Pages | 2 — front and back |
-| Colour | black and the church green; the logo is the only colour |
+| Colour | works in colour or black and white from the same file |
 | Fonts | Zilla Slab and Public Sans, embedded as subsets |
 
 Those bleed and margin values are what essentially every printer accepts. One
@@ -38,7 +38,7 @@ appear.
 "Wednesdays through October" — the whole point of a printed card is the dates,
 written down.
 
-**Deadlines in bold, in place**, and recapped at the bottom of the back under
+**Deadlines in bold with a DUE marker, in place**, and recapped on the back under
 **Don't forget**. In place rather than in their own section, because a card is
 read by scanning dates and splitting the list means the same month appears
 twice in two sequences. The recap is a checklist, not a second timeline.
@@ -57,6 +57,26 @@ The card carries a standing note instead, from `card.standingNotes` in
 
 So marking something `ROUTINE:` is what keeps it off the card. That reuses a
 concept the classifier already has rather than inventing a print-only flag.
+
+### Black and white
+
+There is no separate mono file, because there does not need to be: a printer
+converts the PDF and it still reads correctly.
+
+That took one change. Deadlines were orange, and orange goes **lighter** than
+black in greyscale — so on a mono print the urgent lines would have come out
+fainter than everything else, the exact opposite of the point. They are bold
+black now with a DUE marker, and the colour sits on top of a distinction that
+already works without it.
+
+### A month a side
+
+Which is how these cards have always been laid out, and it holds for two more
+reasons: the same shape every month looks deliberate rather than rearranged,
+and it buys the type enough size to read at arm's length on a fridge.
+
+A month too long for its side spills onto the next, and the notes lines give up
+whatever room that takes. Notes are the filler, not the point.
 
 ## Titles
 

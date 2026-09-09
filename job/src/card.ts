@@ -65,6 +65,17 @@ const SOFT = rgb(0.42, 0.384, 0.353);      // #6B625A
 const RULE = rgb(0.855, 0.827, 0.784);
 const PINE = rgb(0.106, 0.369, 0.271);     // #1B5E45
 
+/*
+ * Nothing here depends on colour, so there is no separate black-and-white
+ * file: a printer converts the PDF and it still reads correctly.
+ *
+ * That took a change. Deadlines were orange, and orange goes LIGHTER than
+ * black in greyscale — so on a mono print the urgent lines would have come out
+ * fainter than everything else, which is the exact opposite of the point. They
+ * are bold black now, with a DUE marker, and the colour is decoration on top
+ * of a distinction that already works without it.
+ */
+
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December',
@@ -158,44 +169,53 @@ function wrap(text: string, font: PDFFont, size: number, width: number): string[
   return out;
 }
 
-const DATE_COL = 0.62 * PT;   // width reserved for "Thu 14"
-const LINE_SIZE = 8.6;
-const LINE_GAP = 3.2;
+const DATE_COL = 0.78 * PT;   // width reserved for "Thu 14"
+const DUE_COL = 0.3 * PT;     // and for the DUE marker beside it
+const LINE_SIZE = 10;
+const LINE_GAP = 5;
+const TITLE_W = () => CONTENT_W - DATE_COL - DUE_COL - 8;
 
 /** Height one entry will take once wrapped. */
 function lineHeight(l: Line, f: CardFonts): number {
-  const rows = wrap(l.title, f.body, LINE_SIZE, CONTENT_W - DATE_COL - 6);
-  return rows.length * (LINE_SIZE + 1.6) + LINE_GAP;
+  const rows = wrap(l.title, l.deadline ? f.bodyBold : f.body, LINE_SIZE, TITLE_W());
+  return rows.length * (LINE_SIZE + 2.4) + LINE_GAP;
 }
 
 function drawLine(page: PDFPage, l: Line, y: number, f: CardFonts): number {
-  const label = l.dow + ' ' + l.day;
-  page.drawText(label, {
-    x: L, y: y - LINE_SIZE, size: LINE_SIZE - 0.4,
-    font: f.bodyBold, color: l.deadline ? rgb(0.82, 0.306, 0.169) : SOFT,
+  page.drawText(l.dow + ' ' + l.day, {
+    x: L, y: y - LINE_SIZE, size: LINE_SIZE - 0.6, font: f.bodyBold, color: SOFT,
   });
 
-  const rows = wrap(l.title, l.deadline ? f.bodyBold : f.body, LINE_SIZE, CONTENT_W - DATE_COL - 6);
+  // The marker, not the colour, is what says "deadline" — it survives a mono
+  // print, a photocopy and a fridge in a dim kitchen.
+  if (l.deadline) {
+    page.drawText('DUE', {
+      x: L + DATE_COL, y: y - LINE_SIZE + 0.4, size: LINE_SIZE - 3.2,
+      font: f.bodyBold, color: rgb(0.82, 0.306, 0.169),
+    });
+  }
+
+  const rows = wrap(l.title, l.deadline ? f.bodyBold : f.body, LINE_SIZE, TITLE_W());
   let ry = y;
   for (const row of rows) {
     page.drawText(row, {
-      x: L + DATE_COL + 6, y: ry - LINE_SIZE, size: LINE_SIZE,
+      x: L + DATE_COL + DUE_COL + 8, y: ry - LINE_SIZE, size: LINE_SIZE,
       font: l.deadline ? f.bodyBold : f.body, color: INK,
     });
-    ry -= LINE_SIZE + 1.6;
+    ry -= LINE_SIZE + 2.4;
   }
-  return y - (rows.length * (LINE_SIZE + 1.6) + LINE_GAP);
+  return y - (rows.length * (LINE_SIZE + 2.4) + LINE_GAP);
 }
 
 function monthHeading(page: PDFPage, name: string, y: number, f: CardFonts): number {
   page.drawText(name.toUpperCase(), {
-    x: L, y: y - 11, size: 11, font: f.displayBold, color: PINE,
+    x: L, y: y - 15, size: 15, font: f.displayBold, color: PINE,
   });
   page.drawLine({
-    start: { x: L, y: y - 15 }, end: { x: R, y: y - 15 },
-    thickness: 0.9, color: PINE,
+    start: { x: L, y: y - 20 }, end: { x: R, y: y - 20 },
+    thickness: 1.1, color: PINE,
   });
-  return y - 24;
+  return y - 32;
 }
 
 export type CardInput = {
@@ -204,6 +224,7 @@ export type CardInput = {
   events: CalEvent[];
   now: Date;
   outDir: string;
+  /** The church logo, JPEG. Drawn at the top of the front. */
   logo?: Uint8Array;
   qrPdf?: Uint8Array;
 };
@@ -234,98 +255,121 @@ export async function buildCard(input: CardInput): Promise<CardResult> {
     p.drawRectangle({ x: 0, y: 0, width: PAGE_W, height: PAGE_H, color: rgb(1, 1, 1) });
   }
 
+  const TOP = PAGE_H - BLEED - SAFE - 6;
+  const FOOT = BLEED + SAFE + 74;      // room the QR and standing notes need
+
   // ---- masthead ----
-  let y = PAGE_H - BLEED - SAFE - 6;
+  let y = TOP;
   if (input.logo) {
-    const png = await doc.embedPng(input.logo);
-    const w = 2.1 * PT;
-    const h = (png.height / png.width) * w;
-    front.drawImage(png, { x: L, y: y - h, width: w, height: h });
-    y -= h + 8;
+    const jpg = await doc.embedJpg(input.logo);
+    const w = 2.5 * PT;
+    const h = (jpg.height / jpg.width) * w;
+    front.drawImage(jpg, { x: L, y: y - h, width: w, height: h });
+    y -= h + 14;
   } else {
     front.drawText('GREATER LIFE BAPTIST CHURCH', {
-      x: L, y: y - 12, size: 12, font: f.displayBold, color: PINE,
+      x: L, y: y - 13, size: 13, font: f.displayBold, color: PINE,
     });
-    y -= 22;
+    y -= 26;
   }
 
-  const span = MONTHS[months[0]!.getMonth()] + ' & ' + MONTHS[months[1]!.getMonth()] +
-    ' ' + months[1]!.getFullYear();
-  front.drawText(span, { x: L, y: y - 13, size: 13, font: f.displayBold, color: INK });
-  y -= 24;
-
-  // ---- the months ----
+  /*
+   * A month a side, which is how these cards have always been laid out.
+   *
+   * It also produces the same shape every month, so a card looks deliberate
+   * rather than differently arranged each time — and it buys the type room to
+   * be read at arm's length on a fridge.
+   *
+   * A month too long for its side spills onto the next, and the notes lines
+   * give up whatever room that takes. Notes are the filler here, not the point.
+   */
   let page = front;
   let onBack = false;
-  const bottomLimit = () => BLEED + SAFE + (onBack ? 150 : 74);
+  let bottom = FOOT;
 
-  for (const { month, lines } of byMonth) {
-    if (y - 30 < bottomLimit() && !onBack) { page = back; onBack = true; y = PAGE_H - BLEED - SAFE - 6; }
+  const toBack = () => { page = back; onBack = true; y = TOP; bottom = BLEED + SAFE + 12; };
+
+  for (let i = 0; i < byMonth.length; i++) {
+    const { month, lines } = byMonth[i]!;
+    if (i === 1 && !onBack) toBack();
+
     y = monthHeading(page, MONTHS[month.getMonth()] + ' ' + month.getFullYear(), y, f);
 
     if (!lines.length) {
       page.drawText('Nothing scheduled yet.', {
         x: L, y: y - LINE_SIZE, size: LINE_SIZE, font: f.body, color: SOFT,
       });
-      y -= LINE_SIZE + 8;
+      y -= LINE_SIZE + 10;
       continue;
     }
 
     for (const l of lines) {
-      if (y - lineHeight(l, f) < bottomLimit()) {
-        if (onBack) break;                    // no third side to spill onto
-        page = back; onBack = true; y = PAGE_H - BLEED - SAFE - 6;
-        y = monthHeading(page, MONTHS[month.getMonth()] + ' ' + month.getFullYear() + ' (continued)', y, f);
+      if (y - lineHeight(l, f) < bottom) {
+        if (onBack) break;                   // there is no third side
+        toBack();
+        y = monthHeading(page, MONTHS[month.getMonth()] + ' (continued)', y, f);
       }
       y = drawLine(page, l, y, f);
     }
-    y -= 6;
+    y -= 10;
   }
 
-  // ---- don't forget, above the notes ----
+  // ---- don't forget, then notes, filling whatever the back has left ----
   const deadlines = byMonth.flatMap(({ month, lines }) =>
     lines.filter((l) => l.deadline).map((l) => ({ ...l, month: month.getMonth() })));
 
-  let ny = onBack ? Math.min(y - 10, BLEED + SAFE + 150) : BLEED + SAFE + 150;
+  let ny = onBack ? y - 6 : TOP;
   if (deadlines.length) {
-    back.drawText("DON'T FORGET", { x: L, y: ny - 9, size: 9, font: f.displayBold, color: rgb(0.82, 0.306, 0.169) });
-    ny -= 15;
-    for (const d of deadlines.slice(0, 6)) {
-      const label = MONTHS[d.month]!.slice(0, 3) + ' ' + d.day + '  ' + d.title;
-      back.drawText(wrap(label, f.body, 8, CONTENT_W)[0]!, {
-        x: L, y: ny - 8, size: 8, font: f.body, color: INK,
+    ny -= 6;
+    back.drawText("DON'T FORGET", {
+      x: L, y: ny - 11, size: 11, font: f.displayBold, color: rgb(0.82, 0.306, 0.169),
+    });
+    back.drawLine({
+      start: { x: L, y: ny - 15 }, end: { x: R, y: ny - 15 },
+      thickness: 0.9, color: rgb(0.82, 0.306, 0.169),
+    });
+    ny -= 26;
+    for (const d of deadlines) {
+      const label = MONTHS[d.month]!.slice(0, 3) + ' ' + d.day;
+      back.drawText(label, {
+        x: L, y: ny - 9, size: 9, font: f.bodyBold, color: SOFT,
       });
-      ny -= 11;
+      back.drawText(wrap(d.title, f.body, 9.4, CONTENT_W - DATE_COL - 8)[0]!, {
+        x: L + DATE_COL + 8, y: ny - 9, size: 9.4, font: f.body, color: INK,
+      });
+      ny -= 15;
     }
-    ny -= 4;
+    ny -= 8;
   }
 
-  // ---- notes ----
-  back.drawText('NOTES', { x: L, y: ny - 9, size: 9, font: f.displayBold, color: SOFT });
-  ny -= 16;
-  while (ny > BLEED + SAFE + 12) {
+  // Ruled lines to the bottom of the page. On a quiet month that is most of
+  // the back, which is the point: it is a card people write on.
+  back.drawText('NOTES', { x: L, y: ny - 10, size: 10, font: f.displayBold, color: SOFT });
+  ny -= 22;
+  while (ny > BLEED + SAFE + 14) {
     back.drawLine({ start: { x: L, y: ny }, end: { x: R, y: ny }, thickness: 0.5, color: RULE });
-    ny -= 15;
+    ny -= 19;
   }
 
-  // ---- footer: standing notes and the QR ----
+  // ---- footer: the standing notes and the QR, front only ----
   const notes = cfg.card?.standingNotes ?? [];
-  let fy = BLEED + SAFE + 62;
+  let fy = BLEED + SAFE + 58;
   for (const n of notes) {
-    for (const row of wrap(n, f.body, 7.6, CONTENT_W - 70)) {
-      front.drawText(row, { x: L, y: fy, size: 7.6, font: f.body, color: SOFT });
-      fy -= 10;
+    for (const row of wrap(n, f.body, 8.4, CONTENT_W - 96)) {
+      front.drawText(row, { x: L, y: fy, size: 8.4, font: f.body, color: SOFT });
+      fy -= 11;
     }
   }
 
   if (input.qrPdf) {
     const [qr] = await doc.embedPdf(input.qrPdf);
-    const size = 58;
-    front.drawPage(qr!, { x: R - size, y: BLEED + SAFE + 4, width: size, height: size });
-    front.drawText('Scan for the', { x: R - size - 78, y: BLEED + SAFE + 34, size: 7.6, font: f.body, color: SOFT });
-    front.drawText('live calendar', { x: R - size - 78, y: BLEED + SAFE + 24, size: 8.6, font: f.bodyBold, color: INK });
-    front.drawText('greaterlifebaptistchurch.com/calendar', {
-      x: L, y: BLEED + SAFE + 6, size: 6.4, font: f.body, color: SOFT,
+    const size = 62;
+    front.drawPage(qr!, { x: R - size, y: BLEED + SAFE + 2, width: size, height: size });
+    front.drawText('Scan for the', {
+      x: R - size - 86, y: BLEED + SAFE + 36, size: 8.4, font: f.body, color: SOFT,
+    });
+    front.drawText('live calendar', {
+      x: R - size - 86, y: BLEED + SAFE + 24, size: 9.6, font: f.bodyBold, color: INK,
     });
   }
 
