@@ -107,6 +107,39 @@ uses that instead. Blank, which it will be nearly always, means use the title.
 It is deliberately optional. A field leaders must remember is a field that gets
 skipped, and the whole classifier exists to avoid depending on that.
 
+## Making one
+
+**Manual, never automatic.** Actions > **Make the calendar card** > Run
+workflow. It builds the PDF, commits it, and the site redeploys within a couple
+of minutes; the run summary carries the link to download and send on.
+
+Manual on purpose. A card goes to a printer on the church's schedule, not the
+calendar's — somebody may add an event on the 16th, right before it is sent. An
+automatic monthly build would also quietly replace a file after it had already
+gone to the printer, so the copy on the site would stop matching what people
+are holding.
+
+It covers **the two months after the one it is run in**, so a run in September
+produces October and November. By the time it is printed and handed out that
+reads as "this month and next", and the next run a month later overlaps by one
+month, so there is never a gap.
+
+The **First month** input overrides that, as `YYYY-MM`, for making a card early
+or remaking one. Anything else is refused rather than guessed at.
+
+A calendar that cannot be read stops the whole run. A card printed with a
+ministry silently missing is worse than no card, because it would be handed out
+and nobody would know what had been left off.
+
+### The year rollover
+
+November's run produces December and **January of the next year**, and the
+month headings carry the year so a reader can see it. Events are matched on
+year and month together, so January 2027 cannot collect January 2026.
+
+That is the case that would otherwise be found in December with cards already
+printed, so it has tests rather than an assurance.
+
 ## The QR code
 
 [`site/qr-calendar.pdf`](../site/qr-calendar.pdf), embedded as vector so it

@@ -17,7 +17,8 @@ deploying the endpoint. The admin form is in
 them on safely, are in [docs/REMINDERS.md](docs/REMINDERS.md). Why an Android
 phone cannot add a calendar from a link, and what we do about it, is in
 [docs/ANDROID.md](docs/ANDROID.md). The printed card, and what goes on it, is
-in [docs/CARD.md](docs/CARD.md). RSVPs, the contact list and the one email
+in [docs/CARD.md](docs/CARD.md) — it is made by hand from the "Make the
+calendar card" workflow, never automatically. RSVPs, the contact list and the one email
 this system sends are in [docs/RSVP.md](docs/RSVP.md). How merged feeds are assembled on request,
 and why they are not built in advance, is in [docs/WORKER.md](docs/WORKER.md).
 This file covers only how to run what exists.
