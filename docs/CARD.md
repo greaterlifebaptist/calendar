@@ -126,6 +126,17 @@ work immediately:
 | `GITHUB_REPO` | `greaterlifebaptist/calendar` |
 | `GITHUB_DISPATCH_TOKEN` | a fine-grained token with **Contents: read and write** on that repository only |
 
+The month box takes whatever you type: `01/2027`, `1/27`, `2027-01`,
+`27-01`, `Jan 2027` and the rest all mean the same thing. Two short numbers
+read as month then year, unless the first is above twelve, in which case it
+cannot be a month and must be the year. Anything it genuinely cannot read is
+refused with the examples, rather than guessed at.
+
+The same rule lives in `parseMonth` in [`job/src/month.ts`](../job/src/month.ts),
+which carries the tests, and in `parseMonth_` in Code.gs. Two copies of fifteen
+lines is the cheaper mistake: the alternative is a round trip by email to find
+out you missed a digit.
+
 Pressing it twice is refused for a few minutes. Building a card is not free and
 it emails somebody; two people pressing, or one person pressing again because
 nothing visibly happened, should not send two cards.

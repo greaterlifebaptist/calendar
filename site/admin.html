@@ -299,7 +299,7 @@ footer a{color:var(--clay)}
       <label>
         <span class="lab">Calendar card <span class="hint">— optional, only if the title is too
           long or too detailed for a printed line</span></span>
-        <input type="text" id="card" maxlength="80" placeholder="Leave blank to use the title">
+        <input type="text" id="card" maxlength="80" placeholder="Example: Youth Revival Night 2">
       </label>
       <div class="row">
         <label><span class="lab">Cost</span><input type="text" id="cost" maxlength="60"></label>
@@ -337,7 +337,7 @@ footer a{color:var(--clay)}
     <p class="live" id="noticeLive" hidden></p>
     <label>
       <span class="lab">Message <span class="hint">— it has to be readable across a room, so keep it short</span></span>
-      <textarea id="noticeText" maxlength="240" placeholder="No evening service tonight"></textarea>
+      <textarea id="noticeText" maxlength="240" placeholder="Example: No evening service tonight"></textarea>
     </label>
     <div class="row">
       <label>
@@ -369,7 +369,7 @@ footer a{color:var(--clay)}
     <label>
       <span class="lab">Standing notes <span class="hint">— one per line</span></span>
       <textarea id="cardNotes" maxlength="400"
-        placeholder="Supper served 1st &amp; 3rd Thursday at 5:30, during the school year."></textarea>
+        placeholder="Example: Supper served 1st &amp; 3rd Thursday at 5:30, during the school year."></textarea>
     </label>
     <label>
       <span class="lab">Email the card to <span class="hint">— when one is generated, and if
@@ -392,8 +392,9 @@ footer a{color:var(--clay)}
       its own, and you get one either way if something goes wrong.</p>
     <div class="row">
       <label>
-        <span class="lab">First month <span class="hint">— blank for the next two</span></span>
-        <input type="text" id="cardMonth" maxlength="7" placeholder="2027-01">
+        <span class="lab">First month <span class="hint">— blank for the next two.
+          01/2027, 1/27 and Jan 2027 all work</span></span>
+        <input type="text" id="cardMonth" maxlength="20" placeholder="Example: 01/2027">
       </label>
       <label><span class="lab">&nbsp;</span>
         <button type="button" class="primary" id="cardMake" style="width:100%">Make the card</button>
@@ -426,7 +427,7 @@ footer a{color:var(--clay)}
       </p>
       <label class="search">
         <span class="lab">Search</span>
-        <input type="text" id="peopleSearch" placeholder="Name or email" autocomplete="off">
+        <input type="text" id="peopleSearch" placeholder="Example: Jane, or jane@..." autocomplete="off">
       </label>
       <div id="people"></div>
     </fieldset>

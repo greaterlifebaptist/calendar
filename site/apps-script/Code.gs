@@ -46,7 +46,7 @@
  * file is handed over: the date, plus a letter if more than one goes out that
  * day.
  */
-var VERSION = '2026-09-09d';
+var VERSION = '2026-09-09e';
 
 var SITE = 'https://calendars.greaterlifebaptistchurch.com';
 var EVENTS_JSON = SITE + '/events.json';
@@ -1121,6 +1121,61 @@ function handleAdminSettings_(body) {
  * so. That is the reason this can be fire-and-forget: the answer arrives by
  * itself either way.
  */
+/**
+ * Read a month the way somebody actually types one.
+ *
+ * 01/2027, 1/27, 2027-01, Jan 2027 and the rest all mean the same thing.
+ * Insisting on one spelling means the person who types 1/27 gets an error for
+ * no reason a human would accept.
+ *
+ * parseMonth in job/src/month.ts is the same rule and carries the tests. This
+ * copy exists so a typo is caught while somebody is still looking at the box,
+ * rather than arriving as a failure email a minute later.
+ */
+function parseMonth_(raw) {
+  var names = ['january', 'february', 'march', 'april', 'may', 'june',
+               'july', 'august', 'september', 'october', 'november', 'december'];
+  var parts = String(raw == null ? '' : raw).trim().split(/[^0-9A-Za-z]+/)
+    .filter(function (p) { return p; });
+  if (parts.length !== 2) return null;
+
+  var year = null, month = null, short = [];
+  for (var i = 0; i < parts.length; i++) {
+    var part = parts[i];
+    if (/^\d{4}$/.test(part)) {
+      year = Number(part);
+    } else if (/^\d{1,2}$/.test(part)) {
+      short.push(Number(part));
+    } else {
+      var w = part.toLowerCase(), found = -1;
+      for (var n = 0; n < names.length; n++) {
+        if (names[n] === w || (w.length >= 3 && names[n].indexOf(w) === 0)) { found = n; break; }
+      }
+      if (found === -1) return null;
+      month = found + 1;
+    }
+  }
+
+  if (month === null && short.length === 2) {
+    // 27-01 can only be a year and a month; 01-27 reads as month and year.
+    if (short[0] > 12) { year = 2000 + short[0]; month = short[1]; }
+    else { month = short[0]; year = 2000 + short[1]; }
+  } else if (short.length === 1) {
+    if (year === null) year = 2000 + short[0];
+    else if (month === null) month = short[0];
+    else return null;
+  } else if (short.length > 2) {
+    return null;
+  }
+
+  if (year === null || month === null) return null;
+  if (month < 1 || month > 12) return null;
+  // Narrow enough that a typo like 0227 is refused rather than quietly
+  // producing a card for the third century.
+  if (year < 2020 || year > 2099) return null;
+  return year + '-' + (month < 10 ? '0' + month : String(month));
+}
+
 function handleAdminMakeCard_(body) {
   var bad = checkPasscode_(body.passcode);
   if (bad) return json_({ ok: false, error: bad });
@@ -1136,9 +1191,16 @@ function handleAdminMakeCard_(body) {
     });
   }
 
-  var month = String(body.month || '').trim();
-  if (month && !/^\d{4}-\d{2}$/.test(month)) {
-    return json_({ ok: false, error: 'A month looks like 2027-01.' });
+  var typed = String(body.month || '').trim();
+  var month = '';
+  if (typed) {
+    month = parseMonth_(typed);
+    if (!month) {
+      return json_({
+        ok: false,
+        error: 'Could not read "' + typed + '" as a month. Try 01/2027, 1/27 or Jan 2027.'
+      });
+    }
   }
 
   // Building a card is not free and it emails somebody. Two people pressing

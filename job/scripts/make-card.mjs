@@ -22,6 +22,7 @@ import { fetchAll } from '../src/fetch.ts';
 import { normalizeAll } from '../src/normalize.ts';
 import { readSettings } from '../src/sheet.ts';
 import { addMonths, startOfMonth } from '../src/time.ts';
+import { parseMonth } from '../src/month.ts';
 
 loadDotEnv();
 
@@ -56,14 +57,15 @@ async function tell(contact, fields) {
 function asOf() {
   const want = (process.env.CARD_MONTH ?? '').trim();
   if (!want) return new Date();
-  const m = /^(\d{4})-(\d{2})$/.exec(want);
-  if (!m) {
-    console.error('CARD_MONTH should look like 2027-01, not "' + want + '".');
+  const month = parseMonth(want);
+  if (!month) {
+    console.error('Could not read "' + want + '" as a month. Try 01/2027 or 2027-01.');
     process.exit(1);
   }
+  const [y, m] = month.split('-');
   // cardMonths() always takes the two months AFTER the run, so asking for
   // January means running as though it were December.
-  return addMonths(new Date(Number(m[1]), Number(m[2]) - 1, 15, 12), -1, cfg.timezone);
+  return addMonths(new Date(Number(y), Number(m) - 1, 15, 12), -1, cfg.timezone);
 }
 
 const now = asOf();
