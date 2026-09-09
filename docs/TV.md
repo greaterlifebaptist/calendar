@@ -118,9 +118,15 @@ put one up in a hurry can take it down from the box they typed it into. An
 empty **save** is refused rather than treated as a clear, so a stray click
 cannot take a notice down silently.
 
-**The rail crawls when it no longer fits.** A notice pushes "Coming up" down,
-and on a busy week the last item or two would fall off the bottom with nothing
-to say so. It scrolls slowly and loops, at about four seconds a row.
+**The rail crawls when it no longer fits — and only then.** A notice pushes
+"Coming up" down, and on a busy week the last item or two would fall off the
+bottom with nothing to say so. A list that fits does not move at all.
+
+It scrolls at about five seconds a row, slow enough to read on the way past,
+then **rests for five seconds with the top of the list showing** before going
+round again. The rest lands exactly where the rule clears the top of the
+window, so it is the pause somebody needs to read the first two items properly
+rather than an arbitrary stop.
 
 The loop has no seam. The list is duplicated below itself with a rule between,
 and the travel is exactly the height of the first copy plus that rule — so at
@@ -131,7 +137,13 @@ without the rule you cannot tell where the list ended and started again.
 Speed is **seconds per row, not pixels per second**, so it reads the same on a
 1080p screen and a 4K one, and it is averaged across the rows rather than
 measured off the first — that one carries a countdown chip and is taller than
-the rest.
+the rest. `CRAWL_SECS_PER_ROW` and `CRAWL_PAUSE_MS` are the two numbers worth
+adjusting once it is on a real wall across a real room.
+
+The keyframes are written from JavaScript rather than sitting in the
+stylesheet, because both numbers depend on measurement: the travel is the
+height of this particular list, and the rest is a share of a duration that
+follows from it. A keyframe selector cannot take a custom property.
 
 `RAIL_MODE` at the top of the script switches between `"scroll"` and
 `"page"`, which holds a screenful, fades, and moves on. Anything else means no

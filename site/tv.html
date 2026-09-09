@@ -139,11 +139,9 @@ body{
   will-change:transform;
   animation:railcrawl var(--crawl-dur) linear infinite;
 }
-.railsep{flex:0 0 auto;height:0;border-top:.15vw solid var(--rule);opacity:.9}
-@keyframes railcrawl{
-  from{transform:translateY(0)}
-  to{transform:translateY(calc(-1 * var(--crawl-dist)))}
-}
+.railsep{flex:0 0 auto;height:1.6vw;display:flex;align-items:center}
+.railsep::after{content:"";display:block;width:100%;border-top:.15vw solid var(--rule)}
+
 
 .qrbox{
   flex:0 0 auto;background:var(--pine);border-radius:.7vw;padding:.9vw 1vw;
@@ -253,7 +251,14 @@ const HOLD_PAGE   = 9000;      // page mode: how long a page holds
 /* Scroll speed as seconds per row, not pixels per second. A wall is 1080p or
    4K and the rows scale with it, so a fixed pixel speed would read differently
    on each. "A row goes past every four seconds" holds on any screen. */
-const CRAWL_SECS_PER_ROW = 4;
+const CRAWL_SECS_PER_ROW = 5;
+
+/* How long it rests with the top of the list showing, once round.
+
+   The wrap is the moment the rule clears the top of the window, so pausing at
+   the start of each cycle is exactly a pause "once it comes back to the top".
+   Slow enough to read while moving, and still enough to read at rest. */
+const CRAWL_PAUSE_MS = 5000;
 
 const RELOAD_HOUR    = 4;
 const RELOAD_WINDOW  = 5;               // minutes past the hour to act within
@@ -655,12 +660,41 @@ function crawlRail(box, contentHeight){
   const rowHeight = contentHeight / originals.length;
   const speed = rowHeight / CRAWL_SECS_PER_ROW;   // pixels per second
 
-  box.style.setProperty("--crawl-dist", distance + "px");
-  box.style.setProperty("--crawl-dur", (distance / speed) + "s");
+  const travelMs = (distance / speed) * 1000;
+  const totalMs = travelMs + CRAWL_PAUSE_MS;
+  // Where the holding stops and the travelling starts, as a share of the whole
+  // cycle. Everything before this point sits at the top of the list.
+  const holdPct = (CRAWL_PAUSE_MS / totalMs) * 100;
+
+  crawlKeyframes(distance, holdPct);
+  box.style.setProperty("--crawl-dur", totalMs + "ms");
+
   // Force the browser to notice the animation is new, so a re-render restarts
   // it from the top rather than resuming mid-list.
   void box.offsetHeight;
   box.classList.add("crawling");
+}
+
+/**
+ * Rewrite the keyframes for the list as it currently stands.
+ *
+ * In JS rather than CSS because both numbers depend on measurement: the travel
+ * is the height of this particular list, and the hold is a percentage of a
+ * duration that follows from it. A keyframe selector cannot take a custom
+ * property, so the rule itself has to be rebuilt.
+ */
+function crawlKeyframes(distance, holdPct){
+  let sheet = document.getElementById("crawlKeys");
+  if (!sheet){
+    sheet = document.createElement("style");
+    sheet.id = "crawlKeys";
+    document.head.appendChild(sheet);
+  }
+  sheet.textContent =
+    "@keyframes railcrawl{" +
+      "0%," + holdPct.toFixed(3) + "%{transform:translateY(0)}" +
+      "100%{transform:translateY(-" + distance + "px)}" +
+    "}";
 }
 
 /** Hold a screenful, fade, move on. */
