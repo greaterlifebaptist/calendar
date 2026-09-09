@@ -58,5 +58,18 @@ jobs:
             exit 0
           fi
           git commit -m "Calendar card $(date -u +'%Y-%m-%d')"
-          git push
-          echo 'Pushed. The site redeploys within a couple of minutes.'
+
+          # The hourly sync commits to this repo too, and a build takes long
+          # enough to be overtaken by one. Without this, a card that built
+          # perfectly well would report failure for a reason that has nothing
+          # to do with the card.
+          for attempt in 1 2 3; do
+            if git push; then
+              echo 'Pushed. The site redeploys within a couple of minutes.'
+              exit 0
+            fi
+            echo "Push $attempt was beaten to it; rebasing and trying again."
+            git pull --rebase
+          done
+          echo '::error::Could not push the card after three attempts.'
+          exit 1
