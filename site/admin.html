@@ -543,6 +543,20 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">"
 const KEY = "glbc.admin.pass";
 const TOKEN_KEY = "glbc.admin.idtoken";
 
+/*
+ * The oldest endpoint this page can work with.
+ *
+ * These two halves ship differently and always will: the site deploys itself
+ * on a push, the Apps Script endpoint is pasted in by hand. So there is always
+ * a window where the page is newer than the thing it talks to, and everything
+ * added in between fails on a button press with "Unknown action" — which reads
+ * like a bug in the page rather than a deploy that has not happened yet.
+ *
+ * Compared as text, which works because the marker is a fixed-width datestamp:
+ * "2026-09-09f" sorts before "2026-09-10a" for the same reason the dates do.
+ */
+const NEEDS_ENDPOINT = "2026-09-10a";
+
 let ENDPOINT = "";
 let MINISTRIES = [];
 
@@ -568,7 +582,7 @@ let ME = "";
  */
 let ROLE = "";
 let CAN = { events: true, people: true, notices: true, rsvps: true, leaders: true };
-let CONFIG = { clientId: "", signInRequired: false };
+let CONFIG = { clientId: "", signInRequired: false, version: "" };
 
 /** Whichever proof this browser is holding, shaped for the endpoint. */
 function auth(){
@@ -2085,8 +2099,16 @@ async function start(){
     const cfg2 = await call({ action:"config" });
     CONFIG.clientId = cfg2.clientId || "";
     CONFIG.signInRequired = !!cfg2.signInRequired;
+    CONFIG.version = cfg2.version || "";
   } catch {
     // An endpoint too old to know the question still knows the passcode.
+  }
+
+  if (CONFIG.version && CONFIG.version < NEEDS_ENDPOINT){
+    notice("The church server is running an older version",
+      "This page expects " + NEEDS_ENDPOINT + " and the server is on " + CONFIG.version +
+      ". Most things still work; anything newer than that will say \"Unknown action\" " +
+      "until Code.gs is pasted into Apps Script and deployed.", "warn");
   }
 
   $("signinBox").hidden = !CONFIG.clientId;

@@ -76,3 +76,25 @@ test('the sign-in flow keeps its two ways out', () => {
   has('function signInUnavailable',
     'a blocked Google library would leave no way in at all');
 });
+
+test('the page never asks for an endpoint version that does not exist yet', () => {
+  // The two halves ship differently — the site on a push, the endpoint by
+  // hand — so the page tells the reader when the endpoint is behind it. That
+  // warning is only useful while the version it names is one that has been
+  // written; asking for a future one would nag forever with no fix available.
+  const needs = /const NEEDS_ENDPOINT = "([^"]+)"/.exec(SCRIPT);
+  assert.ok(needs, 'the page no longer states which endpoint it needs');
+
+  const code = readFileSync(
+    new URL('../../site/apps-script/Code.gs', import.meta.url), 'utf8');
+  const shipped = /var VERSION = '([^']+)'/.exec(code);
+  assert.ok(shipped, 'Code.gs has no version marker');
+
+  assert.ok(needs![1] <= shipped![1],
+    'the page wants endpoint ' + needs![1] + ' but Code.gs is only ' + shipped![1]);
+
+  // Both are datestamps, which is what makes comparing them as text correct.
+  for (const v of [needs![1], shipped![1]]) {
+    assert.match(v, /^\d{4}-\d{2}-\d{2}[a-z]?$/, v + ' is not a datestamp');
+  }
+});
