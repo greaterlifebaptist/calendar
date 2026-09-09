@@ -109,9 +109,26 @@ skipped, and the whole classifier exists to avoid depending on that.
 
 ## Making one
 
-**Manual, never automatic.** Actions > **Make the calendar card** > Run
-workflow. It builds the PDF, commits it, and the site redeploys within a couple
-of minutes; the run summary carries the link to download and send on.
+**Manual, never automatic.** Admin page > **Notices** > **Make the card**.
+It builds the PDF, emails it, publishes it, and the site redeploys within a
+couple of minutes.
+
+The button is the point. Making a card is a once-a-month job for whoever runs
+the church calendar, not a build task — sending somebody into a continuous
+integration UI to do it is how a feature quietly stops being used. The Actions
+tab still works if it is ever needed.
+
+It needs two script properties, the same pair that makes a new signup link
+work immediately:
+
+| Property | Value |
+|---|---|
+| `GITHUB_REPO` | `greaterlifebaptist/calendar` |
+| `GITHUB_DISPATCH_TOKEN` | a fine-grained token with **Contents: read and write** on that repository only |
+
+Pressing it twice is refused for a few minutes. Building a card is not free and
+it emails somebody; two people pressing, or one person pressing again because
+nothing visibly happened, should not send two cards.
 
 Manual on purpose. A card goes to a printer on the church's schedule, not the
 calendar's — somebody may add an event on the 16th, right before it is sent. An

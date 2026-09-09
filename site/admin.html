@@ -384,6 +384,23 @@ footer a{color:var(--clay)}
       off the card entirely, so a note here is how people still hear about it. It appears on the
       next card generated, not on cards already printed.</p>
   </div>
+
+  <div class="card">
+    <span class="lab" style="display:block;margin-bottom:5px">Make the card</span>
+    <p class="lede" style="font-size:.86rem;margin:0 0 12px">Builds a PDF of the next two months
+      and emails it, ready to send to the printer. Takes a minute or two — the email arrives on
+      its own, and you get one either way if something goes wrong.</p>
+    <div class="row">
+      <label>
+        <span class="lab">First month <span class="hint">— blank for the next two</span></span>
+        <input type="text" id="cardMonth" maxlength="7" placeholder="2027-01">
+      </label>
+      <label><span class="lab">&nbsp;</span>
+        <button type="button" class="primary" id="cardMake" style="width:100%">Make the card</button>
+      </label>
+    </div>
+    <p class="status" id="cardMakeStatus"></p>
+  </div>
 </div>
 
 <div id="paneRsvps" hidden>
@@ -1077,6 +1094,29 @@ async function loadCardNotes(){
     // The wall notice above still works; this section simply stays empty.
   }
 }
+
+$("cardMake").addEventListener("click", async () => {
+  const st = $("cardMakeStatus");
+  $("cardMake").disabled = true;
+  st.className = "status";
+  st.textContent = "Asking for it…";
+  try {
+    const out = await call({
+      action:"admin.makecard", passcode:PASS, month: $("cardMonth").value.trim(),
+    });
+    st.className = "status ok";
+    st.textContent = out.emailTo
+      ? "Started. " + out.emailTo + " gets it by email in a minute or two."
+      : "Started, but nobody is set to receive it — set that above and it will be emailed too.";
+  } catch (err) {
+    st.className = "status err";
+    st.textContent = (err && err.fromServer && err.message) || "Could not ask for it.";
+  } finally {
+    // Left enabled: a second press is refused by the endpoint rather than
+    // being silently impossible, which is the more honest of the two.
+    $("cardMake").disabled = false;
+  }
+});
 
 $("cardNotesSave").addEventListener("click", async () => {
   const st = $("cardNotesStatus");

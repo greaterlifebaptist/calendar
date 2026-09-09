@@ -6,6 +6,12 @@ name: Make the calendar card
 # already gone to the printer, so the copy on the site would stop matching what
 # was actually printed.
 on:
+  # The button on the admin page. Making a card is a once-a-month job for
+  # whoever runs the church calendar, not a build task, and sending somebody
+  # into the Actions tab to do it is how a feature quietly stops being used.
+  repository_dispatch:
+    types: [make-card]
+
   workflow_dispatch:
     inputs:
       month:
@@ -41,7 +47,9 @@ jobs:
         env:
           GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
           SHEET_ID: ${{ secrets.SHEET_ID }}
-          CARD_MONTH: ${{ inputs.month }}
+          # From the button, or from the Actions tab. Either may be blank,
+          # which means the two months ahead.
+          CARD_MONTH: ${{ inputs.month || github.event.client_payload.month }}
           # Lets the run hand the finished card to the Apps Script endpoint to
           # email. Without it the card is still built and published; only the
           # email is skipped, and the log says so.

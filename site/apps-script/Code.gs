@@ -46,7 +46,7 @@
  * file is handed over: the date, plus a letter if more than one goes out that
  * day.
  */
-var VERSION = '2026-09-09c';
+var VERSION = '2026-09-09d';
 
 var SITE = 'https://calendars.greaterlifebaptistchurch.com';
 var EVENTS_JSON = SITE + '/events.json';
@@ -305,7 +305,7 @@ function doGet() {
       'share',
       'admin.people', 'admin.setgroups', 'admin.share', 'admin.remove',
       'contacts', 'rsvp', 'admin.rsvps', 'notice', 'admin.notice', 'admin.settings',
-      'card.mail'
+      'card.mail', 'admin.makecard'
     ],
     adminReady: !!adminPasscode_(),
     calendar: calendarOk,
@@ -346,6 +346,7 @@ function doPost(e) {
     if (action === 'admin.notice')    return handleAdminNotice_(body);
     if (action === 'admin.settings')  return handleAdminSettings_(body);
     if (action === 'card.mail')       return handleCardMail_(body);
+    if (action === 'admin.makecard')  return handleAdminMakeCard_(body);
     if (action === 'contacts')        return handleContacts_(body);
     if (action === 'rsvp')            return handleRsvp_(body);
     if (action === 'admin.rsvps')     return handleAdminRsvps_(body);
@@ -1105,6 +1106,68 @@ function handleAdminSettings_(body) {
     cardNotes: readSetting_('cardNotes'),
     cardEmail: readSetting_('cardEmail')
   });
+}
+
+/**
+ * Ask GitHub to build the calendar card now.
+ *
+ * A button here rather than a trip to the Actions tab. Making a card is a
+ * once-a-month job for whoever runs the church calendar, not a build task, and
+ * sending somebody into a continuous integration UI to do it is how a feature
+ * quietly stops being used.
+ *
+ * Firing it is all this can do. The run takes a minute or two, and what comes
+ * back is an email with the card attached — or, if it fails, an email saying
+ * so. That is the reason this can be fire-and-forget: the answer arrives by
+ * itself either way.
+ */
+function handleAdminMakeCard_(body) {
+  var bad = checkPasscode_(body.passcode);
+  if (bad) return json_({ ok: false, error: bad });
+
+  var props = PropertiesService.getScriptProperties();
+  var repo = String(props.getProperty('GITHUB_REPO') || '').trim();
+  var token = String(props.getProperty('GITHUB_DISPATCH_TOKEN') || '').trim();
+  if (!repo || !token) {
+    return json_({
+      ok: false,
+      error: 'This needs GITHUB_REPO and GITHUB_DISPATCH_TOKEN in Project Settings > ' +
+        'Script Properties. See docs/CARD.md.'
+    });
+  }
+
+  var month = String(body.month || '').trim();
+  if (month && !/^\d{4}-\d{2}$/.test(month)) {
+    return json_({ ok: false, error: 'A month looks like 2027-01.' });
+  }
+
+  // Building a card is not free and it emails somebody. Two people pressing
+  // the button, or one pressing it twice because nothing visibly happened,
+  // should not send two cards.
+  var cache = CacheService.getScriptCache();
+  if (cache.get('card_asked')) {
+    return json_({ ok: false, error: 'A card was already asked for in the last few minutes.' });
+  }
+
+  var res = UrlFetchApp.fetch('https://api.github.com/repos/' + repo + '/dispatches', {
+    method: 'post',
+    muteHttpExceptions: true,
+    contentType: 'application/json',
+    headers: { Authorization: 'Bearer ' + token, Accept: 'application/vnd.github+json' },
+    payload: JSON.stringify({ event_type: 'make-card', client_payload: { month: month } })
+  });
+
+  if (res.getResponseCode() !== 204) {
+    return json_({
+      ok: false,
+      error: 'GitHub refused: ' + res.getResponseCode() + '. Check the token has ' +
+        'Contents: read and write on this repository.'
+    });
+  }
+
+  cache.put('card_asked', '1', 180);
+  var to = readSetting_('cardEmail');
+  return json_({ ok: true, month: month, emailTo: to });
 }
 
 /**
