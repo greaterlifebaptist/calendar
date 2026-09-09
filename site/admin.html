@@ -1914,10 +1914,13 @@ function renderLeaders(list){
 
     const who = document.createElement("div");
     who.className = "who";
+    // Only when the server actually said one. An endpoint too old to have
+    // levels sends no role, and filling that blank in with the lowest one
+    // states somebody's permissions as fact on the strength of a guess.
     who.innerHTML = "<b>" + esc(leader.name || leader.email) + "</b>" +
       "<span>" + esc(leader.email) + "</span>" +
-      '<span class="lvl ' + esc(leader.role || "leader") + '">' +
-      esc(leader.role || "leader") + "</span>";
+      (leader.role ? '<span class="lvl ' + esc(leader.role) + '">' +
+        esc(leader.role) + "</span>" : '<span class="lvl">level unknown</span>');
     const st = document.createElement("span");
     st.className = "st";
     who.appendChild(st);
@@ -1928,6 +1931,7 @@ function renderLeaders(list){
     scope.innerHTML = leader.ministries
       ? "Calendars: <b>" + esc(leader.ministries) + "</b>"
       : "Calendars: <b>all of them</b>";
+    if (!leader.role) scope.hidden = true;
     card.appendChild(scope);
 
     if (leader.notes){
