@@ -189,7 +189,7 @@ footer a{color:var(--clay)}
     <button type="button" role="tab" id="tabEvents" aria-selected="true">Events</button>
     <button type="button" role="tab" id="tabPeople" aria-selected="false">Who gets what</button>
     <button type="button" role="tab" id="tabRsvps" aria-selected="false">RSVPs</button>
-    <button type="button" role="tab" id="tabNotice" aria-selected="false">Wall notice</button>
+    <button type="button" role="tab" id="tabNotice" aria-selected="false">Notices</button>
   </div>
 
 <div id="paneEvents">
@@ -357,6 +357,27 @@ footer a{color:var(--clay)}
     <p class="lede" style="font-size:.8rem;margin-top:12px">Leaving the end date blank keeps it
       up until somebody takes it down. A date is safer: nothing looks worse on a wall than last
       month's urgent notice.</p>
+  </div>
+
+  <h2 style="font-family:var(--display);font-size:1.15rem;color:var(--pine);margin:26px 0 0">
+    On the printed card</h2>
+  <p class="lede" style="font-size:.86rem">Standing notes printed at the foot of the calendar
+    card, one per line. They exist so something on a regular rhythm is one sentence rather than
+    eight identical dated lines eating the card.</p>
+
+  <div class="card">
+    <label>
+      <span class="lab">Standing notes <span class="hint">— one per line</span></span>
+      <textarea id="cardNotes" maxlength="400"
+        placeholder="Supper served 1st &amp; 3rd Thursday at 5:30, during the school year."></textarea>
+    </label>
+    <div class="actions">
+      <button type="button" class="primary" id="cardNotesSave">Save</button>
+      <span class="status" id="cardNotesStatus"></span>
+    </div>
+    <p class="lede" style="font-size:.8rem;margin-top:12px">Anything marked <b>Routine</b> is kept
+      off the card entirely, so a note here is how people still hear about it. It appears on the
+      next card generated, not on cards already printed.</p>
   </div>
 </div>
 
@@ -928,7 +949,7 @@ function showTab(which){
   });
   if (which === "people" && !peopleLoaded) loadPeople();
   if (which === "rsvps") loadRsvps();
-  if (which === "notice") loadNotice();
+  if (which === "notice"){ loadNotice(); loadCardNotes(); }
 }
 
 $("tabEvents").addEventListener("click", () => showTab("events"));
@@ -1027,6 +1048,32 @@ $("noticeSave").addEventListener("click", () => {
 });
 
 $("noticeClear").addEventListener("click", () => saveNotice("", ""));
+
+async function loadCardNotes(){
+  try {
+    const out = await call({ action:"admin.settings", passcode:PASS, read:true });
+    $("cardNotes").value = out.cardNotes || "";
+  } catch {
+    // The wall notice above still works; this section simply stays empty.
+  }
+}
+
+$("cardNotesSave").addEventListener("click", async () => {
+  const st = $("cardNotesStatus");
+  $("cardNotesSave").disabled = true;
+  st.className = "status";
+  st.textContent = "Saving…";
+  try {
+    await call({ action:"admin.settings", passcode:PASS, cardNotes: $("cardNotes").value });
+    st.className = "status ok";
+    st.textContent = "Saved. It appears on the next card generated.";
+  } catch (err) {
+    st.className = "status err";
+    st.textContent = (err && err.fromServer && err.message) || "Could not save.";
+  } finally {
+    $("cardNotesSave").disabled = false;
+  }
+});
 
 /**
  * Responses, grouped by event, soonest first.

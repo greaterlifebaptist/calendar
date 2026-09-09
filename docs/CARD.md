@@ -50,8 +50,16 @@ forty identical lines across two months, crowding out the things people
 actually need telling. They stay on the website and the wall display, where
 space is not scarce and the real dates are useful.
 
-The card carries a standing note instead, from `card.standingNotes` in
-[`ministries.json`](../job/config/ministries.json):
+The card carries a standing note instead. Edit it on the admin page under
+**Notices**, one per line — that is where anything on a regular rhythm belongs,
+since marking it `ROUTINE:` is what keeps it off the dated list.
+
+Those notes live in a **Settings** tab in the membership sheet rather than
+somewhere only Apps Script can reach, because the job already has authenticated
+access to that sheet and none at all to the script. A card built once a month
+must not fail on an HTTP call to a web app, and a leader can read or correct the
+value directly if the page is ever unavailable. Until somebody sets one, the
+default in [`ministries.json`](../job/config/ministries.json) stands:
 
 > Supper served 1st & 3rd Thursday at 5:30, during the school year.
 

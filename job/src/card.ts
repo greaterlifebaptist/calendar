@@ -227,6 +227,12 @@ export type CardInput = {
   /** The church logo, JPEG. Drawn at the top of the front. */
   logo?: Uint8Array;
   qrPdf?: Uint8Array;
+  /**
+   * Standing notes from the admin page, one per line, overriding the config
+   * defaults. Blank or absent means fall back to config, so the card still
+   * carries something sensible before anybody has touched the page.
+   */
+  standingNotes?: string;
 };
 
 export async function buildCard(input: CardInput): Promise<CardResult> {
@@ -262,7 +268,12 @@ export async function buildCard(input: CardInput): Promise<CardResult> {
   const QR_SIZE = 62;
   const QR_X = R - QR_SIZE;
   const QR_Y = BLEED + SAFE + 2;
-  const FOOT = QR_Y + QR_SIZE + 12;
+  // The label sits ABOVE the code rather than beside it. Beside, it shared a
+  // band with the ruled notes lines and printed straight over them; above, the
+  // code and its label are one block that everything else can avoid.
+  const QR_LABEL_H = 22;
+  const QR_TOP = QR_Y + QR_SIZE + QR_LABEL_H;
+  const FOOT = QR_TOP + 10;
 
   // ---- masthead ----
   let y = TOP;
@@ -270,7 +281,7 @@ export async function buildCard(input: CardInput): Promise<CardResult> {
     const jpg = await doc.embedJpg(input.logo);
     const w = 2.5 * PT;
     const h = (jpg.height / jpg.width) * w;
-    front.drawImage(jpg, { x: L, y: y - h, width: w, height: h });
+    front.drawImage(jpg, { x: (PAGE_W - w) / 2, y: y - h, width: w, height: h });
     y -= h + 14;
   } else {
     front.drawText('GREATER LIFE BAPTIST CHURCH', {
@@ -361,9 +372,11 @@ export async function buildCard(input: CardInput): Promise<CardResult> {
     back.drawText('NOTES', { x: L, y: y - 10, size: 10, font: f.displayBold, color: SOFT });
     y -= 22;
     while (y > QR_Y + 4) {
-      const nearQr = y < QR_Y + QR_SIZE + 8;
+      // Lines that reach the code's block stop short of it. The whole block,
+      // label included, so nothing is ever printed over.
+      const beside = y < QR_TOP + 4;
       back.drawLine({
-        start: { x: L, y }, end: { x: nearQr ? QR_X - 12 : R, y },
+        start: { x: L, y }, end: { x: beside ? QR_X - 12 : R, y },
         thickness: 0.5, color: RULE,
       });
       y -= 19;
@@ -371,7 +384,9 @@ export async function buildCard(input: CardInput): Promise<CardResult> {
   }
 
   // ---- the standing notes, front only, and the QR on both ----
-  const notes = cfg.card?.standingNotes ?? [];
+  const notes = (input.standingNotes ?? '').trim()
+    ? input.standingNotes!.split(/\r?\n/).map((n) => n.trim()).filter(Boolean)
+    : (cfg.card?.standingNotes ?? []);
   let fy = QR_Y + QR_SIZE - 10;
   for (const n of notes) {
     for (const row of wrap(n, f.body, 8.4, CONTENT_W - QR_SIZE - 100)) {
@@ -382,14 +397,15 @@ export async function buildCard(input: CardInput): Promise<CardResult> {
 
   if (input.qrPdf) {
     const [qrFront, qrBack] = await doc.embedPdf(input.qrPdf, [0, 0]);
+    // Right-aligned to the code's own right edge, so the block reads as one
+    // thing rather than a caption that drifted.
+    const right = (pg: PDFPage, text: string, yy: number, size: number, font: PDFFont, color: typeof INK) => {
+      pg.drawText(text, { x: R - font.widthOfTextAtSize(text, size), y: yy, size, font, color });
+    };
     for (const [pg, qr] of [[front, qrFront], [back, qrBack]] as const) {
       pg.drawPage(qr!, { x: QR_X, y: QR_Y, width: QR_SIZE, height: QR_SIZE });
-      pg.drawText('Scan for the', {
-        x: QR_X - 86, y: QR_Y + 34, size: 8.4, font: f.body, color: SOFT,
-      });
-      pg.drawText('live calendar', {
-        x: QR_X - 86, y: QR_Y + 22, size: 9.6, font: f.bodyBold, color: INK,
-      });
+      right(pg, 'Scan for the', QR_Y + QR_SIZE + 12, 8.4, f.body, SOFT);
+      right(pg, 'live calendar', QR_Y + QR_SIZE + 1, 9.6, f.bodyBold, INK);
     }
   }
 

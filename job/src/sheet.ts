@@ -58,6 +58,33 @@ function sheetId(): string {
 
 const norm = (s: string) => s.trim().toLowerCase();
 
+/**
+ * Settings a leader can change from the admin page that this job needs.
+ *
+ * In the sheet rather than reachable only from Apps Script, because this job
+ * already has authenticated access here and none at all to that script. A card
+ * built once a month must not fail on an HTTP call to a web app, and a leader
+ * can read and correct these directly if the page is ever unavailable.
+ *
+ * A missing tab is not an error: it simply means nobody has set anything, and
+ * the config defaults stand.
+ */
+export async function readSettings(): Promise<Record<string, string>> {
+  const range = encodeURIComponent('Settings!A1:B200');
+  try {
+    const data = await googleRequest(`${SHEETS}/${sheetId()}/values/${range}`, { label: 'Sheets' });
+    const rows: string[][] = data.values ?? [];
+    const out: Record<string, string> = {};
+    for (const r of rows.slice(1)) {
+      const key = String(r[0] ?? '').trim();
+      if (key) out[key] = String(r[1] ?? '');
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
 export async function readPeople(cfg: Config): Promise<PeopleSheet> {
   const range = encodeURIComponent(`${PEOPLE_TAB}!A1:ZZ`);
   const data = await googleRequest(`${SHEETS}/${sheetId()}/values/${range}`, { label: 'Sheets' });

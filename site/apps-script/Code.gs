@@ -46,7 +46,7 @@
  * file is handed over: the date, plus a letter if more than one goes out that
  * day.
  */
-var VERSION = '2026-09-09a';
+var VERSION = '2026-09-09b';
 
 var SITE = 'https://calendars.greaterlifebaptistchurch.com';
 var EVENTS_JSON = SITE + '/events.json';
@@ -61,6 +61,17 @@ var CONTACTS_TAB = 'Contacts';
 
 /** One row per response. Append-only, and it grows. */
 var RSVPS_TAB = 'RSVPs';
+
+/**
+ * Settings a leader can change that the hourly job needs to read.
+ *
+ * The sheet rather than a script property, because the job already has
+ * authenticated access to the sheet and none at all to this script. A card is
+ * generated once a month; it must not fail because an HTTP call to Apps Script
+ * timed out. It is also visible and editable directly, which is a better
+ * fallback than a value only this page can see.
+ */
+var SETTINGS_TAB = 'Settings';
 
 /**
  * Fallback spreadsheet id, for a script that is not bound to the sheet.
@@ -293,7 +304,7 @@ function doGet() {
       'admin.hello', 'admin.list', 'admin.save', 'admin.delete',
       'share',
       'admin.people', 'admin.setgroups', 'admin.share', 'admin.remove',
-      'contacts', 'rsvp', 'admin.rsvps', 'notice', 'admin.notice'
+      'contacts', 'rsvp', 'admin.rsvps', 'notice', 'admin.notice', 'admin.settings'
     ],
     adminReady: !!adminPasscode_(),
     calendar: calendarOk,
@@ -332,6 +343,7 @@ function doPost(e) {
     if (action === 'admin.setgroups') return handleAdminSetGroups_(body);
     if (action === 'notice')          return handleNotice_(body);
     if (action === 'admin.notice')    return handleAdminNotice_(body);
+    if (action === 'admin.settings')  return handleAdminSettings_(body);
     if (action === 'contacts')        return handleContacts_(body);
     if (action === 'rsvp')            return handleRsvp_(body);
     if (action === 'admin.rsvps')     return handleAdminRsvps_(body);
@@ -1012,6 +1024,62 @@ function handleAdminRemove_(body) {
     // run rather than this instant.
     rebuild: requestRebuild_('removal')
   });
+}
+
+// ---------------------------------------------------------------------------
+// Settings the job reads
+// ---------------------------------------------------------------------------
+
+function settingsSheet_() { return tab_(SETTINGS_TAB, ['key', 'value', 'what it is']); }
+
+function readSetting_(key) {
+  var sheet = settingsSheet_();
+  var last = sheet.getLastRow();
+  if (last < 2) return '';
+  var rows = sheet.getRange(2, 1, last - 1, 2).getValues();
+  for (var i = 0; i < rows.length; i++) {
+    if (String(rows[i][0] || '').trim() === key) return String(rows[i][1] || '');
+  }
+  return '';
+}
+
+function writeSetting_(key, value, what) {
+  var sheet = settingsSheet_();
+  var last = sheet.getLastRow();
+  if (last >= 2) {
+    var rows = sheet.getRange(2, 1, last - 1, 1).getValues();
+    for (var i = 0; i < rows.length; i++) {
+      if (String(rows[i][0] || '').trim() === key) {
+        sheet.getRange(i + 2, 2).setValue(value);
+        return;
+      }
+    }
+  }
+  sheet.appendRow([key, value, what || '']);
+}
+
+/**
+ * The standing notes printed at the foot of the calendar card.
+ *
+ * One per line. They exist so a fortnightly supper is one sentence rather than
+ * eight identical dated lines eating the card, so this is where anything on a
+ * regular rhythm belongs.
+ */
+function handleAdminSettings_(body) {
+  var bad = checkPasscode_(body.passcode);
+  if (bad) return json_({ ok: false, error: bad });
+
+  if (body.read) {
+    return json_({ ok: true, cardNotes: readSetting_('cardNotes') });
+  }
+
+  var notes = String(body.cardNotes === undefined ? '' : body.cardNotes).trim();
+  if (notes.length > 400) {
+    return json_({ ok: false, error: 'That is longer than the foot of a card can hold.' });
+  }
+  writeSetting_('cardNotes', notes,
+    'Standing notes printed at the foot of the calendar card, one per line.');
+  return json_({ ok: true, cardNotes: notes });
 }
 
 // ---------------------------------------------------------------------------
