@@ -132,6 +132,52 @@ async function checkMergedFeeds(cfg: Config): Promise<void> {
   }
 }
 
+/**
+ * Confirm the endpoint everything user-facing depends on is answering.
+ *
+ * That one URL carries signup, preferences, RSVP, the admin form, the wall
+ * notice and the card button. A bad deploy takes all of it down at once, and
+ * nothing else in this run would notice — the feeds and the site would keep
+ * publishing perfectly while nobody could sign up.
+ *
+ * An annotation rather than a failed run, for the same reason as the merge
+ * check: the endpoint being down must not stop the calendar publishing.
+ */
+async function checkEndpoint(cfg: Config): Promise<void> {
+  const url = cfg.site.signupEndpoint;
+  if (!url) return;
+  try {
+    const res = await fetch(url, {
+      redirect: 'follow',
+      signal: AbortSignal.timeout(20000),
+    });
+    // The health shape the endpoint reports. Narrow on purpose: this only
+    // needs to know whether it is alive and whether it can see the sheet.
+    type Health = { ok?: boolean; sheet?: boolean; detail?: string; version?: string };
+    const body: Health | null = res.ok
+      ? await res.json().then((j) => j as Health).catch(() => null)
+      : null;
+    if (!body?.ok) {
+      log('::error::The signup and admin endpoint is not answering properly (' +
+        res.status + '). Signup, RSVPs, the admin form and the wall notice are ' +
+        'all down until it is redeployed. See docs/SIGNUP.md.');
+      return;
+    }
+    // The sheet is the half that fails quietly: the script can be up and still
+    // unable to see the membership tab, which breaks signup and nothing else.
+    if (body.sheet === false) {
+      log('::error::The endpoint is up but cannot see the membership sheet: ' +
+        (body.detail || 'no detail given') + '. Nobody can sign up.');
+      return;
+    }
+    log('  endpoint     ok, version ' + (body.version ?? 'unknown'));
+  } catch (err) {
+    log('::error::Could not reach the signup and admin endpoint: ' +
+      (err instanceof Error ? err.message : String(err)) +
+      '. Signup, RSVPs and the admin form may all be down.');
+  }
+}
+
 /** Say when the next reminders land, so a quiet run is not a mystery. */
 function reportUpcoming(
   cfg: Config, ministries: Ministry[], instances: CalEvent[], masters: CalEvent[],
@@ -296,6 +342,7 @@ export async function run(): Promise<number> {
   log('  backup       ' + backup.events + ' raw events from ' + backup.calendars + ' calendars');
 
   await checkMergedFeeds(cfg);
+  await checkEndpoint(cfg);
 
   // ---- reminders ----
   // Last, and behind every guard in remind.ts. Everything above this point

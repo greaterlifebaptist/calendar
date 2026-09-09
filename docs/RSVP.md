@@ -65,7 +65,22 @@ counting a list should not have to work out which "Jane Doe" is current.
 
 Any event that names a contact gets an **I'm coming** button on the calendar
 page. It opens a short form: name, how many, and optional phone and note. The
-button then reads "You're down for 4".
+button then reads "You're down for 4 — change it", and **still does after a
+refresh**.
+
+That last part matters more than it sounds. The server was always safe —
+answering twice under the same name replaces the first answer rather than
+adding a second — but the reader could not tell. Reload the page and the
+confirmation vanished, so the honest thing to do was fill it in again and then
+wonder whether the family had just been counted twice.
+
+It is remembered per browser, in local storage, and pressing "change it"
+prefills what they said last time so a change is a change rather than a
+retype. Per browser deliberately: recognising a returning person any other way
+means asking who they are before they have said anything, and this form's whole
+merit is that it asks for a name and a number and nothing else. Somebody who
+answers on their phone and later opens the page on a laptop sees the plain
+button again — and if they answer twice, the server still counts them once.
 
 Events with no contact get no button. One with nowhere to send is worse than
 none at all.

@@ -121,7 +121,8 @@ body{background:var(--ivory);color:var(--ink);font-family:var(--body);font-size:
 /* ---------- rsvp ---------- */
 .rsvpbtn{margin-top:10px;font-family:var(--body);font-size:.82rem;font-weight:700;border:1.5px solid var(--pine);background:#fff;color:var(--pine);border-radius:8px;padding:8px 15px;cursor:pointer}
 .rsvpbtn:hover{background:var(--pine);color:#fff}
-.rsvpbtn.done{border-color:var(--rule);color:var(--ink-soft);cursor:default}
+.rsvpbtn.done{border-color:var(--pine);color:var(--pine);background:#F5FAF7}
+.rsvpbtn.done:hover{background:var(--pine);color:#fff}
 .rsvpform{margin-top:11px;border:1.5px solid var(--pine);border-radius:9px;padding:12px 13px;background:#F5FAF7}
 .rsvpform p.ask{margin:0 0 10px;font-size:.84rem;color:var(--ink-soft)}
 .rsvpform .fields{display:flex;flex-wrap:wrap;gap:8px}
@@ -473,12 +474,68 @@ function renderPinned(){
  * Answering twice replaces the first answer rather than adding a second, so
  * changing your numbers is just filling it in again.
  */
+/*
+ * What this browser has already said it is coming to.
+ *
+ * The server has always been safe: answering twice under the same name
+ * replaces the first answer rather than adding a second. What was missing was
+ * the reader knowing that. Refresh the page and "You're down for 4" vanished,
+ * so the honest thing for somebody to do was fill it in again — and wonder
+ * whether they had just double-booked their family.
+ *
+ * Per browser, deliberately. Recognising a returning person any other way
+ * means asking who they are before they have said anything, and this form's
+ * whole merit is that it asks for a name and a number and nothing else.
+ */
+const RSVP_KEY = "glbc.rsvps.v1";
+
+function rsvpKey(e){ return e.uid + "|" + e.start; }
+
+function myRsvps(){
+  try { return JSON.parse(localStorage.getItem(RSVP_KEY) || "{}"); }
+  catch { return {}; }
+}
+
+function rememberRsvp(e, name, count){
+  try {
+    const all = myRsvps();
+    all[rsvpKey(e)] = { name, count, at: Date.now() };
+    // Only what is still ahead. A year of past events would otherwise sit in
+    // storage forever for no benefit.
+    const alive = {};
+    const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+    for (const [k, v] of Object.entries(all)){
+      const when = Date.parse(k.split("|")[1]);
+      if (!Number.isFinite(when) || when > cutoff) alive[k] = v;
+    }
+    localStorage.setItem(RSVP_KEY, JSON.stringify(alive));
+  } catch {
+    // Private browsing, or storage switched off. The RSVP still went through;
+    // this reader simply will not be recognised when they come back.
+  }
+}
+
+function forgetRsvp(e){
+  try {
+    const all = myRsvps();
+    delete all[rsvpKey(e)];
+    localStorage.setItem(RSVP_KEY, JSON.stringify(all));
+  } catch {}
+}
+
 function addRsvp(card, e){
   const btn = document.createElement("button");
   btn.type = "button";
   btn.className = "rsvpbtn";
-  btn.textContent = "I'm coming";
   card.appendChild(btn);
+
+  const mine = myRsvps()[rsvpKey(e)];
+  if (mine){
+    btn.classList.add("done");
+    btn.textContent = "You're down for " + mine.count + " — change it";
+  } else {
+    btn.textContent = "I'm coming";
+  }
 
   btn.addEventListener("click", () => {
     if (card.querySelector(".rsvpform")) return;
@@ -498,6 +555,10 @@ function addRsvp(card, e){
       '</div>' +
       '<div class="go"><button type="button">Send</button><span class="st"></span></div>';
     card.appendChild(form);
+    if (mine){
+      form.querySelector(".r-name").value = mine.name || "";
+      form.querySelector(".r-count").value = mine.count || 1;
+    }
     form.querySelector(".r-name").focus();
 
     const st = form.querySelector(".st");
@@ -527,13 +588,11 @@ function addRsvp(card, e){
         });
         const out = await res.json();
         if (!out.ok) throw new Error(out.error || "That did not go through.");
+        rememberRsvp(e, name, count);
         form.remove();
         btn.hidden = false;
         btn.classList.add("done");
-        btn.disabled = true;
-        btn.textContent = out.updated
-          ? "Updated — " + count + " of you"
-          : "You're down for " + count;
+        btn.textContent = "You're down for " + count + " — change it";
       } catch (err) {
         st.className = "st err";
         st.textContent = (err && err.message) || "Could not reach the church server.";
