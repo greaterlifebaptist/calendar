@@ -1,0 +1,81 @@
+# The printed calendar card
+
+A half sheet, both sides, handed out at church and stuck on a fridge. It is the
+one part of this system that reaches people who will never open the website,
+and the only part that cannot be corrected after it ships.
+
+Historically the church sent a list of dates to a print company who pasted it
+into their template. This produces the finished PDF instead, so the design is
+ours and any printer that takes a PDF can print it.
+
+## What it is
+
+| | |
+|---|---|
+| Trim | 5.5 × 8.5in — half of US Letter, portrait |
+| Bleed | 0.125in on every edge |
+| Safe margin | 0.25in inside the trim |
+| Pages | 2 — front and back |
+| Colour | black and the church green; the logo is the only colour |
+| Fonts | Zilla Slab and Public Sans, embedded as subsets |
+
+Those bleed and margin values are what essentially every printer accepts. One
+asking for different numbers is a change to four constants at the top of
+[`job/src/card.ts`](../job/src/card.ts), not a redesign.
+
+## What goes on it
+
+**The two months after the one it is generated in.** Cards are printed
+mid-month for the months ahead, so a run in October produces November and
+December. Never the current month: by the time a card is printed and handed
+out, half of it has already happened.
+
+**Every public ministry, merged into one date order.** A reader wants to know
+what is on the 14th, not which ministry owns it. Private ministries never
+appear.
+
+**Every occurrence on its own line.** A recurring series is not collapsed to
+"Wednesdays through October" — the whole point of a printed card is the dates,
+written down.
+
+**Deadlines in bold, in place**, and recapped at the bottom of the back under
+**Don't forget**. In place rather than in their own section, because a card is
+read by scanning dates and splitting the list means the same month appears
+twice in two sequences. The recap is a checklist, not a second timeline.
+
+## What does not
+
+**Routine events.** The regular services and the fortnightly supper would be
+forty identical lines across two months, crowding out the things people
+actually need telling. They stay on the website and the wall display, where
+space is not scarce and the real dates are useful.
+
+The card carries a standing note instead, from `card.standingNotes` in
+[`ministries.json`](../job/config/ministries.json):
+
+> Supper served 1st & 3rd Thursday at 5:30, during the school year.
+
+So marking something `ROUTINE:` is what keeps it off the card. That reuses a
+concept the classifier already has rather than inventing a print-only flag.
+
+## Titles
+
+The card uses the event's title. A title good enough for the website is
+usually good enough for a printed line.
+
+When it is not — too long, or carrying detail that belongs in the description —
+the admin form has an optional **Calendar card** field. Set it and the card
+uses that instead. Blank, which it will be nearly always, means use the title.
+
+It is deliberately optional. A field leaders must remember is a field that gets
+skipped, and the whole classifier exists to avoid depending on that.
+
+## The QR code
+
+[`site/qr-calendar.pdf`](../site/qr-calendar.pdf), embedded as vector so it
+stays sharp at any size. It is the church's own branded code, with the logo in
+the middle, matching the ones already printed on other church material.
+
+It points at **greaterlifebaptistchurch.com/calendar** — the church's own front
+door, not the subdomain. A printed card cannot be reissued if the calendar ever
+moves hosts; the apex domain can be repointed.

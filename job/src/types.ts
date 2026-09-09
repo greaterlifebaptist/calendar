@@ -39,6 +39,8 @@ export type Config = {
     /** Deployed Apps Script web app. Blank until it exists. */
     signupEndpoint?: string;
   };
+  /** The printed card: standing notes that replace repeating them per date. */
+  card?: { standingNotes: string[] };
   reminderDefaults: Record<EventType, string[]>;
   recurringSeries: { frequentFollowUp: string[] };
   reminderSchedule: {
