@@ -387,12 +387,22 @@ export async function buildCard(input: CardInput): Promise<CardResult> {
   const notes = (input.standingNotes ?? '').trim()
     ? input.standingNotes!.split(/\r?\n/).map((n) => n.trim()).filter(Boolean)
     : (cfg.card?.standingNotes ?? []);
-  let fy = QR_Y + QR_SIZE - 10;
-  for (const n of notes) {
-    for (const row of wrap(n, f.body, 8.4, CONTENT_W - QR_SIZE - 100)) {
-      front.drawText(row, { x: L, y: fy, size: 8.4, font: f.body, color: SOFT });
-      fy -= 11;
-    }
+  /*
+   * The notes run to just short of the code, the way the ruled lines do.
+   *
+   * They used to stop far earlier, because the width was reserving room for
+   * the "scan for the live calendar" label back when that sat beside the code.
+   * The label is above it now, so the only thing to avoid is the square.
+   *
+   * Anchored at the bottom and grown upward, so adding a second or third note —
+   * service times, say — pushes the block up into the space already reserved
+   * for it rather than off the foot of the card.
+   */
+  const noteRows = notes.flatMap((n) => wrap(n, f.body, 8.4, QR_X - 12 - L));
+  let fy = BLEED + SAFE + 6 + (noteRows.length - 1) * 11;
+  for (const row of noteRows) {
+    front.drawText(row, { x: L, y: fy, size: 8.4, font: f.body, color: SOFT });
+    fy -= 11;
   }
 
   if (input.qrPdf) {

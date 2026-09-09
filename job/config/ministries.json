@@ -178,6 +178,7 @@
   "card": {
     "$comment": "Printed on the card instead of listing every occurrence. Routine events are excluded from the card, so anything standing belongs here.",
     "standingNotes": [
+      "Services Thursday at 7 PM and Sunday at 11 AM.",
       "Supper served 1st & 3rd Thursday at 5:30, during the school year."
     ]
   }
