@@ -42,6 +42,36 @@ reset, so:
 - The calendar cannot bleed out. Nothing it defines applies to the rest of the
   page.
 
+The reset was not thorough enough the first time, and the way it failed is
+worth remembering: **the widget looked perfect on the subdomain and wrong on
+the church site**, because on the subdomain there is no theme to lose to. A
+line-height pushed the day out of the top of every date chip, and a rule
+rounding every button curved the active tab's underline into a swoosh.
+
+Inherited properties — font, line-height, colour, letter-spacing, alignment —
+are set to `inherit` rather than to a fixed value. Pinning them would beat the
+theme but would also stop our own container passing anything down, so every
+size and colour would have to be restated on each element. `inherit` does both
+jobs: a theme rule on a descendant cannot outrank an id-scoped one, and our own
+cascade still flows.
+
+`font-weight` is the exception, left alone deliberately: resetting it on
+everything would flatten every `<b>` in the markup.
+
+### Testing it against a theme
+
+[`site/embed-test.html`](../site/embed-test.html) is a deliberately hostile
+host page — line-heights, rounded buttons, wavy underlines, forced uppercase,
+list bullets, borders, centred text, all applied to every element inside the
+content area. Open it next to `index.html` and they should look identical.
+
+It has two modes, and the difference matters. Ordinary theme rules lose to the
+reset, which is what almost every theme uses. A theme using `!important` wins
+by definition — nothing scoped can outrank it, and only shadow DOM would.
+
+If the calendar ever looks wrong on the church site again, that page is the
+first place to reproduce it.
+
 It loads three Google fonts, and skips them if the page already has them.
 
 ## The links inside it

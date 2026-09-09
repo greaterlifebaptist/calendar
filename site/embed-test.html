@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Embed test — hostile theme</title>
+<style>
+/*
+  A deliberately hostile host page.
+
+  Every rule below is the kind of thing a real WordPress theme does to
+  everything inside its content area, and each one has broken the widget or
+  could. The point is to fail here, on a page nobody sees, rather than on the
+  church website after the cards have been printed.
+
+  Two of these are not hypothetical: the line-height pushed the day out of the
+  top of the date chips, and the button border-radius curved the active tab's
+  underline into a swoosh. Both looked fine on the subdomain.
+*/
+body{font-family:Georgia,serif;background:#f4f1ea;color:#333;margin:0;padding:24px;line-height:2}
+.entry-content{max-width:1100px;margin:0 auto;background:#fff;padding:28px;border:3px solid #c9b8a0}
+
+/* Two containers, because the distinction matters. A theme using ordinary
+   rules is what almost every theme does, and the reset must beat it. A theme
+   using !important beats any reset by definition — only shadow DOM stops that,
+   so it is worth knowing which kind we are dealing with. */
+.normal p,.normal div,.normal span,.normal *{line-height:2.1;letter-spacing:.06em}
+.nuclear *{line-height:2!important;letter-spacing:.06em!important}
+.entry-content button,.entry-content a{border-radius:999px;text-transform:uppercase}
+.entry-content button{border:2px dashed #b00;padding:14px;background:#ffe;font-family:Georgia,serif}
+.entry-content a{text-decoration:underline wavy #b00;color:#b00!important}
+.entry-content h1,.entry-content h2,.entry-content h3{font-family:Georgia,serif;color:#b00;margin:30px 0}
+.entry-content h3::after{content:"";display:block;border-bottom:4px double #b00}
+.entry-content ul,.entry-content li{list-style:disc;padding-left:30px;margin:12px}
+.entry-content input{border:3px inset #b00;padding:12px;font-size:22px}
+.entry-content img{border:6px solid #b00;border-radius:50%}
+.entry-content *::before{content:"";display:inline-block}
+.entry-content section,.entry-content article{border-left:8px solid #b00;padding:20px;margin:20px 0}
+.entry-content div{text-align:center;vertical-align:super}
+.entry-content b,.entry-content strong{font-weight:400;font-style:italic}
+
+.note{max-width:1100px;margin:0 auto 18px;font:15px/1.5 system-ui;color:#555}
+.note b{color:#000}
+</style>
+</head>
+<body>
+
+<p class="note"><b>Hostile theme test.</b> Everything below sits inside a container
+whose theme applies line-heights, rounded buttons, wavy underlines, forced
+uppercase, list bullets, borders and centred text to every element. The widget
+should look exactly like the standalone page. Compare with
+<a href="./index.html">index.html</a>.</p>
+
+<div class="entry-content normal">
+  <h1>ordinary theme rules</h1>
+  <div id="glbc-calendar"></div>
+</div>
+
+<div class="entry-content nuclear">
+  <h1>theme using !important</h1>
+  <div id="glbc-calendar-2"></div>
+</div>
+
+<script src="./embed.js" defer></script>
+<script>
+// The widget claims one container; the second is filled with a copy of what it
+// drew, purely so the two theme styles can be compared side by side.
+addEventListener("load", () => setTimeout(() => {
+  const a = document.getElementById("glbc-calendar");
+  const b = document.getElementById("glbc-calendar-2");
+  if (a && b) b.innerHTML = a.innerHTML;
+}, 800));
+</script>
+</body>
+</html>

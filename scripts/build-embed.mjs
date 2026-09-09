@@ -76,11 +76,34 @@ const RESET = [
   CONTAINER + ' *::after{',
   '  box-sizing:border-box;margin:0;padding:0;border:0;outline:0;',
   '  background:none;box-shadow:none;float:none;position:static;',
-  '  text-transform:none;letter-spacing:normal;text-indent:0;text-align:left;',
-  '  list-style:none;text-decoration:none;font-style:normal;',
+  '  text-transform:none;text-indent:0;text-decoration:none;',
+  '  list-style:none;font-style:normal;font-variant:normal;',
   '  min-width:0;max-width:100%;width:auto;height:auto;',
+
+  // A theme rounding every button turned the active tab's bottom border into
+  // a swoosh, and one setting a line-height pushed the day out of the top of
+  // the date chip. Both were invisible on the subdomain and appeared only
+  // once embedded, which is the whole failure mode this reset exists for.
+  '  border-radius:0;vertical-align:baseline;transform:none;filter:none;',
+  '  text-shadow:none;opacity:1;visibility:visible;',
+  '  animation:none;transition:none;flex:0 1 auto;order:0;',
+  '  white-space:normal;word-spacing:normal;',
+
+  // Inherited properties are set to `inherit` rather than pinned to a value.
+  // Pinning beats the theme but also stops our own container passing anything
+  // down, so every size and colour would have to be restated on each element.
+  // `inherit` does both: a theme rule on a descendant cannot outrank an
+  // id-scoped one, and our cascade still flows.
+  '  font-family:inherit;line-height:inherit;letter-spacing:inherit;',
+  '  color:inherit;text-align:inherit;',
   '}',
-  CONTAINER + '{max-width:100%;overflow-x:clip;isolation:isolate}',
+
+  CONTAINER + '{max-width:100%;overflow-x:clip;isolation:isolate;',
+  '  line-height:1.55;letter-spacing:normal;text-align:left}',
+
+  // font-weight is deliberately not reset on everything: that would flatten
+  // every <b> in the markup. Restated here instead.
+  CONTAINER + ' b,' + CONTAINER + ' strong{font-weight:700}',
   CONTAINER + ' img{max-width:100%;height:auto}',
 ].join('\n');
 
