@@ -173,6 +173,18 @@ footer a{color:var(--clay)}
 .whoami button{margin-left:auto;font-family:var(--body);font-size:.78rem;font-weight:700;border:1.5px solid var(--rule);background:var(--card);color:var(--ink-soft);border-radius:7px;padding:6px 11px;cursor:pointer}
 .whoami button:hover{border-color:var(--clay);color:var(--clay)}
 #paneLeaders .mode{margin:12px 0 0;font-size:.82rem;line-height:1.55;color:var(--ink-soft)}
+.person .lvl{font-family:var(--body);font-size:.7rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border:1.5px solid var(--rule);border-radius:20px;padding:3px 9px;color:var(--ink-soft)}
+.person .lvl.admin{border-color:var(--pine);color:var(--pine);background:#F0F6F2}
+.person .lvl.staff{border-color:var(--clay);color:var(--clay);background:#FDF3EE}
+.person .scope{margin:8px 0 0;font-size:.8rem;color:var(--ink-soft)}
+.person .scope b{font-weight:700;color:var(--ink)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;padding-top:2px}
+.chips button{font-family:var(--body);font-size:.78rem;font-weight:700;border:1.5px solid var(--rule);background:#fff;color:var(--ink-soft);border-radius:20px;padding:7px 12px;cursor:pointer}
+.chips button[aria-pressed="true"]{border-color:var(--pine);background:var(--pine);color:#fff}
+/* A private calendar is marked wherever it is offered, the same as on the
+   membership tab, so nobody grants one without noticing which it was. */
+.chips button.priv{border-style:dashed}
+.rolewhy{margin:6px 0 0;font-size:.8rem;line-height:1.5;color:var(--ink-soft)}
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -486,6 +498,21 @@ footer a{color:var(--clay)}
           <span class="hint">— the address they sign in to Google with, which is not always the address they read mail at</span></span>
         <input type="email" id="leaderEmail" maxlength="120" placeholder="Example: spencerw2@gmail.com">
       </label>
+      <label>
+        <span class="lab">What they can do</span>
+        <select id="leaderRole">
+          <option value="leader">Leader — events and RSVPs</option>
+          <option value="staff">Staff — everything except this list</option>
+          <option value="admin">Admin — everything, including this list</option>
+          <option value="viewer">Viewer — RSVPs only, changes nothing</option>
+        </select>
+        <span class="hint rolewhy" id="roleWhy"></span>
+      </label>
+      <label>
+        <span class="lab">Which calendars
+          <span class="hint">— leave all of them off for every calendar, now and any added later</span></span>
+        <span class="chips" id="leaderScope"></span>
+      </label>
       <div class="actions">
         <button type="button" class="primary" id="addLeader">Add</button>
         <span class="status" id="leaderStatus"></span>
@@ -530,6 +557,17 @@ let MINISTRIES = [];
 let PASS = "";
 let IDTOKEN = "";
 let ME = "";
+
+/*
+ * What this person may reach, as the endpoint reported it.
+ *
+ * Hiding a tab is courtesy, not security — the endpoint refuses the action
+ * regardless, and it is the only side that can. What hiding buys is that
+ * nobody spends a minute filling in a form that was never going to be
+ * accepted.
+ */
+let ROLE = "";
+let CAN = { events: true, people: true, notices: true, rsvps: true, leaders: true };
 let CONFIG = { clientId: "", signInRequired: false };
 
 /** Whichever proof this browser is holding, shaped for the endpoint. */
@@ -1074,11 +1112,30 @@ const ARM_DEAD_MS = 800;
 let PEOPLE = [];
 let peopleLoaded = false;
 
+/** Which permission each tab needs. */
+const TAB_NEEDS = { events: "events", people: "people", rsvps: "rsvps",
+                    notice: "notices", leaders: "leaders" };
+
+/** Hide the tabs this person cannot use, and return the first one left. */
+function applyPermissions(){
+  let first = "";
+  Object.keys(TAB_NEEDS).forEach(k => {
+    const allowed = !!CAN[TAB_NEEDS[k]];
+    $({ events:"tabEvents", people:"tabPeople", rsvps:"tabRsvps",
+        notice:"tabNotice", leaders:"tabLeaders" }[k]).hidden = !allowed;
+    if (allowed && !first) first = k;
+  });
+  return first || "rsvps";
+}
+
 function showTab(which){
   const panes = { events: "paneEvents", people: "panePeople", rsvps: "paneRsvps",
                   notice: "paneNotice", leaders: "paneLeaders" };
   const tabs = { events: "tabEvents", people: "tabPeople", rsvps: "tabRsvps",
                  notice: "tabNotice", leaders: "tabLeaders" };
+  // A level that cannot reach this tab lands on the first one it can, rather
+  // than on an empty pane that looks broken.
+  if (!CAN[TAB_NEEDS[which]]) which = applyPermissions();
   Object.keys(panes).forEach(k => {
     $(panes[k]).hidden = k !== which;
     $(tabs[k]).setAttribute("aria-selected", String(k === which));
@@ -1588,6 +1645,8 @@ async function unlock(quiet){
   try {
     const out = await call({ action:"admin.hello", ...auth() });
     ME = out.you || "";
+    ROLE = out.role || "";
+    if (out.can) CAN = out.can;
     MINISTRIES = out.ministries || [];
     if (PASS && $("remember").checked){
       try { sessionStorage.setItem(KEY, PASS); } catch {}
@@ -1615,8 +1674,9 @@ async function unlock(quiet){
     fillContacts(contactFor($("ministry").value));
     peopleLoaded = false;
     PEOPLE = [];
-    showTab("events");
-    refreshList();
+    const landing = applyPermissions();
+    showTab(landing);
+    if (CAN.events) refreshList();
     return true;
   } catch (err) {
     if (!quiet) fail(el, err);
@@ -1701,7 +1761,7 @@ function paintWhoami(){
   el.textContent = "";
   const line = document.createElement("span");
   line.innerHTML = IDTOKEN
-    ? "Signed in as <b>" + esc(ME || "you") + "</b>"
+    ? "Signed in as <b>" + esc(ME || "you") + "</b>" + (ROLE ? " · " + esc(ROLE) : "")
     : "Signed in with the shared passcode — nothing you do here will carry a name.";
   el.appendChild(line);
   const out = document.createElement("button");
@@ -1758,11 +1818,64 @@ function paintLeaderMode(out){
   }
 }
 
+/*
+ * What each level means, in the words used on the page.
+ *
+ * Kept next to the dropdown rather than in a doc, because the moment somebody
+ * is choosing between them is the only moment they will read it.
+ */
+const ROLE_WHY = {
+  admin:  "Everything, including who else may open this page.",
+  staff:  "Events, RSVPs, who gets which calendars, the TV notice and the card. Not this list.",
+  leader: "Adds and edits events, and sees the RSVPs for them.",
+  viewer: "Sees RSVPs and changes nothing.",
+};
+
+/** Every calendar, for the scope picker. Filled by loadLeaders. */
+let SCOPE_MINISTRIES = [];
+
+function paintRoleWhy(){
+  $("roleWhy").textContent = ROLE_WHY[$("leaderRole").value] || "";
+}
+
+/**
+ * The calendars picker.
+ *
+ * Nothing chosen means every calendar — including any added later, which is
+ * the behaviour that stops a new ministry being invisible to everybody until
+ * somebody remembers to go around every row.
+ */
+function drawScopePicker(chosen){
+  const box = $("leaderScope");
+  box.textContent = "";
+  const want = new Set((chosen || []).map(x => x.toLowerCase()));
+  SCOPE_MINISTRIES.forEach(m => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.dataset.id = m.id;
+    b.className = m.visibility === "private" ? "priv" : "";
+    b.textContent = m.name + (m.visibility === "private" ? " (private)" : "");
+    b.setAttribute("aria-pressed", String(want.has(m.id)));
+    b.addEventListener("click", () => {
+      b.setAttribute("aria-pressed", b.getAttribute("aria-pressed") === "true" ? "false" : "true");
+    });
+    box.appendChild(b);
+  });
+}
+
+function chosenScope(box){
+  return [...box.querySelectorAll('button[aria-pressed="true"]')]
+    .map(b => b.dataset.id).join(", ");
+}
+
 async function loadLeaders(){
   const box = $("leaderList");
   box.textContent = "Loading…";
   try {
     const out = await call({ action:"admin.leaders", ...auth() });
+    SCOPE_MINISTRIES = out.ministries || [];
+    drawScopePicker([]);
+    paintRoleWhy();
     paintLeaderMode(out);
     renderLeaders(out.leaders || []);
   } catch (err) {
@@ -1770,6 +1883,8 @@ async function loadLeaders(){
       "Could not load the leaders list.";
   }
 }
+
+$("leaderRole").addEventListener("change", paintRoleWhy);
 
 function renderLeaders(list){
   const box = $("leaderList");
@@ -1786,27 +1901,103 @@ function renderLeaders(list){
     const who = document.createElement("div");
     who.className = "who";
     who.innerHTML = "<b>" + esc(leader.name || leader.email) + "</b>" +
-      "<span>" + esc(leader.email) + "</span>";
+      "<span>" + esc(leader.email) + "</span>" +
+      '<span class="lvl ' + esc(leader.role || "leader") + '">' +
+      esc(leader.role || "leader") + "</span>";
     const st = document.createElement("span");
     st.className = "st";
     who.appendChild(st);
     card.appendChild(who);
 
+    const scope = document.createElement("p");
+    scope.className = "scope";
+    scope.innerHTML = leader.ministries
+      ? "Calendars: <b>" + esc(leader.ministries) + "</b>"
+      : "Calendars: <b>all of them</b>";
+    card.appendChild(scope);
+
     if (leader.notes){
       const notes = document.createElement("p");
-      notes.style.cssText = "margin:0;font-size:.8rem;color:var(--ink-soft)";
+      notes.style.cssText = "margin:6px 0 0;font-size:.8rem;color:var(--ink-soft)";
       notes.textContent = leader.notes;
       card.appendChild(notes);
     }
 
     const acts = document.createElement("div");
     acts.className = "acts";
+    const change = document.createElement("button");
+    change.type = "button";
+    change.textContent = "Change what they can do";
+    acts.appendChild(change);
     const remove = document.createElement("button");
     remove.type = "button";
     remove.className = "danger";
     remove.textContent = "Take off the list";
     acts.appendChild(remove);
     card.appendChild(acts);
+
+    // Changing a level in place, rather than removing and retyping. Retyping
+    // is how somebody ends up briefly off the list altogether, and how a
+    // scope comes back subtly different from the one that was there.
+    let editor = null;
+    change.addEventListener("click", () => {
+      if (editor){ editor.remove(); editor = null; return; }
+      editor = document.createElement("div");
+      editor.style.cssText = "margin-top:10px;padding-top:10px;border-top:1px solid var(--rule)";
+
+      const sel = document.createElement("select");
+      ["leader", "staff", "admin", "viewer"].forEach(r => {
+        const o = document.createElement("option");
+        o.value = r;
+        o.textContent = r + " — " + ROLE_WHY[r];
+        if ((leader.role || "leader") === r) o.selected = true;
+        sel.appendChild(o);
+      });
+      editor.appendChild(sel);
+
+      const picker = document.createElement("span");
+      picker.className = "chips";
+      picker.style.marginTop = "10px";
+      const want = new Set((leader.ministries || "").split(",")
+        .map(x => x.trim().toLowerCase()).filter(Boolean));
+      SCOPE_MINISTRIES.forEach(m => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.dataset.id = m.id;
+        b.className = m.visibility === "private" ? "priv" : "";
+        b.textContent = m.name;
+        b.setAttribute("aria-pressed", String(want.has(m.id)));
+        b.addEventListener("click", () => {
+          b.setAttribute("aria-pressed", b.getAttribute("aria-pressed") === "true" ? "false" : "true");
+        });
+        picker.appendChild(b);
+      });
+      editor.appendChild(picker);
+
+      const save = document.createElement("div");
+      save.className = "acts";
+      const go = document.createElement("button");
+      go.type = "button";
+      go.textContent = "Save";
+      save.appendChild(go);
+      editor.appendChild(save);
+      card.appendChild(editor);
+
+      go.addEventListener("click", async () => {
+        go.disabled = true;
+        st.className = "st";
+        st.textContent = "Saving…";
+        try {
+          const out = await call({ action:"admin.setleader", ...auth(),
+            email: leader.email, role: sel.value, ministries: chosenScope(picker) });
+          renderLeaders(out.leaders || []);
+        } catch (err) {
+          st.className = "st err";
+          st.textContent = (err && err.fromServer && err.message) || "Could not save";
+          go.disabled = false;
+        }
+      });
+    });
 
     // The same two deliberate presses used for removing a subscriber, and for
     // the same reason: one stray tap here locks somebody out of the page.
@@ -1858,10 +2049,14 @@ $("addLeader").addEventListener("click", async () => {
   }
   say(el, "Adding…");
   try {
-    const out = await call({ action:"admin.addleader", ...auth(), name, email });
+    const out = await call({ action:"admin.addleader", ...auth(),
+      name, email, role: $("leaderRole").value, ministries: chosenScope($("leaderScope")) });
     renderLeaders(out.leaders || []);
     $("leaderName").value = "";
     $("leaderEmail").value = "";
+    $("leaderRole").value = "leader";
+    drawScopePicker([]);
+    paintRoleWhy();
     say(el, "Added. They can sign in now.", "ok");
   } catch (err) {
     fail(el, err);

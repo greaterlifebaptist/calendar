@@ -100,7 +100,10 @@ test('the gate Code.gs actually ships is the one described here', () => {
   // Every admin handler goes through checkAdmin_, and none is left on the old
   // passcode-only path. A handler that slipped back would be a hole.
   assert.equal(CODE.includes('checkPasscode_(body.passcode)'), false);
-  assert.ok(CODE.split('checkAdmin_(body)').length - 1 >= 14);
+  // Most carry the part of the page they belong to; admin.hello and the
+  // contact names deliberately do not, being what any leader may reach.
+  assert.ok(CODE.split('checkAdmin_(body').length - 1 >= 17);
+  assert.ok(CODE.split("checkAdmin_(body, '").length - 1 >= 15);
 
   // aud is the check that stops another site replaying its own visitors'
   // Google tokens here. Losing it would leave sign-in looking like it works.

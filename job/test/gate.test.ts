@@ -42,6 +42,10 @@ class FakeSheet {
         }
         return out;
       },
+      setValue(value: unknown) {
+        while (sheet.rows.length < row) sheet.rows.push([]);
+        sheet.rows[row - 1][col - 1] = value;
+      },
       setValues(values: unknown[][]) {
         for (let r = 0; r < values.length; r++) {
           const target = row - 1 + r;
@@ -69,13 +73,20 @@ class FakeSpreadsheet {
 // the rest of Apps Script, as far as this file needs it
 // ---------------------------------------------------------------------------
 
+type Reply = { json: Record<string, unknown> };
+type Body = Record<string, unknown>;
+
 type Script = {
-  checkAdmin_: (body: Record<string, unknown>) => { json: Record<string, unknown> } | null;
+  checkAdmin_: (body: Body, area?: string) => Reply | null;
   caller: () => string;
-  handleAdminLeaders_: (body: Record<string, unknown>) => { json: Record<string, unknown> };
-  handleAdminAddLeader_: (body: Record<string, unknown>) => { json: Record<string, unknown> };
-  handleAdminRemoveLeader_: (body: Record<string, unknown>) => { json: Record<string, unknown> };
-  handleConfig_: () => { json: Record<string, unknown> };
+  callerRole: () => string;
+  handleAdminLeaders_: (body: Body) => Reply;
+  handleAdminAddLeader_: (body: Body) => Reply;
+  handleAdminRemoveLeader_: (body: Body) => Reply;
+  handleAdminSetLeader_: (body: Body) => Reply;
+  handleAdminRsvps_: (body: Body) => Reply;
+  handleConfig_: () => Reply;
+  leaders_: () => Array<Record<string, unknown>>;
 };
 
 type World = {
@@ -114,6 +125,18 @@ function world(): World {
     },
     UrlFetchApp: {
       fetch(url: string) {
+        if (url.includes('ministries.json')) {
+          return {
+            getResponseCode: () => 200,
+            getContentText: () => JSON.stringify({
+              ministries: [
+                { id: 'church', name: 'Church-wide', visibility: 'public', calendarId: 'c1' },
+                { id: 'youth', name: 'Greater Generation', visibility: 'public', calendarId: 'c2' },
+                { id: 'youth-leaders', name: 'Youth Leaders', visibility: 'private', calendarId: 'c3' },
+              ],
+            }),
+          };
+        }
         const at = url.indexOf('id_token=');
         const token = at === -1 ? '' : decodeURIComponent(url.slice(at + 'id_token='.length));
         const claims = tokens.get(token);
@@ -147,10 +170,14 @@ function world(): World {
       return {
         checkAdmin_: checkAdmin_,
         caller: function(){ return CALLER; },
+        callerRole: function(){ return CALLER_ROLE; },
         handleAdminLeaders_: handleAdminLeaders_,
         handleAdminAddLeader_: handleAdminAddLeader_,
         handleAdminRemoveLeader_: handleAdminRemoveLeader_,
-        handleConfig_: handleConfig_
+        handleAdminSetLeader_: handleAdminSetLeader_,
+        handleAdminRsvps_: handleAdminRsvps_,
+        handleConfig_: handleConfig_,
+        leaders_: leaders_
       };
     }
   `) as (g: unknown) => Script;
@@ -174,12 +201,20 @@ function issue(w: World, token: string, claims: Record<string, unknown> = {}): v
   });
 }
 
-function addLeader(w: World, name: string, email: string): void {
-  w.script.handleAdminAddLeader_({
+function addLeader(
+  w: World, name: string, email: string,
+  role?: string, ministries?: string,
+): Reply {
+  return w.script.handleAdminAddLeader_({
     action: 'admin.addleader',
     passcode: 'correct horse battery staple',
-    name, email,
+    name, email, role, ministries,
   });
+}
+
+/** Sign somebody in and ask whether they may reach one part of the page. */
+function may(w: World, token: string, area: string): boolean {
+  return w.script.checkAdmin_({ action: 'admin.' + area, idToken: token }, area) === null;
 }
 
 // ---------------------------------------------------------------------------
@@ -195,7 +230,9 @@ test('a leader on the list gets in, under their own name', () => {
 
   const logged = w.log();
   assert.equal(logged.length, 2, 'the add and the save');
-  assert.equal(logged[1][1], 'Andrea Hutchins');
+  // The level is on the line too: two refusals that differ only by level
+  // would otherwise read identically.
+  assert.equal(logged[1][1], 'Andrea Hutchins (leader)');
   assert.equal(logged[1][2], 'admin.save');
 });
 
@@ -375,4 +412,191 @@ test('the log is trimmed from the top rather than growing forever', () => {
   assert.equal(tab.rows.length, 2001, 'a header and the last 2000 lines');
   assert.equal(tab.rows[0][0], 'when', 'the header must survive the trim');
   assert.match(String(tab.rows.at(-1)![3]), /e2099/);
+});
+
+// ---------------------------------------------------------------------------
+// levels
+// ---------------------------------------------------------------------------
+
+test('each level reaches exactly what it is meant to', () => {
+  const w = world();
+  const want: Record<string, string[]> = {
+    admin:  ['events', 'people', 'notices', 'rsvps', 'leaders'],
+    staff:  ['events', 'people', 'notices', 'rsvps'],
+    leader: ['events', 'rsvps'],
+    viewer: ['rsvps'],
+  };
+  const areas = ['events', 'people', 'notices', 'rsvps', 'leaders'];
+
+  for (const [role, allowed] of Object.entries(want)) {
+    addLeader(w, role + ' person', role + '@gmail.com', role);
+    issue(w, 't-' + role, { email: role + '@gmail.com', name: role });
+    for (const area of areas) {
+      assert.equal(may(w, 't-' + role, area), allowed.includes(area),
+        role + ' and ' + area + ' disagree with the table');
+    }
+  }
+});
+
+test('a blank role is the quiet end of the scale, not the loud one', () => {
+  const w = world();
+  addLeader(w, 'Spencer Welch', 'spencerwel2@gmail.com', 'admin');
+  // A row typed straight into the sheet, with no role in it.
+  w.book.getSheetByName('Leaders')!.appendRow(['Hurried Entry', 'hurried@gmail.com', 'yes']);
+  issue(w, 'hurried', { email: 'hurried@gmail.com', name: 'Hurried Entry' });
+
+  assert.equal(may(w, 'hurried', 'events'), true, 'a leader may add events');
+  assert.equal(may(w, 'hurried', 'leaders'), false, 'a blank role must not mean admin');
+  assert.equal(may(w, 'hurried', 'people'), false);
+});
+
+test('a typo in the role is a leader, not a lockout and not a promotion', () => {
+  const w = world();
+  addLeader(w, 'Spencer Welch', 'spencerwel2@gmail.com', 'admin');
+  addLeader(w, 'Typo Person', 'typo@gmail.com', 'Adminn');
+  issue(w, 'typo', { email: 'typo@gmail.com', name: 'Typo Person' });
+
+  assert.equal(may(w, 'typo', 'events'), true);
+  assert.equal(may(w, 'typo', 'leaders'), false);
+});
+
+test('the columns roles need are added to a tab that predates them', () => {
+  const w = world();
+  // The tab as it was before levels existed, with somebody already on it.
+  const old = w.book.insertSheet('Leaders');
+  old.appendRow(['name', 'email', 'active', 'added', 'notes']);
+  old.appendRow(['Spencer Welch', 'spencerwel2@gmail.com', 'yes', new Date(), '']);
+
+  const list = w.script.leaders_();
+  assert.equal(list.length, 1);
+  // Whoever was already there had every power a moment ago. Demoting them
+  // silently would put the only way back behind a page they cannot open.
+  assert.equal(list[0].role, 'admin');
+
+  const headers = (old.rows[0] as string[]).map((h) => String(h));
+  assert.ok(headers.includes('role'), 'role column was not added');
+  assert.ok(headers.includes('ministries'), 'ministries column was not added');
+});
+
+test('a leader added after the migration lands in the right columns', () => {
+  const w = world();
+  const old = w.book.insertSheet('Leaders');
+  old.appendRow(['name', 'email', 'active', 'added', 'notes']);
+  old.appendRow(['Spencer Welch', 'spencerwel2@gmail.com', 'yes', new Date(), '']);
+
+  // role and ministries are now the last two columns, not the fourth and
+  // fifth. Writing a row by position would put the role under "added".
+  addLeader(w, 'Andrea Hutchins', 'andrea@gmail.com', 'staff', 'youth');
+  const andrea = w.script.leaders_().find((l) => l.email === 'andrea@gmail.com')!;
+  assert.equal(andrea.role, 'staff');
+  assert.deepEqual(andrea.scope, ['youth']);
+});
+
+// ---------------------------------------------------------------------------
+// ministry scope
+// ---------------------------------------------------------------------------
+
+test('a scoped leader sees only their own ministries\' replies', () => {
+  const w = world();
+  addLeader(w, 'Youth Leader', 'youth@gmail.com', 'leader', 'youth, youth-leaders');
+  issue(w, 'youth', { email: 'youth@gmail.com', name: 'Youth Leader' });
+
+  const rsvps = w.book.insertSheet('RSVPs');
+  rsvps.appendRow(['when', 'eventId', 'starts', 'event', 'ministry',
+    'name', 'count', 'phone', 'note', 'contact']);
+  rsvps.appendRow([new Date(), 'e1', '', 'Fall Retreat', 'youth', 'A Family', 4, '', '', '']);
+  rsvps.appendRow([new Date(), 'e2', '', 'Homecoming', 'church', 'B Family', 6, '', '', '']);
+
+  const out = w.script.handleAdminRsvps_({ action: 'admin.rsvps', idToken: 'youth' });
+  const got = out.json.rsvps as Array<Record<string, unknown>>;
+  assert.equal(got.length, 1, 'a headcount for another ministry is none of their business');
+  assert.equal(got[0].ministry, 'youth');
+});
+
+test('no scope means every ministry, which is what everybody had before', () => {
+  const w = world();
+  addLeader(w, 'Spencer Welch', 'spencerwel2@gmail.com', 'admin');
+  issue(w, 'all', { email: 'spencerwel2@gmail.com', name: 'Spencer Welch' });
+
+  const rsvps = w.book.insertSheet('RSVPs');
+  rsvps.appendRow(['when', 'eventId', 'starts', 'event', 'ministry',
+    'name', 'count', 'phone', 'note', 'contact']);
+  rsvps.appendRow([new Date(), 'e1', '', 'Fall Retreat', 'youth', 'A Family', 4, '', '', '']);
+  rsvps.appendRow([new Date(), 'e2', '', 'Homecoming', 'church', 'B Family', 6, '', '', '']);
+
+  const out = w.script.handleAdminRsvps_({ action: 'admin.rsvps', idToken: 'all' });
+  assert.equal((out.json.rsvps as unknown[]).length, 2);
+});
+
+test('a scope naming a calendar that does not exist is refused', () => {
+  const w = world();
+  // Silently accepting this scopes somebody to nothing: they sign in to an
+  // empty dropdown with no clue why.
+  const out = addLeader(w, 'Fat Finger', 'ff@gmail.com', 'leader', 'yuoth');
+  assert.equal(out.json.ok, false);
+  assert.match(String(out.json.error), /no calendar called "yuoth"/);
+});
+
+// ---------------------------------------------------------------------------
+// the list must never run out of admins
+// ---------------------------------------------------------------------------
+
+test('the only admin cannot be demoted', () => {
+  const w = world();
+  addLeader(w, 'Spencer Welch', 'spencerwel2@gmail.com', 'admin');
+  addLeader(w, 'Andrea Hutchins', 'andrea@gmail.com', 'staff');
+
+  const out = w.script.handleAdminSetLeader_({
+    action: 'admin.setleader', passcode: 'correct horse battery staple',
+    email: 'spencerwel2@gmail.com', role: 'staff',
+  });
+  assert.equal(out.json.ok, false, 'staff cannot promote anybody, so this is a dead end');
+  assert.match(String(out.json.error), /only admin/);
+});
+
+test('the only admin cannot be removed either', () => {
+  const w = world();
+  addLeader(w, 'Spencer Welch', 'spencerwel2@gmail.com', 'admin');
+  addLeader(w, 'Andrea Hutchins', 'andrea@gmail.com', 'leader');
+
+  const out = w.script.handleAdminRemoveLeader_({
+    action: 'admin.removeleader', passcode: 'correct horse battery staple',
+    email: 'spencerwel2@gmail.com',
+  });
+  assert.equal(out.json.ok, false);
+  assert.match(String(out.json.error), /only admin/);
+});
+
+test('with a second admin in place, the first may step down', () => {
+  const w = world();
+  addLeader(w, 'Spencer Welch', 'spencerwel2@gmail.com', 'admin');
+  addLeader(w, 'Andrea Hutchins', 'andrea@gmail.com', 'admin');
+
+  const out = w.script.handleAdminSetLeader_({
+    action: 'admin.setleader', passcode: 'correct horse battery staple',
+    email: 'spencerwel2@gmail.com', role: 'leader',
+  });
+  assert.equal(out.json.ok, true);
+  const spencer = w.script.leaders_().find((l) => l.email === 'spencerwel2@gmail.com')!;
+  assert.equal(spencer.role, 'leader');
+});
+
+test('the passcode carries every level, since it carries no name', () => {
+  const w = world();
+  assert.equal(w.script.checkAdmin_({
+    action: 'admin.addleader', passcode: 'correct horse battery staple',
+  }, 'leaders'), null);
+  assert.equal(w.script.callerRole(), 'admin');
+});
+
+test('a refusal for the wrong level is logged, and says which level', () => {
+  const w = world();
+  addLeader(w, 'Spencer Welch', 'spencerwel2@gmail.com', 'admin');
+  addLeader(w, 'Viewer Person', 'viewer@gmail.com', 'viewer');
+  issue(w, 'viewer', { email: 'viewer@gmail.com', name: 'Viewer Person' });
+
+  w.script.checkAdmin_({ action: 'admin.save', idToken: 'viewer' }, 'events');
+  const line = w.log().at(-1)!;
+  assert.match(String(line[1]), /Viewer Person \(viewer\)/);
+  assert.match(String(line[3]), /may not reach events/);
 });

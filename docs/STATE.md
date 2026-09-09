@@ -60,13 +60,14 @@ list. Each has a doc.
    signed up in a foyer, or tapped an add-calendar link. Two or three families
    through the whole thing before announcing.
 
-4. **Google sign-in is built but not switched on.** The code is written, the
-   Leaders tab and the admin log are in `Code.gs` `2026-09-09f`, and the page
-   offers the button as soon as the endpoint reports a client id. What is left
-   is entirely setup, on the church Google account: make an OAuth client, put
-   `GOOGLE_CLIENT_ID` in the script properties, deploy, add the leaders, then
-   set `REQUIRE_SIGNIN` to yes. docs/ADMIN-SIGNIN.md is the click-by-click.
-   Until that happens the passcode is still the only way in.
+4. **Google sign-in works; the passcode has not been switched off.** A leader
+   signs in with their own Google account, checked against the Leaders tab,
+   and every action lands in the Admin log under their name. Four levels are
+   in place — admin, staff, leader, viewer — and a leader can be scoped to
+   particular ministries. What is left is setting `REQUIRE_SIGNIN` to yes,
+   once every leader has signed in at least once. Until then the passcode is
+   still accepted, and it carries no level: whoever holds it is an admin over
+   every calendar. docs/ADMIN-SIGNIN.md.
 
 5. **The card has never been printed.** Type size, QR scannability and the safe
    margins are unverified on paper.

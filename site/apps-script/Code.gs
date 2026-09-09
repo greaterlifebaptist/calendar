@@ -46,7 +46,7 @@
  * file is handed over: the date, plus a letter if more than one goes out that
  * day.
  */
-var VERSION = '2026-09-09f';
+var VERSION = '2026-09-10a';
 
 var SITE = 'https://calendars.greaterlifebaptistchurch.com';
 var EVENTS_JSON = SITE + '/events.json';
@@ -306,7 +306,8 @@ function doGet() {
       'admin.people', 'admin.setgroups', 'admin.share', 'admin.remove',
       'contacts', 'rsvp', 'admin.rsvps', 'notice', 'admin.notice', 'admin.settings',
       'card.mail', 'admin.makecard',
-      'config', 'admin.leaders', 'admin.addleader', 'admin.removeleader'
+      'config', 'admin.leaders', 'admin.addleader', 'admin.removeleader',
+      'admin.setleader'
     ],
     adminReady: !!adminPasscode_(),
     signIn: signInHealth_(),
@@ -358,6 +359,7 @@ function doPost(e) {
     if (action === 'admin.leaders')      return handleAdminLeaders_(body);
     if (action === 'admin.addleader')    return handleAdminAddLeader_(body);
     if (action === 'admin.removeleader') return handleAdminRemoveLeader_(body);
+    if (action === 'admin.setleader')    return handleAdminSetLeader_(body);
     return json_({ ok: false, error: 'Unknown action.' });
   } catch (err) {
     return json_({ ok: false, error: String(err && err.message ? err.message : err) });
@@ -705,30 +707,179 @@ function normalizeEmail_(raw) {
   return user + '@' + host;
 }
 
-function leadersSheet_() { return tab_(LEADERS_TAB, ['name', 'email', 'active', 'added', 'notes']); }
+var LEADER_COLUMNS = ['name', 'email', 'active', 'role', 'ministries', 'added', 'notes'];
+
+/**
+ * What each level may reach.
+ *
+ * The page hides what a level cannot use, which is courtesy. This table is
+ * what actually decides it: a browser can be edited by anyone who opens the
+ * developer tools, so every rule that matters is enforced on this side.
+ *
+ *   admin   everything, including who else may get in
+ *   staff   everything except the leaders list
+ *   leader  events and RSVPs
+ *   viewer  RSVPs, and nothing that changes anything
+ */
+var ROLES = {
+  admin:  { events: true,  people: true,  notices: true,  rsvps: true, leaders: true  },
+  staff:  { events: true,  people: true,  notices: true,  rsvps: true, leaders: false },
+  leader: { events: true,  people: false, notices: false, rsvps: true, leaders: false },
+  viewer: { events: false, people: false, notices: false, rsvps: true, leaders: false }
+};
+
+/** Who this request turned out to be, past their name. Set by checkAdmin_. */
+var CALLER_ROLE = '';
+var CALLER_SCOPE = null;
+
+/**
+ * A row's role, read charitably but not generously.
+ *
+ * Blank, misspelled, or a level that no longer exists all come out as leader.
+ * That is the quiet end of the scale: a row typed in a hurry grants the least
+ * rather than the most. The migration below is what keeps that rule from
+ * catching the people who were already here before roles existed.
+ */
+function normalizeRole_(raw) {
+  var role = String(raw || '').trim().toLowerCase();
+  return ROLES[role] ? role : 'leader';
+}
+
+/**
+ * Which ministries somebody may touch, or null for all of them.
+ *
+ * Written in the sheet as a list of ids — "youth, youth-leaders" — separated
+ * however the person typing felt like separating them. Blank means all, and
+ * so does a bare `*` for somebody who would rather say it than imply it.
+ *
+ * Ids, not display names. "Man Church" may be renamed one day; `mens` will
+ * not, which is the whole reason the ids are locked.
+ */
+function parseScope_(raw) {
+  var text = String(raw || '').trim();
+  if (!text || text === '*') return null;
+  var out = [];
+  var parts = text.split(/[;,]/);
+  for (var i = 0; i < parts.length; i++) {
+    var id = parts[i].trim().toLowerCase();
+    if (id) out.push(id);
+  }
+  return out.length ? out : null;
+}
+
+/**
+ * The Leaders tab, with the columns this version needs.
+ *
+ * Roles and ministry scope arrived after the tab did, so a sheet set up an
+ * hour ago is missing both columns. They are added on the way past rather
+ * than by hand: there is no computer at the church, and "open the spreadsheet
+ * and insert a column" is not a step that happens on a phone.
+ *
+ * Every row that already existed is filled in as admin. Those are the people
+ * who had every power a moment ago, and quietly demoting them would put the
+ * only way back in behind a page they could no longer open.
+ */
+function leadersSheet_() {
+  var sheet = tab_(LEADERS_TAB, LEADER_COLUMNS);
+  var width = Math.max(sheet.getLastColumn(), 1);
+  var headers = leaderHeaders_(sheet, width);
+
+  var missing = [];
+  for (var i = 0; i < LEADER_COLUMNS.length; i++) {
+    if (headers.indexOf(LEADER_COLUMNS[i]) === -1) missing.push(LEADER_COLUMNS[i]);
+  }
+  if (!missing.length) return sheet;
+
+  var at = width + 1;
+  sheet.getRange(1, at, 1, missing.length).setValues([missing]);
+
+  var rows = sheet.getLastRow() - 1;
+  var roleAt = missing.indexOf('role');
+  if (rows > 0 && roleAt !== -1) {
+    var fill = [];
+    for (var r = 0; r < rows; r++) fill.push(['admin']);
+    sheet.getRange(2, at + roleAt, rows, 1).setValues(fill);
+  }
+  return sheet;
+}
+
+function leaderHeaders_(sheet, width) {
+  return sheet.getRange(1, 1, 1, width).getValues()[0].map(function (h) {
+    return String(h || '').trim().toLowerCase();
+  });
+}
 
 function leaders_() {
   var sheet = leadersSheet_();
   var last = sheet.getLastRow();
   if (last < 2) return [];
-  var rows = sheet.getRange(2, 1, last - 1, 5).getValues();
+
+  // Read by column name rather than position. The tab gained two columns in
+  // the middle of its life and will gain more; counting from the left is how
+  // a sheet quietly starts reporting one field as another.
+  var width = sheet.getLastColumn();
+  var headers = leaderHeaders_(sheet, width);
+  var at = function (name) { return headers.indexOf(name); };
+  var cell = function (row, name) {
+    var i = at(name);
+    return i === -1 ? '' : String(row[i] || '').trim();
+  };
+
+  var rows = sheet.getRange(2, 1, last - 1, width).getValues();
   var out = [];
   for (var i = 0; i < rows.length; i++) {
-    var email = String(rows[i][1] || '').trim();
+    var email = cell(rows[i], 'email');
     if (!email || email.indexOf('@') === -1) continue;
-    var active = String(rows[i][2] || '').trim();
+    var active = cell(rows[i], 'active');
     // Blank means yes, the same as Contacts. A new row should work without
     // ceremony; switching somebody off should take a deliberate word.
     if (active && /^(no|n|off|false|0)$/i.test(active)) continue;
     out.push({
       row: i + 2,
-      name: String(rows[i][0] || '').trim(),
+      name: cell(rows[i], 'name'),
       email: email,
       key: normalizeEmail_(email),
-      notes: String(rows[i][4] || '').trim()
+      role: normalizeRole_(cell(rows[i], 'role')),
+      scope: parseScope_(cell(rows[i], 'ministries')),
+      notes: cell(rows[i], 'notes')
     });
   }
   return out;
+}
+
+/** Write one field of one leader's row, by column name. */
+function setLeaderCell_(row, name, value) {
+  var sheet = leadersSheet_();
+  var headers = leaderHeaders_(sheet, sheet.getLastColumn());
+  var at = headers.indexOf(name);
+  if (at === -1) return;
+  sheet.getRange(row, at + 1).setValue(value);
+}
+
+/** How many admins are left. The list must never run out of them. */
+function adminCount_() {
+  var list = leaders_();
+  var n = 0;
+  for (var i = 0; i < list.length; i++) if (list[i].role === 'admin') n++;
+  return n;
+}
+
+/**
+ * May the caller act on this ministry?
+ *
+ * A leader with no scope may touch every calendar, which is what everybody
+ * had before this existed and what most of them will keep.
+ */
+function mayTouchMinistry_(id) {
+  if (!CALLER_SCOPE) return true;
+  return CALLER_SCOPE.indexOf(String(id || '').trim().toLowerCase()) !== -1;
+}
+
+function refuseMinistry_(id) {
+  return json_({
+    ok: false,
+    error: 'Your account does not cover ' + (id || 'that calendar') + '.'
+  });
 }
 
 function leaderFor_(email) {
@@ -803,9 +954,16 @@ function verifyIdToken_(idToken) {
  *
  * A refusal carries `needsSignIn` when signing in again is what would fix it,
  * so the page can offer the button rather than an error nobody can act on.
+ *
+ * `area` is which part of the page this action belongs to — events, people,
+ * notices, rsvps, leaders — checked against the caller's role. Left out for
+ * the handful of actions any leader may reach at all, such as opening the
+ * page in the first place.
  */
-function checkAdmin_(body) {
+function checkAdmin_(body, area) {
   CALLER = '';
+  CALLER_ROLE = '';
+  CALLER_SCOPE = null;
   var action = String((body && body.action) || '').toLowerCase();
   var idToken = String((body && body.idToken) || '');
 
@@ -835,6 +993,10 @@ function checkAdmin_(body) {
       });
     }
     CALLER = leader.name || who.name || leader.email;
+    CALLER_ROLE = leader.role;
+    CALLER_SCOPE = leader.scope;
+    var short = tooFew_(action, area);
+    if (short) return short;
     logAdmin_(action, actionDetail_(body));
     return null;
   }
@@ -848,9 +1010,27 @@ function checkAdmin_(body) {
 
   var bad = checkPasscode_(body && body.passcode);
   if (bad) return json_({ ok: false, error: bad });
+  // The passcode carries no identity, so it cannot carry a role either. It
+  // gets all of them, which is one more reason to switch it off: a shared
+  // secret is the one way into this page that no level applies to.
   CALLER = 'passcode';
+  CALLER_ROLE = 'admin';
+  CALLER_SCOPE = null;
   logAdmin_(action, actionDetail_(body));
   return null;
+}
+
+/** Refuse when the caller's level does not reach this part of the page. */
+function tooFew_(action, area) {
+  if (!area) return null;
+  var may = ROLES[CALLER_ROLE] || ROLES.leader;
+  if (may[area]) return null;
+  logAdmin_(action, 'refused: ' + CALLER_ROLE + ' may not reach ' + area, true);
+  return json_({
+    ok: false,
+    error: 'Your account is set to ' + CALLER_ROLE + ', which does not cover that ' +
+           'part of this page. Ask an admin if you need it.'
+  });
 }
 
 /**
@@ -890,7 +1070,12 @@ function logAdmin_(action, detail, always) {
   if (!always && !AUDITED_[action]) return;
   try {
     var sheet = adminLogSheet_();
-    sheet.appendRow([new Date(), CALLER || 'unknown', action, String(detail || '')]);
+    sheet.appendRow([
+      new Date(),
+      (CALLER || 'unknown') + (CALLER_ROLE ? ' (' + CALLER_ROLE + ')' : ''),
+      action,
+      String(detail || '')
+    ]);
     var last = sheet.getLastRow();
     if (last > ADMIN_LOG_MAX + 1) sheet.deleteRows(2, last - ADMIN_LOG_MAX - 1);
   } catch (err) {
@@ -913,24 +1098,61 @@ function logAdmin_(action, detail, always) {
 
 function leadersList_() {
   return leaders_().map(function (l) {
-    return { name: l.name, email: l.email, notes: l.notes };
+    return {
+      name: l.name, email: l.email, notes: l.notes,
+      role: l.role,
+      ministries: l.scope ? l.scope.join(', ') : ''
+    };
   });
 }
 
+/** Add a row in whatever order this sheet's columns happen to be in. */
+function appendLeader_(fields) {
+  var sheet = leadersSheet_();
+  var headers = leaderHeaders_(sheet, sheet.getLastColumn());
+  var row = [];
+  for (var i = 0; i < headers.length; i++) {
+    row.push(Object.prototype.hasOwnProperty.call(fields, headers[i]) ? fields[headers[i]] : '');
+  }
+  sheet.appendRow(row);
+}
+
+/**
+ * The first id in a scope that is not a ministry, or '' if they all are.
+ *
+ * Worth refusing rather than accepting. A typo in this cell does not fail
+ * loudly; it silently scopes somebody to a calendar that does not exist, and
+ * they sign in to a page with an empty dropdown and no idea why.
+ */
+function unknownMinistry_(raw) {
+  var wanted = parseScope_(raw);
+  if (!wanted) return '';
+  var all = allMinistryIds_();
+  for (var i = 0; i < wanted.length; i++) {
+    if (!all[wanted[i]]) return wanted[i];
+  }
+  return '';
+}
+
 function handleAdminLeaders_(body) {
-  var bad = checkAdmin_(body);
+  var bad = checkAdmin_(body, 'leaders');
   if (bad) return bad;
   return json_({
     ok: true,
     you: CALLER,
+    yourRole: CALLER_ROLE,
     signInRequired: requireSignIn_(),
     signInReady: !!googleClientId_(),
+    roles: ['admin', 'staff', 'leader', 'viewer'],
+    ministries: allMinistries_().map(function (m) {
+      return { id: m.id, name: m.name, visibility: m.visibility };
+    }),
     leaders: leadersList_()
   });
 }
 
 function handleAdminAddLeader_(body) {
-  var bad = checkAdmin_(body);
+  var bad = checkAdmin_(body, 'leaders');
   if (bad) return bad;
 
   var name = String(body.name || '').trim();
@@ -947,12 +1169,63 @@ function handleAdminAddLeader_(body) {
     return json_({ ok: false, error: (already.name || email) + ' is already on the list.' });
   }
 
-  leadersSheet_().appendRow([name, email, 'yes', new Date(), 'added by ' + (CALLER || 'passcode')]);
+  var role = normalizeRole_(body.role);
+  var scope = String(body.ministries || '').trim();
+  var wrong = unknownMinistry_(scope);
+  if (wrong) return json_({ ok: false, error: 'There is no calendar called "' + wrong + '".' });
+
+  appendLeader_({
+    name: name,
+    email: email,
+    active: 'yes',
+    role: role,
+    ministries: scope,
+    added: new Date(),
+    notes: 'added by ' + (CALLER || 'passcode')
+  });
+  return json_({ ok: true, leaders: leadersList_() });
+}
+
+/**
+ * Change somebody's level, or which calendars they cover.
+ *
+ * Separate from adding them, so that promoting a leader is not "remove and
+ * type it all again" — which is how somebody ends up briefly not on the list
+ * at all, and how a scope gets retyped slightly differently.
+ */
+function handleAdminSetLeader_(body) {
+  var bad = checkAdmin_(body, 'leaders');
+  if (bad) return bad;
+
+  var email = String(body.email || '').trim();
+  var target = leaderFor_(email);
+  if (!target) return json_({ ok: false, error: 'They are not on the list.' });
+
+  if (body.role !== undefined) {
+    var role = normalizeRole_(body.role);
+    // The list must never run out of admins: nobody else can put one back.
+    if (target.role === 'admin' && role !== 'admin' && adminCount_() <= 1) {
+      return json_({
+        ok: false,
+        error: 'That is the only admin. Make somebody else an admin first, or ' +
+               'nobody can manage this list again.'
+      });
+    }
+    setLeaderCell_(target.row, 'role', role);
+  }
+
+  if (body.ministries !== undefined) {
+    var scope = String(body.ministries || '').trim();
+    var wrong2 = unknownMinistry_(scope);
+    if (wrong2) return json_({ ok: false, error: 'There is no calendar called "' + wrong2 + '".' });
+    setLeaderCell_(target.row, 'ministries', scope);
+  }
+
   return json_({ ok: true, leaders: leadersList_() });
 }
 
 function handleAdminRemoveLeader_(body) {
-  var bad = checkAdmin_(body);
+  var bad = checkAdmin_(body, 'leaders');
   if (bad) return bad;
 
   var email = String(body.email || '').trim();
@@ -961,11 +1234,20 @@ function handleAdminRemoveLeader_(body) {
 
   // Emptying the list would lock every leader out of the page with no way back
   // in but the script editor, which is the one place nobody can reach from a
-  // phone in a church foyer.
+  // phone in a church foyer. Losing the last admin is the same thing one step
+  // removed: the others could still get in, and none of them could ever add
+  // anybody or put an admin back.
   if (leaders_().length <= 1) {
     return json_({
       ok: false,
       error: 'That is the last leader. Add somebody else first, or nobody can get in.'
+    });
+  }
+  if (target.role === 'admin' && adminCount_() <= 1) {
+    return json_({
+      ok: false,
+      error: 'That is the only admin. Make somebody else an admin first, or nobody ' +
+             'can manage this list again.'
     });
   }
 
@@ -984,10 +1266,12 @@ function signInHealth_() {
   var out = {
     clientId: !!googleClientId_(),
     required: requireSignIn_(),
-    leaders: 0
+    leaders: 0,
+    admins: 0
   };
   try {
     out.leaders = leaders_().length;
+    out.admins = adminCount_();
   } catch (err) {
     out.detail = String(err && err.message ? err.message : err);
   }
@@ -1097,12 +1381,13 @@ function toResource_(ev) {
 }
 
 function handleAdminSave_(body) {
-  var bad = checkAdmin_(body);
+  var bad = checkAdmin_(body, 'events');
   if (bad) return bad;
 
   var m = findMinistry_(String(body.ministry || ''));
   if (!m) return json_({ ok: false, error: 'Pick a calendar.' });
   if (!m.calendarId) return json_({ ok: false, error: 'That ministry has no calendar set up.' });
+  if (!mayTouchMinistry_(m.id)) return refuseMinistry_(m.name || m.id);
   var resource = toResource_(body.event || {});
   var cal = calendarService_();
   var saved = body.id
@@ -1119,12 +1404,13 @@ function handleAdminSave_(body) {
 }
 
 function handleAdminList_(body) {
-  var bad = checkAdmin_(body);
+  var bad = checkAdmin_(body, 'events');
   if (bad) return bad;
 
   var m = findMinistry_(String(body.ministry || ''));
   if (!m) return json_({ ok: false, error: 'Pick a calendar.' });
   if (!m.calendarId) return json_({ ok: false, error: 'That ministry has no calendar set up.' });
+  if (!mayTouchMinistry_(m.id)) return refuseMinistry_(m.name || m.id);
 
   // Unexpanded, so a series shows as one editable thing rather than every
   // occurrence. Editing a single occurrence of a series is a job for Google
@@ -1165,11 +1451,12 @@ function handleAdminList_(body) {
 }
 
 function handleAdminDelete_(body) {
-  var bad = checkAdmin_(body);
+  var bad = checkAdmin_(body, 'events');
   if (bad) return bad;
 
   var m = findMinistry_(String(body.ministry || ''));
   if (!m || !m.calendarId) return json_({ ok: false, error: 'Pick a calendar.' });
+  if (!mayTouchMinistry_(m.id)) return refuseMinistry_(m.name || m.id);
   if (!body.id) return json_({ ok: false, error: 'Nothing to delete.' });
 
   calendarService_().Events.remove(m.calendarId, body.id);
@@ -1180,11 +1467,19 @@ function handleAdminDelete_(body) {
 function handleAdminHello_(body) {
   var bad = checkAdmin_(body);
   if (bad) return bad;
-  var list = allMinistries_().filter(function (m) { return !!m.calendarId; });
+  var list = allMinistries_().filter(function (m) {
+    return !!m.calendarId && mayTouchMinistry_(m.id);
+  });
   return json_({
     ok: true,
     you: CALLER,
     signedIn: CALLER !== 'passcode',
+    role: CALLER_ROLE,
+    // What this person may reach, so the page can leave out the rest. It is
+    // the same table the endpoint refuses by, sent rather than re-stated, so
+    // the two cannot drift apart.
+    can: ROLES[CALLER_ROLE] || ROLES.leader,
+    scoped: !!CALLER_SCOPE,
     ministries: list.map(function (m) {
       return {
         id: m.id, name: m.name, visibility: m.visibility,
@@ -1222,7 +1517,7 @@ function allMinistryIds_() {
 }
 
 function handleAdminPeople_(body) {
-  var bad = checkAdmin_(body);
+  var bad = checkAdmin_(body, 'people');
   if (bad) return bad;
 
   var sheet = sheet_();
@@ -1264,7 +1559,7 @@ function handleAdminPeople_(body) {
  * writes every ministry column. That is the entire point of this action.
  */
 function handleAdminSetGroups_(body) {
-  var bad = checkAdmin_(body);
+  var bad = checkAdmin_(body, 'people');
   if (bad) return bad;
 
   var token = String(body.handle || '').trim();
@@ -1279,6 +1574,23 @@ function handleAdminSetGroups_(body) {
   var headers = headers_(sheet);
   var found = findByToken_(sheet, headers, token);
   if (!found) return json_({ ok: false, error: 'That person is no longer in the sheet.' });
+
+  // A scoped leader may only move the calendars they cover, and the page
+  // sends the whole set because the whole set is what it drew. Saving that
+  // verbatim would clear every column outside their scope — a silent removal
+  // of somebody else's private calendar, done by a person who never saw it.
+  if (CALLER_SCOPE) {
+    var keep = [];
+    var current = groupsOf_(headers, found.values, all);
+    for (var k = 0; k < current.length; k++) {
+      if (!mayTouchMinistry_(current[k])) keep.push(current[k]);
+    }
+    var mine = [];
+    for (var g = 0; g < groups.length; g++) {
+      if (mayTouchMinistry_(groups[g])) mine.push(groups[g]);
+    }
+    groups = keep.concat(mine);
+  }
 
   writeGroups_(sheet, headers, found.row, groups, all);
   var after = sheet.getRange(found.row, 1, 1, headers.length).getValues()[0];
@@ -1326,7 +1638,7 @@ function handleAdminSetGroups_(body) {
  * not arrive or a text is how that person is actually reachable.
  */
 function handleAdminShare_(body) {
-  var bad = checkAdmin_(body);
+  var bad = checkAdmin_(body, 'people');
   if (bad) return bad;
 
   var token = String(body.handle || '').trim();
@@ -1370,8 +1682,18 @@ function handleAdminShare_(body) {
  * access nobody can find to revoke.
  */
 function handleAdminRemove_(body) {
-  var bad = checkAdmin_(body);
+  var bad = checkAdmin_(body, 'people');
   if (bad) return bad;
+
+  // Removing somebody takes away every calendar they hold, including ones
+  // this person cannot see. That is not a scoped decision.
+  if (CALLER_SCOPE) {
+    return json_({
+      ok: false,
+      error: 'Removing somebody completely is for an account that covers every ' +
+             'calendar. Take away the ones you cover instead.'
+    });
+  }
 
   var token = String(body.handle || '').trim();
   if (!validToken_(token)) return json_({ ok: false, error: 'Unknown person.' });
@@ -1455,7 +1777,7 @@ function writeSetting_(key, value, what) {
  * regular rhythm belongs.
  */
 function handleAdminSettings_(body) {
-  var bad = checkAdmin_(body);
+  var bad = checkAdmin_(body, 'notices');
   if (bad) return bad;
 
   if (body.read) {
@@ -1563,7 +1885,7 @@ function parseMonth_(raw) {
 }
 
 function handleAdminMakeCard_(body) {
-  var bad = checkAdmin_(body);
+  var bad = checkAdmin_(body, 'notices');
   if (bad) return bad;
 
   var props = PropertiesService.getScriptProperties();
@@ -1636,7 +1958,7 @@ function handleAdminMakeCard_(body) {
  * printer asked.
  */
 function handleCardMail_(body) {
-  var bad = checkAdmin_(body);
+  var bad = checkAdmin_(body, 'notices');
   if (bad) return bad;
 
   var who = String(body.contact || '').trim();
@@ -1746,7 +2068,7 @@ function handleNotice_(body) {
  * down by emptying the box they typed it into.
  */
 function handleAdminNotice_(body) {
-  var bad = checkAdmin_(body);
+  var bad = checkAdmin_(body, 'notices');
   if (bad) return bad;
 
   var props = PropertiesService.getScriptProperties();
@@ -1971,7 +2293,7 @@ function handleRsvp_(body) {
  * anything in the past. The page decides what to show; this returns the lot.
  */
 function handleAdminRsvps_(body) {
-  var bad = checkAdmin_(body);
+  var bad = checkAdmin_(body, 'rsvps');
   if (bad) return bad;
 
   var sheet = rsvpsSheet_();
@@ -1982,6 +2304,10 @@ function handleAdminRsvps_(body) {
   var out = [];
   for (var i = 0; i < rows.length; i++) {
     if (!String(rows[i][1] || '').trim()) continue;
+    // A headcount is about somebody's own event. A scoped leader seeing every
+    // other ministry's replies would be reading a list of names and phone
+    // numbers that is none of their business.
+    if (!mayTouchMinistry_(rows[i][4])) continue;
     out.push({
       when: rows[i][0] ? new Date(rows[i][0]).toISOString() : '',
       eventId: String(rows[i][1]),

@@ -159,10 +159,67 @@ which is why the escape hatch lives there rather than in the code.
 The endpoint also refuses to remove the last leader, so the list cannot be
 emptied by accident from the page.
 
+## Levels
+
+Everybody on the list gets in. What they find once they are in depends on the
+**role** column.
+
+| Level | Events | Who gets what | RSVPs | Notices & card | Leaders |
+|---|---|---|---|---|---|
+| `admin` | yes | yes | yes | yes | yes |
+| `staff` | yes | yes | yes | yes | — |
+| `leader` | yes | — | yes | — | — |
+| `viewer` | — | — | yes | — | — |
+
+A blank role means `leader`, and so does a misspelled one. That is deliberately
+the quiet end of the scale: a row typed in a hurry should grant the least
+rather than the most. Rows that existed before levels did were filled in as
+`admin` when the columns were added, because demoting them silently would have
+put the only way back behind a page they could no longer open.
+
+Note what `staff` includes: **who gets which calendars**. A staff member can
+put somebody into Youth Leaders or Worship. That is the right line for office
+or pastoral staff and the wrong one for a ministry volunteer — the difference
+between `staff` and `leader` is mostly this.
+
+The page hides the tabs a level cannot use. That is courtesy, not security: the
+endpoint refuses the action either way, and it is the only side that can. A
+browser can be edited by whoever is holding it.
+
+**The list can never run out of admins.** The last one cannot be demoted or
+removed, because nobody else could put one back.
+
+### Which calendars
+
+The **ministries** column limits somebody to particular calendars. Blank — or a
+bare `*` — means all of them, including any added later, which is what stops a
+new ministry being invisible to everybody until each row is revisited.
+
+Otherwise it is a list of ministry ids: `youth, youth-leaders`. Ids, not
+display names: "Man Church" may be renamed one day, `mens` will not. A scoped
+person sees only those calendars in the event dropdown, and only those
+ministries' RSVPs — a headcount carries names and phone numbers, and another
+ministry's is none of their business.
+
+Two things a scope deliberately cannot do. It cannot remove somebody from the
+church list outright, since that takes away calendars the scoped person cannot
+see. And when a scoped staff member saves somebody's calendars, only the ones
+they cover are changed; the rest are left exactly as they were, rather than
+being cleared because the page never drew them.
+
+A scope naming a calendar that does not exist is refused when it is entered.
+Accepting it would scope somebody to nothing, and they would sign in to an
+empty dropdown with no way to tell why.
+
+**The passcode has no level**, because it has no name. While `REQUIRE_SIGNIN`
+is off, anybody using it is an admin over every calendar. One more reason to
+turn it off.
+
 ## The Admin log tab
 
-One row per action that changes something: when, who, what, and enough detail to
-recognise it. Reads are not logged — the event list is re-read every time
+One row per action that changes something: when, who — with their level, since
+two refusals that differ only by level would otherwise read identically — what,
+and enough detail to recognise it. Reads are not logged — the event list is re-read every time
 somebody switches ministry, and a log nobody can skim is a log nobody reads.
 
 A row means somebody asked for it, not that it worked; the log is written at the
@@ -173,10 +230,9 @@ It keeps the last 2000 rows and trims from the top.
 
 ## What this does not fix
 
-**Everyone who gets in can do everything.** Adding somebody to Youth Leaders and
-adding them to Worship are the same permission. That is fine while the Leaders
-tab is a handful of people who between them already have every private calendar,
-and it is the thing to revisit before a pastor's calendar exists.
+**A level is not per-calendar for the private ones.** Anybody who reaches "who
+gets what" and is not scoped can grant Youth Leaders and Worship alike. Scoping
+them fixes it; leaving the column blank does not.
 
 **It is not succession.** A second person who can sign in to the admin page is
 not a second owner of the Google account, the GitHub repository or the sheet.
