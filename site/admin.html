@@ -534,7 +534,7 @@ let CONFIG = { clientId: "", signInRequired: false };
 
 /** Whichever proof this browser is holding, shaped for the endpoint. */
 function auth(){
-  return IDTOKEN ? { idToken: IDTOKEN } : { ...auth() };
+  return IDTOKEN ? { idToken: IDTOKEN } : { passcode: PASS };
 }
 let editingId = null;
 
@@ -553,11 +553,21 @@ function notice(head, body, kind){
 }
 
 async function call(payload){
-  const res = await fetch(ENDPOINT, {
-    method: "POST",
-    headers: { "content-type": "text/plain;charset=utf-8" },
-    body: JSON.stringify(payload),
-  });
+  let res;
+  try {
+    res = await fetch(ENDPOINT, {
+      method: "POST",
+      headers: { "content-type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(payload),
+    });
+  } catch (err) {
+    // The only failure here that is genuinely the connection. Marked, so that
+    // a fault in this page cannot be reported as one — which cost an evening
+    // once: a bug on the page said "check your connection" and the connection
+    // was fine all along.
+    err.offline = true;
+    throw err;
+  }
   const out = await res.json();
   if (!out.ok){
     const e = new Error(out.error || "Something went wrong.");
@@ -578,9 +588,19 @@ function say(el, msg, kind){
 }
 
 function fail(el, err){
-  say(el, (err && err.fromServer && err.message)
-    ? err.message
-    : "Could not reach the church server. Check your connection and try again.", "err");
+  if (err && err.fromServer && err.message){
+    say(el, err.message, "err");
+    return;
+  }
+  if (err && err.offline){
+    say(el, "Could not reach the church server. Check your connection and try again.", "err");
+    return;
+  }
+  // Neither the server nor the line: something in this page broke. Saying so,
+  // with the actual message, because "check your connection" sends whoever
+  // reads it to look in entirely the wrong place.
+  say(el, "Something went wrong in this page: " +
+    ((err && err.message) || "no detail") + ". Reload and try again.", "err");
 }
 
 // ---------------------------------------------------------------------------
