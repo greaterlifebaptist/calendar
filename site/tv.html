@@ -438,11 +438,13 @@ function renderRail(){
       '</div></div>';
   }).join("");
 
-  // Trim to what actually fits. A row half cut off at the bottom of the rail
-  // looks broken, and on a wall nobody can scroll to see the rest of it.
-  while (box.children.length > 1 && box.scrollHeight > box.clientHeight){
-    box.removeChild(box.lastElementChild);
-  }
+  // Deliberately not trimmed to what fits.
+  //
+  // It used to be: a row half cut off at the bottom looked broken when the
+  // rail was static and nobody could scroll it. The crawl exists precisely to
+  // show what does not fit, so trimming now deletes the thing it was built to
+  // reveal — and silently, in a way that reads as "the TV only ever shows
+  // three events" rather than as a fault.
 }
 
 // ---------------------------------------------------------------------------
