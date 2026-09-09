@@ -16,6 +16,7 @@ on:
     paths:
       - 'site/**'
       - 'job/**'
+      - 'public/card/**'
       - '.github/workflows/sync.yml'
 
   # Signing up, changing groups or replacing a link asks for a rebuild, so a

@@ -15,7 +15,8 @@
     "check": "npm run typecheck && npm test",
     "restore": "node scripts/restore.mjs",
     "person": "node scripts/person.mjs",
-    "preview:reminders": "node scripts/reminders-preview.mjs"
+    "preview:reminders": "node scripts/reminders-preview.mjs",
+    "card": "node scripts/make-card.mjs"
   },
   "dependencies": {
     "@pdf-lib/fontkit": "^1.1.1",

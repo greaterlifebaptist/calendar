@@ -1,0 +1,58 @@
+name: Make the calendar card
+
+# Manual on purpose. A card goes to a printer on the church's schedule, not the
+# calendar's — somebody may add an event on the 16th, right before sending it.
+# An automatic monthly build would also quietly replace a file after it had
+# already gone to the printer, so the copy on the site would stop matching what
+# was actually printed.
+on:
+  workflow_dispatch:
+    inputs:
+      month:
+        description: 'First month, as YYYY-MM. Leave blank for the two months ahead.'
+        type: string
+        required: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: calendar-card
+  cancel-in-progress: false
+
+jobs:
+  card:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: job/package-lock.json
+
+      - name: Install
+        working-directory: job
+        run: npm ci
+
+      - name: Build the card
+        working-directory: job
+        env:
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+          SHEET_ID: ${{ secrets.SHEET_ID }}
+          CARD_MONTH: ${{ inputs.month }}
+        run: npm run card
+
+      - name: Publish it
+        run: |
+          git config user.name 'glbc-calendar-bot'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add public/card
+          if git diff --cached --quiet; then
+            echo 'The card is identical to the one already published.'
+            exit 0
+          fi
+          git commit -m "Calendar card $(date -u +'%Y-%m-%d')"
+          git push
+          echo 'Pushed. The site redeploys within a couple of minutes.'

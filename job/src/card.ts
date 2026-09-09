@@ -169,8 +169,17 @@ function wrap(text: string, font: PDFFont, size: number, width: number): string[
   return out;
 }
 
-const DATE_COL = 0.78 * PT;   // width reserved for "Thu 14"
-const DUE_COL = 0.3 * PT;     // and for the DUE marker beside it
+/*
+ * The date is two columns, not one string.
+ *
+ * "Sun 4" and "Sat 31" as single strings put their numbers at different
+ * places, so the column of days came out ragged. The weekday sits left, the
+ * number is right-aligned under itself, and the eye can run straight down.
+ */
+const DOW_COL = 0.42 * PT;    // "Sun", left-aligned
+const NUM_COL = 0.2 * PT;     // the day number, right-aligned after it
+const DATE_COL = DOW_COL + NUM_COL;
+const DUE_COL = 0.3 * PT;     // and the DUE marker beside that
 const LINE_SIZE = 10;
 const LINE_GAP = 5;
 const TITLE_W = () => CONTENT_W - DATE_COL - DUE_COL - 8;
@@ -182,8 +191,14 @@ function lineHeight(l: Line, f: CardFonts): number {
 }
 
 function drawLine(page: PDFPage, l: Line, y: number, f: CardFonts): number {
-  page.drawText(l.dow + ' ' + l.day, {
-    x: L, y: y - LINE_SIZE, size: LINE_SIZE - 0.6, font: f.bodyBold, color: SOFT,
+  const dateSize = LINE_SIZE - 0.6;
+  page.drawText(l.dow, {
+    x: L, y: y - LINE_SIZE, size: dateSize, font: f.bodyBold, color: SOFT,
+  });
+  const num = String(l.day);
+  page.drawText(num, {
+    x: L + DATE_COL - f.bodyBold.widthOfTextAtSize(num, dateSize),
+    y: y - LINE_SIZE, size: dateSize, font: f.bodyBold, color: SOFT,
   });
 
   // The marker, not the colour, is what says "deadline" — it survives a mono
@@ -354,8 +369,13 @@ export async function buildCard(input: CardInput): Promise<CardResult> {
     });
     y -= 26;
     for (const d of deadlines) {
-      back.drawText(MONTHS[d.month]!.slice(0, 3) + ' ' + d.day, {
+      back.drawText(MONTHS[d.month]!.slice(0, 3), {
         x: L, y: y - 9, size: 9, font: f.bodyBold, color: SOFT,
+      });
+      const dnum = String(d.day);
+      back.drawText(dnum, {
+        x: L + DATE_COL - f.bodyBold.widthOfTextAtSize(dnum, 9),
+        y: y - 9, size: 9, font: f.bodyBold, color: SOFT,
       });
       back.drawText(wrap(d.title, f.body, 9.4, CONTENT_W - DATE_COL - 8)[0]!, {
         x: L + DATE_COL + 8, y: y - 9, size: 9.4, font: f.body, color: INK,
