@@ -260,6 +260,13 @@ const CRAWL_SECS_PER_ROW = 5;
    Slow enough to read while moving, and still enough to read at rest. */
 const CRAWL_PAUSE_MS = 5000;
 
+/* How many rows the rail will carry.
+
+   Every row is roughly five seconds of crawl, so this is really a limit on how
+   long somebody waits for the list to come back round to the thing they were
+   looking for. Eight rows plus the pause is about three quarters of a minute. */
+const RAIL_MAX = 8;
+
 const RELOAD_HOUR    = 4;
 const RELOAD_WINDOW  = 5;               // minutes past the hour to act within
 const MIN_UPTIME     = 30 * 60 * 1000;  // so a 4am boot does not reload itself
@@ -408,10 +415,15 @@ function renderRail(){
     .filter(e => parse(e.end || e.start) >= today)
     .sort((a,b) => parse(a.start) - parse(b.start));
 
-  // Deadlines first, then anything pinned, then whatever is next. The rail is
-  // for what somebody would be sorry to miss, not for everything.
+  // Deadlines and pinned items first, then everything else in date order.
+  //
+  // These used to REPLACE the rest of the list rather than lead it, so a single
+  // permission-form deadline could push every other event off the wall. That
+  // made sense when only three rows fit; now that the rail scrolls there is
+  // room to show what is urgent first and still show the rest.
   const urgent = all.filter(e => e.type === "deadline" || e.pinned);
-  const list = (urgent.length ? urgent : all).slice(0, 5);
+  const rest = all.filter(e => !urgent.includes(e));
+  const list = [...urgent, ...rest].slice(0, RAIL_MAX);
 
   $("railHead").textContent = urgent.length ? "Don't forget" : "Coming up";
   const box = $("rail");

@@ -89,6 +89,28 @@ stands watching the men's calendar for twenty seconds.
 `?ministry=` should still filter, so a future tablet in the youth building can
 show youth and church-wide only.
 
+## What reaches the rail
+
+Future events from whichever ministries are showing, soonest first. **There is
+no time horizon** — it is not "the next fortnight", it is the next few. A quiet
+month reaches two months out; a busy week shows only the next few days.
+
+Deadlines and pinned items lead, and the heading changes to "Don't forget".
+They used to *replace* the rest of the list rather than lead it, so one
+permission-form deadline could push every other event off the wall. That was
+defensible when three rows fit; now that the rail scrolls there is room to show
+what is urgent first and still show the rest.
+
+Eight rows at most, `RAIL_MAX`. That is really a limit on how long somebody
+waits for the list to come back round to the thing they were looking for:
+roughly five seconds a row plus the pause, so eight is about three quarters of
+a minute.
+
+Nothing is trimmed to fit. It used to be — a half-cut row looked broken when
+the rail was static and nobody could scroll a wall. The crawl exists to show
+what does not fit, so trimming deleted exactly what it was built to reveal,
+and did it silently: the symptom was the item count changing with browser zoom.
+
 ## The wall notice
 
 One message, across the top of the right column, above everything else. For
