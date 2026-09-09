@@ -364,7 +364,7 @@ export async function buildCard(input: CardInput): Promise<CardResult> {
   const deadlines = byMonth.flatMap(({ month, lines }) =>
     lines.filter((l) => l.deadline).map((l) => ({ ...l, month: month.getMonth() })));
 
-  if (deadlines.length && y - 26 - deadlines.length * 15 > FOOT) {
+  if (deadlines.length && y - 26 - deadlines.length * (LINE_SIZE + 6) > FOOT) {
     back.drawText("DON'T FORGET", {
       x: L, y: y - 11, size: 11, font: f.displayBold, color: rgb(0.82, 0.306, 0.169),
     });
@@ -373,19 +373,24 @@ export async function buildCard(input: CardInput): Promise<CardResult> {
       thickness: 0.9, color: rgb(0.82, 0.306, 0.169),
     });
     y -= 26;
+    // Exactly the columns and sizes the dated list uses. It sat on its own
+    // geometry and its titles started short of the ones above it, which on a
+    // card this size reads immediately as two things that do not line up.
+    const dateSize = LINE_SIZE - 0.6;
     for (const d of deadlines) {
       back.drawText(MONTHS[d.month]!.slice(0, 3), {
-        x: L, y: y - 9, size: 9, font: f.bodyBold, color: SOFT,
+        x: L, y: y - LINE_SIZE, size: dateSize, font: f.bodyBold, color: SOFT,
       });
       const dnum = String(d.day);
       back.drawText(dnum, {
-        x: L + DATE_COL - f.bodyBold.widthOfTextAtSize(dnum, 9),
-        y: y - 9, size: 9, font: f.bodyBold, color: SOFT,
+        x: L + DATE_COL - f.bodyBold.widthOfTextAtSize(dnum, dateSize),
+        y: y - LINE_SIZE, size: dateSize, font: f.bodyBold, color: SOFT,
       });
-      back.drawText(wrap(d.title, f.body, 9.4, CONTENT_W - DATE_COL - 8)[0]!, {
-        x: L + DATE_COL + 8, y: y - 9, size: 9.4, font: f.body, color: INK,
+      back.drawText(wrap(d.title, f.body, LINE_SIZE, TITLE_W())[0]!, {
+        x: L + DATE_COL + DUE_COL, y: y - LINE_SIZE, size: LINE_SIZE,
+        font: f.body, color: INK,
       });
-      y -= 15;
+      y -= LINE_SIZE + 6;
     }
     y -= 10;
   }
