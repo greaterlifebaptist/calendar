@@ -4,8 +4,9 @@ One calendar system for Greater Life Baptist Church. Leaders edit in Google
 Calendar; a job reads those calendars hourly and pushes the result out to a
 website, subscribable `.ics` feeds, and GroupMe reminders.
 
-Design decisions and their reasoning live in [CLAUDE.md](CLAUDE.md). Read that
-first. Google, GitHub and DNS setup is in [docs/SETUP.md](docs/SETUP.md), and
+What is actually running, what is not, and what is still being decided is in
+[docs/STATE.md](docs/STATE.md) — start there. Design decisions and their
+reasoning live in [CLAUDE.md](CLAUDE.md). Google, GitHub and DNS setup is in [docs/SETUP.md](docs/SETUP.md), and
 the agreed design for the overflow-room TV is in [docs/TV.md](docs/TV.md).
 Backups and how to restore from one are in [docs/BACKUP.md](docs/BACKUP.md).
 Putting the calendar on the church website is in
