@@ -46,7 +46,7 @@
  * file is handed over: the date, plus a letter if more than one goes out that
  * day.
  */
-var VERSION = '2026-09-09e';
+var VERSION = '2026-09-09f';
 
 var SITE = 'https://calendars.greaterlifebaptistchurch.com';
 var EVENTS_JSON = SITE + '/events.json';
@@ -305,9 +305,11 @@ function doGet() {
       'share',
       'admin.people', 'admin.setgroups', 'admin.share', 'admin.remove',
       'contacts', 'rsvp', 'admin.rsvps', 'notice', 'admin.notice', 'admin.settings',
-      'card.mail', 'admin.makecard'
+      'card.mail', 'admin.makecard',
+      'config', 'admin.leaders', 'admin.addleader', 'admin.removeleader'
     ],
     adminReady: !!adminPasscode_(),
+    signIn: signInHealth_(),
     calendar: calendarOk,
     sheetFrom: sheetSource_(),
     sheet: sheetOk,
@@ -352,6 +354,10 @@ function doPost(e) {
     if (action === 'admin.rsvps')     return handleAdminRsvps_(body);
     if (action === 'admin.share')     return handleAdminShare_(body);
     if (action === 'admin.remove')    return handleAdminRemove_(body);
+    if (action === 'config')             return handleConfig_();
+    if (action === 'admin.leaders')      return handleAdminLeaders_(body);
+    if (action === 'admin.addleader')    return handleAdminAddLeader_(body);
+    if (action === 'admin.removeleader') return handleAdminRemoveLeader_(body);
     return json_({ ok: false, error: 'Unknown action.' });
   } catch (err) {
     return json_({ ok: false, error: String(err && err.message ? err.message : err) });
@@ -532,12 +538,11 @@ function handleRotate_(body) {
 // Admin: writing events to the church calendars
 // ---------------------------------------------------------------------------
 //
-// Gated by a passcode held in Script Properties, never in the page. This is
-// deliberately not real authentication, and CLAUDE.md says so: it is a shared
-// secret protecting a form that can only touch church calendars. Do not extend
-// it to anything genuinely sensitive without proper sign-in first.
+// Gated by checkAdmin_, which accepts a Google sign-in checked against the
+// Leaders tab, or the old shared passcode while REQUIRE_SIGNIN is off. See
+// "Who is asking" below for what each is worth.
 //
-// Set the passcode once: Project Settings > Script Properties >
+// The passcode lives in Script Properties, never in the page:
 //   ADMIN_PASSCODE = something long
 //
 // Calendar writes go through the advanced Calendar service. See below for why
@@ -620,6 +625,384 @@ function checkPasscode_(given) {
 
   cache.remove(FAIL_KEY);
   return null;
+}
+
+// ---------------------------------------------------------------------------
+// Who is asking
+// ---------------------------------------------------------------------------
+//
+// Two ways in, and they are not equal.
+//
+// Google sign-in is the real one. The browser hands over an ID token, Google
+// tells us whose it is, and that address is looked up in the Leaders tab.
+// There is no secret to share, forget, or text to the wrong person; taking
+// somebody's access away is deleting a row; and every action carries a name,
+// so "who changed that?" has an answer.
+//
+// The passcode still works, because switching a whole church over on a Sunday
+// afternoon with no computer in the building is how people end up locked out
+// of their own calendar. It keeps working until REQUIRE_SIGNIN is set, and
+// then it stops being accepted at all and a name on the list is the only way
+// in. That switch is the actual upgrade; everything before it is preparation.
+//
+// Set up once, in Project Settings > Script Properties:
+//   GOOGLE_CLIENT_ID   the OAuth client id from the church Cloud project
+//   REQUIRE_SIGNIN     yes, once every leader has signed in at least once
+//
+// docs/ADMIN-SIGNIN.md has the click-by-click.
+
+/** Who may work the admin page. Name, address, and whether they still may. */
+var LEADERS_TAB = 'Leaders';
+
+/** What they did. Trimmed from the top so it cannot grow without limit. */
+var ADMIN_LOG_TAB = 'Admin log';
+var ADMIN_LOG_MAX = 2000;
+
+/**
+ * Who this request turned out to be.
+ *
+ * Set by checkAdmin_ and read by the log a moment later. A global rather than
+ * a return value because it would otherwise have to be threaded through
+ * fourteen handlers that have no other use for it. Apps Script runs one
+ * request per execution, so there is nobody else's value to collide with.
+ */
+var CALLER = '';
+
+function scriptProp_(name) {
+  return String(PropertiesService.getScriptProperties().getProperty(name) || '').trim();
+}
+
+function googleClientId_() { return scriptProp_('GOOGLE_CLIENT_ID'); }
+
+function requireSignIn_() { return /^(yes|y|true|on|1)$/i.test(scriptProp_('REQUIRE_SIGNIN')); }
+
+/**
+ * The same address, however it happens to be spelled.
+ *
+ * Gmail ignores dots and anything after a plus, so spencer.welch@gmail.com,
+ * spencerwelch@gmail.com and spencerwelch+church@gmail.com are one account
+ * with one inbox. Google's token returns whichever spelling the account was
+ * created with; somebody typing their own address into the sheet will use
+ * whichever one they think of. Comparing the two literally means a sign-in
+ * refused for no visible reason, which is the worst kind of refusal.
+ *
+ * Gmail only. Other providers may treat a dot as significant, and folding one
+ * on their behalf would let one person's address stand in for another's.
+ */
+function normalizeEmail_(raw) {
+  var email = String(raw || '').trim().toLowerCase();
+  var at = email.lastIndexOf('@');
+  if (at === -1) return email;
+  var user = email.slice(0, at);
+  var host = email.slice(at + 1);
+  if (host === 'googlemail.com') host = 'gmail.com';
+  if (host === 'gmail.com') {
+    var plus = user.indexOf('+');
+    if (plus !== -1) user = user.slice(0, plus);
+    user = user.split('.').join('');
+  }
+  if (!user) return email;
+  return user + '@' + host;
+}
+
+function leadersSheet_() { return tab_(LEADERS_TAB, ['name', 'email', 'active', 'added', 'notes']); }
+
+function leaders_() {
+  var sheet = leadersSheet_();
+  var last = sheet.getLastRow();
+  if (last < 2) return [];
+  var rows = sheet.getRange(2, 1, last - 1, 5).getValues();
+  var out = [];
+  for (var i = 0; i < rows.length; i++) {
+    var email = String(rows[i][1] || '').trim();
+    if (!email || email.indexOf('@') === -1) continue;
+    var active = String(rows[i][2] || '').trim();
+    // Blank means yes, the same as Contacts. A new row should work without
+    // ceremony; switching somebody off should take a deliberate word.
+    if (active && /^(no|n|off|false|0)$/i.test(active)) continue;
+    out.push({
+      row: i + 2,
+      name: String(rows[i][0] || '').trim(),
+      email: email,
+      key: normalizeEmail_(email),
+      notes: String(rows[i][4] || '').trim()
+    });
+  }
+  return out;
+}
+
+function leaderFor_(email) {
+  var key = normalizeEmail_(email);
+  if (!key) return null;
+  var list = leaders_();
+  for (var i = 0; i < list.length; i++) {
+    if (list[i].key === key) return list[i];
+  }
+  return null;
+}
+
+/**
+ * Ask Google whose sign-in this is.
+ *
+ * The browser sends an ID token: a short-lived, Google-signed statement of who
+ * somebody is and which application they signed in to. Checking it properly
+ * means verifying an RSA signature against Google's rotating public keys, and
+ * Apps Script has no primitive that verifies one, so the question goes back to
+ * Google's own tokeninfo endpoint and we read the answer.
+ *
+ * The check that matters most is `aud`. Without it, any website could collect
+ * a perfectly valid Google token from its own visitors and replay it here.
+ * With it, the token has to have been minted for this application.
+ *
+ * Returns the person, or null for anything that does not check out. Null is
+ * deliberately undifferentiated: expired, forged and meant-for-someone-else
+ * all deserve the same answer, which is no.
+ */
+function verifyIdToken_(idToken) {
+  var clientId = googleClientId_();
+  if (!clientId) throw new Error('Sign-in is not set up yet: GOOGLE_CLIENT_ID is missing.');
+
+  var cache = CacheService.getScriptCache();
+  var key = 'idt_' + Utilities.base64Encode(
+    Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, idToken));
+  var hit = cache.get(key);
+  if (hit) return JSON.parse(hit);
+
+  var res = UrlFetchApp.fetch(
+    'https://oauth2.googleapis.com/tokeninfo?id_token=' + encodeURIComponent(idToken),
+    { muteHttpExceptions: true });
+  if (res.getResponseCode() !== 200) return null;
+
+  var data;
+  try { data = JSON.parse(res.getContentText()); } catch (err) { return null; }
+
+  if (String(data.aud || '') !== clientId) return null;
+  if (String(data.email_verified) !== 'true') return null;
+  var expires = Number(data.exp || 0) * 1000;
+  if (!expires || expires <= Date.now()) return null;
+  var email = String(data.email || '').trim();
+  if (!email) return null;
+
+  var who = { email: email, name: String(data.name || '').trim() };
+  // Held only as long as the token itself is alive, and never more than a few
+  // minutes. Opening the admin page makes several calls in a row and there is
+  // no reason to ask Google about the same token every time.
+  var seconds = Math.floor((expires - Date.now()) / 1000);
+  cache.put(key, JSON.stringify(who), Math.max(1, Math.min(300, seconds)));
+  return who;
+}
+
+/**
+ * The one gate every admin action goes through.
+ *
+ * Returns null when the caller may proceed, or the whole refusal to hand back
+ * unchanged. Handlers are two lines because of it:
+ *
+ *   var bad = checkAdmin_(body);
+ *   if (bad) return bad;
+ *
+ * A refusal carries `needsSignIn` when signing in again is what would fix it,
+ * so the page can offer the button rather than an error nobody can act on.
+ */
+function checkAdmin_(body) {
+  CALLER = '';
+  var action = String((body && body.action) || '').toLowerCase();
+  var idToken = String((body && body.idToken) || '');
+
+  if (idToken) {
+    var who = null;
+    try {
+      who = verifyIdToken_(idToken);
+    } catch (err) {
+      return json_({ ok: false, error: String(err && err.message ? err.message : err) });
+    }
+    if (!who) {
+      CALLER = 'an unverified sign-in';
+      logAdmin_(action, 'refused: the sign-in did not check out', true);
+      return json_({
+        ok: false, needsSignIn: true,
+        error: 'That sign-in has expired or did not check out. Sign in again.'
+      });
+    }
+    var leader = leaderFor_(who.email);
+    if (!leader) {
+      CALLER = who.email;
+      logAdmin_(action, 'refused: not on the leaders list', true);
+      return json_({
+        ok: false,
+        error: who.email + ' is not on the leaders list. Ask somebody already on ' +
+               'it to add you, then sign in again.'
+      });
+    }
+    CALLER = leader.name || who.name || leader.email;
+    logAdmin_(action, actionDetail_(body));
+    return null;
+  }
+
+  if (requireSignIn_()) {
+    return json_({
+      ok: false, needsSignIn: true,
+      error: 'This page needs you to sign in with Google now.'
+    });
+  }
+
+  var bad = checkPasscode_(body && body.passcode);
+  if (bad) return json_({ ok: false, error: bad });
+  CALLER = 'passcode';
+  logAdmin_(action, actionDetail_(body));
+  return null;
+}
+
+/**
+ * A line per admin action, so a surprise on the calendar has a trail.
+ *
+ * Reads are not logged. The event list is re-read every time somebody changes
+ * ministry, and a log nobody can skim is a log nobody reads. Refusals are
+ * logged whatever the action, because those are the interesting ones.
+ *
+ * A line means somebody asked for this, not that it worked: the log is written
+ * at the gate, before the handler has had its say. That is the honest place
+ * for it — an attempt that was allowed and then failed validation is still
+ * something the next person will want to see.
+ */
+var AUDITED_ = {
+  'admin.save': 1, 'admin.delete': 1, 'admin.setgroups': 1, 'admin.share': 1,
+  'admin.remove': 1, 'admin.notice': 1, 'admin.settings': 1, 'admin.makecard': 1,
+  'admin.addleader': 1, 'admin.removeleader': 1
+};
+
+function adminLogSheet_() { return tab_(ADMIN_LOG_TAB, ['when', 'who', 'action', 'detail']); }
+
+/** Whatever in this request is worth reading back later. Never the passcode. */
+function actionDetail_(body) {
+  var bits = [];
+  if (body.ministry) bits.push(String(body.ministry));
+  if (body.title) bits.push('"' + String(body.title).slice(0, 60) + '"');
+  if (body.name) bits.push(String(body.name).slice(0, 60));
+  if (body.email) bits.push(String(body.email).slice(0, 80));
+  if (body.handle) bits.push('person ' + String(body.handle).slice(0, 24));
+  if (body.month) bits.push(String(body.month).slice(0, 12));
+  if (body.id) bits.push('#' + String(body.id).slice(0, 24));
+  return bits.join(' · ');
+}
+
+function logAdmin_(action, detail, always) {
+  if (!always && !AUDITED_[action]) return;
+  try {
+    var sheet = adminLogSheet_();
+    sheet.appendRow([new Date(), CALLER || 'unknown', action, String(detail || '')]);
+    var last = sheet.getLastRow();
+    if (last > ADMIN_LOG_MAX + 1) sheet.deleteRows(2, last - ADMIN_LOG_MAX - 1);
+  } catch (err) {
+    // A log that cannot be written must never stop the thing it is logging.
+  }
+}
+
+// ---------------------------------------------------------------------------
+// The leaders list itself
+// ---------------------------------------------------------------------------
+//
+// Anybody who can already work this page can add somebody to it. That is not
+// an escalation while the passcode is still accepted, since a passcode holder
+// can do all of this anyway; and once REQUIRE_SIGNIN is on it is exactly the
+// right rule — leaders vouch for leaders, and the log says who vouched.
+//
+// Addresses do reach the browser here, which they deliberately do not for the
+// contacts list. A list you cannot see is a list you cannot manage, and this
+// one is a handful of leaders rather than the congregation.
+
+function leadersList_() {
+  return leaders_().map(function (l) {
+    return { name: l.name, email: l.email, notes: l.notes };
+  });
+}
+
+function handleAdminLeaders_(body) {
+  var bad = checkAdmin_(body);
+  if (bad) return bad;
+  return json_({
+    ok: true,
+    you: CALLER,
+    signInRequired: requireSignIn_(),
+    signInReady: !!googleClientId_(),
+    leaders: leadersList_()
+  });
+}
+
+function handleAdminAddLeader_(body) {
+  var bad = checkAdmin_(body);
+  if (bad) return bad;
+
+  var name = String(body.name || '').trim();
+  var email = String(body.email || '').trim();
+  if (!name) return json_({ ok: false, error: 'Please enter their name.' });
+  if (name.length > 80) return json_({ ok: false, error: 'That name is too long.' });
+  if (email.length > 120) return json_({ ok: false, error: 'That email is too long.' });
+  if (email.indexOf('@') === -1) {
+    return json_({ ok: false, error: 'That email address does not look right.' });
+  }
+
+  var already = leaderFor_(email);
+  if (already) {
+    return json_({ ok: false, error: (already.name || email) + ' is already on the list.' });
+  }
+
+  leadersSheet_().appendRow([name, email, 'yes', new Date(), 'added by ' + (CALLER || 'passcode')]);
+  return json_({ ok: true, leaders: leadersList_() });
+}
+
+function handleAdminRemoveLeader_(body) {
+  var bad = checkAdmin_(body);
+  if (bad) return bad;
+
+  var email = String(body.email || '').trim();
+  var target = leaderFor_(email);
+  if (!target) return json_({ ok: false, error: 'They are not on the list.' });
+
+  // Emptying the list would lock every leader out of the page with no way back
+  // in but the script editor, which is the one place nobody can reach from a
+  // phone in a church foyer.
+  if (leaders_().length <= 1) {
+    return json_({
+      ok: false,
+      error: 'That is the last leader. Add somebody else first, or nobody can get in.'
+    });
+  }
+
+  leadersSheet_().deleteRow(target.row);
+  return json_({ ok: true, leaders: leadersList_() });
+}
+
+/**
+ * Sign-in, summarised for the health check.
+ *
+ * Reading the leaders count needs the sheet, which may be the very thing that
+ * is broken, so a failure here reports itself rather than taking the whole
+ * health check down with it.
+ */
+function signInHealth_() {
+  var out = {
+    clientId: !!googleClientId_(),
+    required: requireSignIn_(),
+    leaders: 0
+  };
+  try {
+    out.leaders = leaders_().length;
+  } catch (err) {
+    out.detail = String(err && err.message ? err.message : err);
+  }
+  return out;
+}
+
+/** What the admin page needs to know before anybody has said who they are. */
+function handleConfig_() {
+  return json_({
+    ok: true,
+    version: VERSION,
+    clientId: googleClientId_(),
+    signInRequired: requireSignIn_(),
+    passcodeSet: !!adminPasscode_()
+  });
 }
 
 /** All ministries, private included: an admin may schedule for any of them. */
@@ -714,8 +1097,8 @@ function toResource_(ev) {
 }
 
 function handleAdminSave_(body) {
-  var bad = checkPasscode_(body.passcode);
-  if (bad) return json_({ ok: false, error: bad });
+  var bad = checkAdmin_(body);
+  if (bad) return bad;
 
   var m = findMinistry_(String(body.ministry || ''));
   if (!m) return json_({ ok: false, error: 'Pick a calendar.' });
@@ -736,8 +1119,8 @@ function handleAdminSave_(body) {
 }
 
 function handleAdminList_(body) {
-  var bad = checkPasscode_(body.passcode);
-  if (bad) return json_({ ok: false, error: bad });
+  var bad = checkAdmin_(body);
+  if (bad) return bad;
 
   var m = findMinistry_(String(body.ministry || ''));
   if (!m) return json_({ ok: false, error: 'Pick a calendar.' });
@@ -782,8 +1165,8 @@ function handleAdminList_(body) {
 }
 
 function handleAdminDelete_(body) {
-  var bad = checkPasscode_(body.passcode);
-  if (bad) return json_({ ok: false, error: bad });
+  var bad = checkAdmin_(body);
+  if (bad) return bad;
 
   var m = findMinistry_(String(body.ministry || ''));
   if (!m || !m.calendarId) return json_({ ok: false, error: 'Pick a calendar.' });
@@ -795,11 +1178,13 @@ function handleAdminDelete_(body) {
 
 /** Confirms a passcode and hands back the calendars that can be written to. */
 function handleAdminHello_(body) {
-  var bad = checkPasscode_(body.passcode);
-  if (bad) return json_({ ok: false, error: bad });
+  var bad = checkAdmin_(body);
+  if (bad) return bad;
   var list = allMinistries_().filter(function (m) { return !!m.calendarId; });
   return json_({
     ok: true,
+    you: CALLER,
+    signedIn: CALLER !== 'passcode',
     ministries: list.map(function (m) {
       return {
         id: m.id, name: m.name, visibility: m.visibility,
@@ -817,16 +1202,17 @@ function handleAdminHello_(body) {
 // youth-leaders or worship is a leader's decision, and until now the only way
 // to make it was editing a cell in the spreadsheet.
 //
-// These two actions move that into the admin form. They are gated by the same
-// shared passcode, which means anyone who can add somebody to Youth Leaders can
-// also add them to Worship. That is a deliberate simplification while only two
-// or three trusted people hold the passcode, and it is the thing to revisit
-// before a pastor's calendar exists. See docs/ADMIN.md.
+// These two actions move that into the admin form. Everyone who gets through
+// the gate can do all of it, so anyone who can add somebody to Youth Leaders
+// can also add them to Worship. That is a deliberate simplification while the
+// Leaders tab is a handful of people who already have every private calendar
+// between them, and it is the thing to revisit before a pastor's calendar
+// exists. See docs/ADMIN.md.
 //
 // A person is addressed by their token. It is never shown in the admin page,
-// but it does reach that browser, so a passcode holder could read one from the
-// page source. That grants nothing they do not already have: the passcode
-// already lets them list private calendar contents directly.
+// but it does reach that browser, so a leader could read one from the page
+// source. That grants nothing they do not already have: getting through the
+// gate already lets them list private calendar contents directly.
 
 /** Every ministry id, public and private, as an allow-list for writes. */
 function allMinistryIds_() {
@@ -836,8 +1222,8 @@ function allMinistryIds_() {
 }
 
 function handleAdminPeople_(body) {
-  var bad = checkPasscode_(body.passcode);
-  if (bad) return json_({ ok: false, error: bad });
+  var bad = checkAdmin_(body);
+  if (bad) return bad;
 
   var sheet = sheet_();
   var headers = headers_(sheet);
@@ -878,8 +1264,8 @@ function handleAdminPeople_(body) {
  * writes every ministry column. That is the entire point of this action.
  */
 function handleAdminSetGroups_(body) {
-  var bad = checkPasscode_(body.passcode);
-  if (bad) return json_({ ok: false, error: bad });
+  var bad = checkAdmin_(body);
+  if (bad) return bad;
 
   var token = String(body.handle || '').trim();
   if (!validToken_(token)) return json_({ ok: false, error: 'Unknown person.' });
@@ -940,8 +1326,8 @@ function handleAdminSetGroups_(body) {
  * not arrive or a text is how that person is actually reachable.
  */
 function handleAdminShare_(body) {
-  var bad = checkPasscode_(body.passcode);
-  if (bad) return json_({ ok: false, error: bad });
+  var bad = checkAdmin_(body);
+  if (bad) return bad;
 
   var token = String(body.handle || '').trim();
   if (!validToken_(token)) return json_({ ok: false, error: 'Unknown person.' });
@@ -984,8 +1370,8 @@ function handleAdminShare_(body) {
  * access nobody can find to revoke.
  */
 function handleAdminRemove_(body) {
-  var bad = checkPasscode_(body.passcode);
-  if (bad) return json_({ ok: false, error: bad });
+  var bad = checkAdmin_(body);
+  if (bad) return bad;
 
   var token = String(body.handle || '').trim();
   if (!validToken_(token)) return json_({ ok: false, error: 'Unknown person.' });
@@ -1069,8 +1455,8 @@ function writeSetting_(key, value, what) {
  * regular rhythm belongs.
  */
 function handleAdminSettings_(body) {
-  var bad = checkPasscode_(body.passcode);
-  if (bad) return json_({ ok: false, error: bad });
+  var bad = checkAdmin_(body);
+  if (bad) return bad;
 
   if (body.read) {
     return json_({
@@ -1177,8 +1563,8 @@ function parseMonth_(raw) {
 }
 
 function handleAdminMakeCard_(body) {
-  var bad = checkPasscode_(body.passcode);
-  if (bad) return json_({ ok: false, error: bad });
+  var bad = checkAdmin_(body);
+  if (bad) return bad;
 
   var props = PropertiesService.getScriptProperties();
   var repo = String(props.getProperty('GITHUB_REPO') || '').trim();
@@ -1250,8 +1636,8 @@ function handleAdminMakeCard_(body) {
  * printer asked.
  */
 function handleCardMail_(body) {
-  var bad = checkPasscode_(body.passcode);
-  if (bad) return json_({ ok: false, error: bad });
+  var bad = checkAdmin_(body);
+  if (bad) return bad;
 
   var who = String(body.contact || '').trim();
   if (!who) return json_({ ok: false, error: 'Nobody is set to receive the card.' });
@@ -1360,8 +1746,8 @@ function handleNotice_(body) {
  * down by emptying the box they typed it into.
  */
 function handleAdminNotice_(body) {
-  var bad = checkPasscode_(body.passcode);
-  if (bad) return json_({ ok: false, error: bad });
+  var bad = checkAdmin_(body);
+  if (bad) return bad;
 
   var props = PropertiesService.getScriptProperties();
 
@@ -1487,8 +1873,8 @@ function contactEmails_(name) {
  * not a reason to hand every leader's email to a browser.
  */
 function handleContacts_(body) {
-  var bad = checkPasscode_(body.passcode);
-  if (bad) return json_({ ok: false, error: bad });
+  var bad = checkAdmin_(body);
+  if (bad) return bad;
   return json_({
     ok: true,
     contacts: contacts_().map(function (c) {
@@ -1585,8 +1971,8 @@ function handleRsvp_(body) {
  * anything in the past. The page decides what to show; this returns the lot.
  */
 function handleAdminRsvps_(body) {
-  var bad = checkPasscode_(body.passcode);
-  if (bad) return json_({ ok: false, error: bad });
+  var bad = checkAdmin_(body);
+  if (bad) return bad;
 
   var sheet = rsvpsSheet_();
   var last = sheet.getLastRow();

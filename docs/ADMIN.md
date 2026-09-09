@@ -109,6 +109,8 @@ Revoking is safe. It removes an authorisation, not the script, and the next run
 grants it back. The hourly job is unaffected: it uses the service account, which
 is a completely separate credential.
 
+Sign-in has its own setup, once: docs/ADMIN-SIGNIN.md.
+
 **3. Set the passcode.** This is what `adminReady: false` means, and nothing
 else. It is not a GitHub secret and not in the repo; it lives in the script.
 
@@ -153,26 +155,26 @@ you want; "the file" means it will be lost the next time somebody pastes a new
 with a 403. The `detail` field says which half is missing. It is checked here
 so that shows up now rather than the first time somebody adds something real.
 
-## About that passcode
+## Getting in
 
-This is a shared secret, not authentication. CLAUDE.md says so plainly and it
-is worth repeating: it tells you that *somebody* who knows the passcode made a
-change, never *who*. There is no audit trail beyond Google Calendar's own
-history.
+Two doors, and they are not equal.
 
-That is a reasonable trade for a form that can only add church events, and it
-stops being reasonable the moment this form can reach anything genuinely
-private. **Before a pastor's calendar exists, this needs real Google sign-in**,
-checked against a list of allowed accounts. That is a contained change: the
-Apps Script already runs as the church account and can read `Session
-.getActiveUser().getEmail()` when deployed to execute as the *user* rather than
-as the owner. It is not work to do speculatively, but it is work to do before
-the sensitive calendars, not after.
+**Google sign-in** is the real one: the leader signs in with their own Google
+account, the endpoint checks with Google that the token was minted for this
+application, and looks the address up in the **Leaders** tab. Every action then
+carries their name into the **Admin log** tab. Taking somebody's access away is
+deleting a row — that person, immediately, and nobody else disturbed. Setting it
+up is docs/ADMIN-SIGNIN.md.
 
-Practical measures already in place: the comparison does not leak how much of
-the passcode was right, a wrong one costs the guesser a deliberate delay, ten
-wrong ones lock the admin actions for fifteen minutes, and the passcode is held
-in the browser tab only until it is closed.
+**The passcode** still works until `REQUIRE_SIGNIN` is set, so that switching
+over cannot lock anybody out halfway through. It is a shared secret and not
+authentication: it says that *somebody* who knew it made a change, never who.
+Once every leader has signed in at least once, switch it off.
+
+Practical measures around the passcode while it is still accepted: the
+comparison does not leak how much of it was right, a wrong one costs the guesser
+a deliberate delay, ten wrong ones lock the admin actions for fifteen minutes,
+and it is held in the browser tab only until it is closed.
 
 The lockout matters more than it looks. The admin page is linked from the
 public calendar, so this endpoint will be poked at. Without a cap, a bot
@@ -195,10 +197,11 @@ the worst possible outcome when the thing being granted is a private calendar.
 Changes land on the person's existing link at the next sync. Their link never
 changes, so there is nothing for them to redo on their phone.
 
-This is the simplification we chose deliberately: **one passcode grants every
-private calendar**. Whoever can add somebody to Youth Leaders can also add
-them to Worship. That is fine while two or three trusted people hold it, and
-it is the thing to revisit before a pastor's calendar exists.
+This is the simplification we chose deliberately: **getting in grants every
+private calendar**. Whoever can add somebody to Youth Leaders can also add them
+to Worship. That is fine while the Leaders tab is a handful of people who
+between them already have every private calendar, and it is the thing to revisit
+before a pastor's calendar exists.
 
 The sheet remains the backstop. Protected ranges on the private columns still
 control who can edit them directly, and are worth setting regardless.

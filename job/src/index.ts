@@ -153,7 +153,10 @@ async function checkEndpoint(cfg: Config): Promise<void> {
     });
     // The health shape the endpoint reports. Narrow on purpose: this only
     // needs to know whether it is alive and whether it can see the sheet.
-    type Health = { ok?: boolean; sheet?: boolean; detail?: string; version?: string };
+    type Health = {
+      ok?: boolean; sheet?: boolean; detail?: string; version?: string;
+      signIn?: { clientId?: boolean; required?: boolean; leaders?: number };
+    };
     const body: Health | null = res.ok
       ? await res.json().then((j) => j as Health).catch(() => null)
       : null;
@@ -170,7 +173,21 @@ async function checkEndpoint(cfg: Config): Promise<void> {
         (body.detail || 'no detail given') + '. Nobody can sign up.');
       return;
     }
-    log('  endpoint     ok, version ' + (body.version ?? 'unknown'));
+    // How the admin page is guarded, said out loud once an hour. A leaders
+    // list that has quietly emptied, or a client id that vanished with a
+    // redeploy, would otherwise only be discovered by somebody locked out.
+    const gate = body.signIn;
+    let how = 'passcode only';
+    if (gate?.required) how = 'Google sign-in, ' + (gate.leaders ?? 0) + ' leaders';
+    else if (gate?.clientId) how = 'sign-in offered, passcode still on, ' +
+      (gate.leaders ?? 0) + ' leaders';
+    log('  endpoint     ok, version ' + (body.version ?? 'unknown') + ' (' + how + ')');
+
+    if (gate?.required && !gate.leaders) {
+      log('::error::Sign-in is required for the admin page and the Leaders tab is ' +
+        'empty. Nobody can get in. Set REQUIRE_SIGNIN to no in the script ' +
+        'properties, then add the leaders back. See docs/ADMIN-SIGNIN.md.');
+    }
   } catch (err) {
     log('::error::Could not reach the signup and admin endpoint: ' +
       (err instanceof Error ? err.message : String(err)) +

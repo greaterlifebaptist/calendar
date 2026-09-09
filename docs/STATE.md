@@ -60,7 +60,13 @@ list. Each has a doc.
    signed up in a foyer, or tapped an add-calendar link. Two or three families
    through the whole thing before announcing.
 
-4. **Better security than one shared passcode.** See below.
+4. **Google sign-in is built but not switched on.** The code is written, the
+   Leaders tab and the admin log are in `Code.gs` `2026-09-09f`, and the page
+   offers the button as soon as the endpoint reports a client id. What is left
+   is entirely setup, on the church Google account: make an OAuth client, put
+   `GOOGLE_CLIENT_ID` in the script properties, deploy, add the leaders, then
+   set `REQUIRE_SIGNIN` to yes. docs/ADMIN-SIGNIN.md is the click-by-click.
+   Until that happens the passcode is still the only way in.
 
 5. **The card has never been printed.** Type size, QR scannability and the safe
    margins are unverified on paper.
@@ -70,14 +76,20 @@ list. Each has a doc.
 Deliberately dropped: protected ranges on the sheet (nobody else opens it), and
 the brief's `Log` tab (the Actions run summary replaced it).
 
-## The open conversation
+## Decided
 
-**Replacing the admin passcode with Google Sign-In**, checked against a leaders
-list in the sheet. Recommended over more passwords because the church already
-runs on Google and the leaders already have accounts — they are being shared
-private calendars through them. It buys real identity, revocation by deleting a
-row, and nothing to leak. Roughly half a day: an OAuth client, a sign-in button,
-token verification in Apps Script, and a `Leaders` tab.
+**Google sign-in replaces the admin passcode**, checked against a Leaders tab in
+the sheet. Chosen over a handful of passcodes because the leaders already have
+Google accounts — that is what a private church calendar is shared to — and
+because more shared secrets buys none of what matters: a name against each
+action, and revoking one person without disturbing anybody else.
+
+The church itself does **not** run on Google; only this calendar system does.
+That is why Microsoft was worth considering, and why it was left alone: the
+SharePoint account the leaders may end up with does not exist yet, and Apps
+Script would have to check a Microsoft token by calling Graph rather than one
+tokeninfo endpoint. If those accounts become real, the swap is contained to
+`verifyIdToken_`.
 
 The alternative considered and not chosen: several passcodes in a sheet tab.
 A real improvement over one, but still shared secrets that get texted around,
@@ -99,3 +111,9 @@ for most of the work of doing it properly.
   route ends in them tapping a link.
 - **A card is generated for the two months *after* the run**, never the current
   one, and the year rollover has tests.
+- **`REQUIRE_SIGNIN` is the escape hatch, and it lives in script properties on
+  purpose.** Setting it to `no` brings the passcode back from a phone. The
+  endpoint also refuses to remove the last leader, so the list cannot be
+  emptied into a lockout.
+- **The admin page asks the endpoint which doors exist** rather than deciding
+  for itself, so turning sign-in on is a script property and not a site deploy.

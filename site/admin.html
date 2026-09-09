@@ -34,7 +34,7 @@ h1 em{font-style:normal;color:var(--sun)}
 label{display:block;margin-bottom:14px}
 label > span.lab{display:block;font-size:.84rem;font-weight:700;margin-bottom:5px}
 label .hint{font-weight:400;color:var(--ink-soft)}
-input[type=text],input[type=date],input[type=time],input[type=password],input[type=number],textarea,select{
+input[type=text],input[type=email],input[type=date],input[type=time],input[type=password],input[type=number],textarea,select{
   width:100%;font-family:var(--body);font-size:1rem;padding:10px 12px;
   border:1.5px solid var(--rule);border-radius:8px;background:#fff;color:var(--ink)
 }
@@ -87,9 +87,13 @@ button.danger:hover{border-color:var(--clay)}
 .tag.trip{background:#E3F0E9;color:#1B5E45}
 .tag.pin{background:#FFF1CE;color:#8A6A08}
 
-.tabs{display:flex;gap:0;margin-top:20px;border-bottom:2px solid var(--rule)}
+/* Five of these no longer fit a phone on one line, and the church has
+   nothing but phones. Wrapping rather than scrolling sideways, so the newest
+   tab is visible instead of hidden past the edge. */
+.tabs{display:flex;flex-wrap:wrap;gap:0;margin-top:20px;border-bottom:2px solid var(--rule)}
 .tabs button{background:none;border:none;cursor:pointer;padding:10px 2px;margin-right:26px;font-family:var(--display);font-size:1.06rem;font-weight:600;color:var(--ink-soft);border-bottom:3px solid transparent;margin-bottom:-2px}
 .tabs button[aria-selected="true"]{color:var(--pine);border-bottom-color:var(--sun)}
+@media (max-width:520px){.tabs button{margin-right:15px;font-size:.99rem}}
 
 .search{margin-bottom:12px}
 .person{border:1.5px solid var(--rule);border-radius:10px;padding:12px 14px;margin-bottom:9px;background:#fff}
@@ -152,7 +156,25 @@ button.danger:hover{border-color:var(--clay)}
 .notice b{display:block;font-family:var(--display);font-size:1rem;margin-bottom:2px}
 footer{margin-top:26px;font-size:.82rem;color:var(--ink-soft)}
 footer a{color:var(--clay)}
+.gatehead{margin:0 0 13px;font-size:.88rem;line-height:1.55;color:var(--ink-soft)}
+#gsiButton{min-height:44px}
+#passBox{margin-top:16px;padding-top:14px;border-top:1px solid var(--rule)}
+#passBox summary{cursor:pointer;font-size:.85rem;font-weight:700;color:var(--ink-soft);list-style:none}
+#passBox summary::-webkit-details-marker{display:none}
+#passBox summary:hover{color:var(--pine)}
+#passBox[open] summary{margin-bottom:12px}
+/* Nothing to choose between when sign-in is not switched on: the passcode is
+   simply the way in, and a disclosure arrow would only invite a hunt for the
+   other option. */
+#passBox.solo{margin-top:0;padding-top:0;border-top:none}
+#passBox.solo summary{display:none}
+.whoami{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin:16px 0 0;font-size:.83rem;color:var(--ink-soft)}
+.whoami b{font-family:var(--display);font-size:.95rem;font-weight:600;color:var(--pine)}
+.whoami button{margin-left:auto;font-family:var(--body);font-size:.78rem;font-weight:700;border:1.5px solid var(--rule);background:var(--card);color:var(--ink-soft);border-radius:7px;padding:6px 11px;cursor:pointer}
+.whoami button:hover{border-color:var(--clay);color:var(--clay)}
+#paneLeaders .mode{margin:12px 0 0;font-size:.82rem;line-height:1.55;color:var(--ink-soft)}
 </style>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 <div class="wrap">
@@ -167,19 +189,29 @@ footer a{color:var(--clay)}
 
 <!-- gate -->
 <section class="card" id="gate" hidden>
-  <label>
-    <span class="lab">Passcode</span>
-    <input type="password" id="passcode" autocomplete="current-password">
-  </label>
-  <label class="check">
-    <input type="checkbox" id="remember" checked>
-    <span><span class="lab">Stay signed in on this device</span>
-    <span class="hint">Kept in this browser only, and forgotten when you close it.</span></span>
-  </label>
-  <div class="actions">
-    <button type="button" class="primary" id="unlock">Continue</button>
-    <span class="status" id="gateStatus"></span>
+  <div id="signinBox" hidden>
+    <p class="gatehead">Sign in with the Google account the church knows you by. Nothing to
+      remember, nothing to pass around, and it can be taken back one person at a time.</p>
+    <div id="gsiButton"></div>
   </div>
+
+  <details id="passBox" hidden>
+    <summary>Use the passcode instead</summary>
+    <label>
+      <span class="lab">Passcode</span>
+      <input type="password" id="passcode" autocomplete="current-password">
+    </label>
+    <label class="check">
+      <input type="checkbox" id="remember" checked>
+      <span><span class="lab">Stay signed in on this device</span>
+      <span class="hint">Kept in this browser only, and forgotten when you close it.</span></span>
+    </label>
+    <div class="actions">
+      <button type="button" class="primary" id="unlock">Continue</button>
+    </div>
+  </details>
+
+  <p class="status" id="gateStatus" style="margin-top:12px"></p>
 </section>
 
 <!-- form -->
@@ -190,7 +222,10 @@ footer a{color:var(--clay)}
     <button type="button" role="tab" id="tabPeople" aria-selected="false">Who gets what</button>
     <button type="button" role="tab" id="tabRsvps" aria-selected="false">RSVPs</button>
     <button type="button" role="tab" id="tabNotice" aria-selected="false">Notices</button>
+    <button type="button" role="tab" id="tabLeaders" aria-selected="false">Leaders</button>
   </div>
+
+  <p class="whoami" id="whoami" hidden></p>
 
 <div id="paneEvents">
   <section class="card">
@@ -434,6 +469,39 @@ footer a{color:var(--clay)}
   </section>
 </div>
 
+<div id="paneLeaders" hidden>
+  <p class="lede" style="font-size:.86rem">Who may open this page. Signing in checks the
+    Google account against this list, so adding somebody here is what lets them in, and
+    taking them off is what stops them — no passcode to change, and nobody else disturbed.</p>
+
+  <section class="card">
+    <fieldset>
+      <legend>Add a leader</legend>
+      <label>
+        <span class="lab">Name</span>
+        <input type="text" id="leaderName" maxlength="80" placeholder="Example: Andrea Hutchins">
+      </label>
+      <label>
+        <span class="lab">Google account
+          <span class="hint">— the address they sign in to Google with, which is not always the address they read mail at</span></span>
+        <input type="email" id="leaderEmail" maxlength="120" placeholder="Example: andrea.hutchins@gmail.com">
+      </label>
+      <div class="actions">
+        <button type="button" class="primary" id="addLeader">Add</button>
+        <span class="status" id="leaderStatus"></span>
+      </div>
+    </fieldset>
+  </section>
+
+  <section class="card">
+    <fieldset>
+      <legend>On the list</legend>
+      <div class="list" id="leaderList"></div>
+      <p class="mode" id="leaderMode"></p>
+    </fieldset>
+  </section>
+</div>
+
 </main>
 
 <footer>
@@ -446,10 +514,28 @@ footer a{color:var(--clay)}
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
 const KEY = "glbc.admin.pass";
+const TOKEN_KEY = "glbc.admin.idtoken";
 
 let ENDPOINT = "";
 let MINISTRIES = [];
+
+/*
+ * Two ways of proving who you are, and the page only ever holds one.
+ *
+ * A Google ID token is short-lived on purpose — about an hour — so the right
+ * thing to do when the server rejects one is not to complain, but to put the
+ * sign-in button back. The passcode has no expiry, which is exactly the
+ * property that makes it the lesser of the two.
+ */
 let PASS = "";
+let IDTOKEN = "";
+let ME = "";
+let CONFIG = { clientId: "", signInRequired: false };
+
+/** Whichever proof this browser is holding, shaped for the endpoint. */
+function auth(){
+  return IDTOKEN ? { idToken: IDTOKEN } : { ...auth() };
+}
 let editingId = null;
 
 const TYPE_WHY = {
@@ -476,6 +562,11 @@ async function call(payload){
   if (!out.ok){
     const e = new Error(out.error || "Something went wrong.");
     e.fromServer = true;
+    e.needsSignIn = !!out.needsSignIn;
+    // An expired token is the ordinary end of an hour's work, not a fault.
+    // Handled here rather than in each caller, because every one of the
+    // twenty of them would otherwise have to remember.
+    if (e.needsSignIn) signedOut(out.error || "");
     throw e;
   }
   return out;
@@ -819,7 +910,7 @@ async function refreshList(){
   const box = $("list");
   box.innerHTML = '<p class="lede" style="font-size:.85rem;margin:0">Loading…</p>';
   try {
-    const out = await call({ action:"admin.list", passcode:PASS, ministry:$("ministry").value });
+    const out = await call({ action:"admin.list", ...auth(), ministry:$("ministry").value });
     if (!out.events.length){
       box.innerHTML = '<p class="lede" style="font-size:.85rem;margin:0">Nothing on this calendar yet.</p>';
       return;
@@ -862,7 +953,7 @@ $("save").addEventListener("click", async () => {
   try {
     const out = await call({
       action: "admin.save",
-      passcode: PASS,
+      ...auth(),
       ministry: $("ministry").value,
       id: editingId || "",
       event: {
@@ -909,7 +1000,7 @@ $("del").addEventListener("click", async () => {
   $("del").disabled = true;
   say($("status"), "Deleting…");
   try {
-    await call({ action:"admin.delete", passcode:PASS, ministry:$("ministry").value, id:editingId });
+    await call({ action:"admin.delete", ...auth(), ministry:$("ministry").value, id:editingId });
     clearForm();
     say($("status"), "Deleted.", "ok");
     refreshList();
@@ -964,8 +1055,10 @@ let PEOPLE = [];
 let peopleLoaded = false;
 
 function showTab(which){
-  const panes = { events: "paneEvents", people: "panePeople", rsvps: "paneRsvps", notice: "paneNotice" };
-  const tabs = { events: "tabEvents", people: "tabPeople", rsvps: "tabRsvps", notice: "tabNotice" };
+  const panes = { events: "paneEvents", people: "panePeople", rsvps: "paneRsvps",
+                  notice: "paneNotice", leaders: "paneLeaders" };
+  const tabs = { events: "tabEvents", people: "tabPeople", rsvps: "tabRsvps",
+                 notice: "tabNotice", leaders: "tabLeaders" };
   Object.keys(panes).forEach(k => {
     $(panes[k]).hidden = k !== which;
     $(tabs[k]).setAttribute("aria-selected", String(k === which));
@@ -973,12 +1066,14 @@ function showTab(which){
   if (which === "people" && !peopleLoaded) loadPeople();
   if (which === "rsvps") loadRsvps();
   if (which === "notice"){ loadNotice(); loadCardNotes(); }
+  if (which === "leaders") loadLeaders();
 }
 
 $("tabEvents").addEventListener("click", () => showTab("events"));
 $("tabPeople").addEventListener("click", () => showTab("people"));
 $("tabRsvps").addEventListener("click", () => showTab("rsvps"));
 $("tabNotice").addEventListener("click", () => showTab("notice"));
+$("tabLeaders").addEventListener("click", () => showTab("leaders"));
 
 // ---------------------------------------------------------------------------
 // the wall notice
@@ -1014,7 +1109,7 @@ async function loadNotice(){
   st.className = "status";
   st.textContent = "Loading…";
   try {
-    const out = await call({ action:"admin.notice", passcode:PASS, read:true });
+    const out = await call({ action:"admin.notice", ...auth(), read:true });
     paintNotice(out);
     // Typing a date is fiddly on a phone, which is where this gets used.
     const today = new Date();
@@ -1045,7 +1140,7 @@ async function saveNotice(text, until){
   st.className = "status";
   st.textContent = "Saving…";
   try {
-    const out = await call({ action:"admin.notice", passcode:PASS, text, until });
+    const out = await call({ action:"admin.notice", ...auth(), text, until });
     paintNotice(out);
     st.className = "status ok";
     st.textContent = out.cleared
@@ -1074,7 +1169,7 @@ $("noticeClear").addEventListener("click", () => saveNotice("", ""));
 
 async function loadCardNotes(){
   try {
-    const out = await call({ action:"admin.settings", passcode:PASS, read:true });
+    const out = await call({ action:"admin.settings", ...auth(), read:true });
     $("cardNotes").value = out.cardNotes || "";
 
     // The same people as everywhere else. Only names come back; the address is
@@ -1103,7 +1198,7 @@ $("cardMake").addEventListener("click", async () => {
   st.textContent = "Asking for it…";
   try {
     const out = await call({
-      action:"admin.makecard", passcode:PASS, month: $("cardMonth").value.trim(),
+      action:"admin.makecard", ...auth(), month: $("cardMonth").value.trim(),
     });
     st.className = "status ok";
     st.textContent = out.emailTo
@@ -1126,7 +1221,7 @@ $("cardNotesSave").addEventListener("click", async () => {
   st.textContent = "Saving…";
   try {
     await call({
-      action:"admin.settings", passcode:PASS,
+      action:"admin.settings", ...auth(),
       cardNotes: $("cardNotes").value,
       cardEmail: $("cardEmail").value,
     });
@@ -1154,7 +1249,7 @@ async function loadRsvps(){
   const box = $("rsvps");
   box.innerHTML = '<p class="lede" style="font-size:.86rem;margin:0">Loading…</p>';
   try {
-    const out = await call({ action:"admin.rsvps", passcode:PASS });
+    const out = await call({ action:"admin.rsvps", ...auth() });
     RSVP_ROWS = out.rsvps || [];
     renderRsvps(RSVP_ROWS);
   } catch (err) {
@@ -1220,7 +1315,7 @@ async function loadPeople(){
   const box = $("people");
   box.innerHTML = '<p class="lede" style="font-size:.86rem;margin:0">Loading…</p>';
   try {
-    const out = await call({ action:"admin.people", passcode:PASS });
+    const out = await call({ action:"admin.people", ...auth() });
     PEOPLE = out.people || [];
     peopleLoaded = true;
     renderPeople();
@@ -1351,7 +1446,7 @@ function renderPeople(){
         st.textContent = "Saving…";
 
         try {
-          const out = await call({ action:"admin.setgroups", passcode:PASS, handle:person.handle, groups:[...next] });
+          const out = await call({ action:"admin.setgroups", ...auth(), handle:person.handle, groups:[...next] });
           explain(out);
           chosen.clear(); next.forEach(g => chosen.add(g));
           person.groups = [...next];
@@ -1376,7 +1471,7 @@ function renderPeople(){
       st.className = "st";
       st.textContent = "Sharing…";
       try {
-        const out = await call({ action:"admin.share", passcode:PASS, handle:person.handle });
+        const out = await call({ action:"admin.share", ...auth(), handle:person.handle });
         st.className = "st ok";
         st.textContent = "Shared";
         explain({ shared: out.shared, email: out.email });
@@ -1435,7 +1530,7 @@ function renderPeople(){
       st.className = "st";
       st.textContent = "Removing…";
       try {
-        const out = await call({ action:"admin.remove", passcode:PASS, handle:person.handle });
+        const out = await call({ action:"admin.remove", ...auth(), handle:person.handle });
         PEOPLE = PEOPLE.filter(x => x.handle !== person.handle);
         card.remove();
         const gone = (out.revoked || []).length
@@ -1460,16 +1555,27 @@ $("peopleSearch").addEventListener("input", () => { if (peopleLoaded) renderPeop
 // gate
 // ---------------------------------------------------------------------------
 
-async function unlock(pass, quiet){
+/**
+ * Open the page, with whatever proof this browser is already holding.
+ *
+ * One function for both routes on purpose. Everything past the door is the
+ * same either way, and two near-identical unlock paths is how one of them
+ * quietly stops matching the other.
+ */
+async function unlock(quiet){
   const el = $("gateStatus");
   if (!quiet) say(el, "Checking…");
   try {
-    const out = await call({ action:"admin.hello", passcode:pass });
-    PASS = pass;
+    const out = await call({ action:"admin.hello", ...auth() });
+    ME = out.you || "";
     MINISTRIES = out.ministries || [];
-    if ($("remember").checked){
-      try { sessionStorage.setItem(KEY, pass); } catch {}
+    if (PASS && $("remember").checked){
+      try { sessionStorage.setItem(KEY, PASS); } catch {}
     }
+    if (IDTOKEN){
+      try { sessionStorage.setItem(TOKEN_KEY, IDTOKEN); } catch {}
+    }
+    paintWhoami();
     $("ministry").innerHTML = MINISTRIES
       .map(m => '<option value="' + esc(m.id) + '">' + esc(m.name) +
         (m.visibility === "private" ? " (private)" : "") + '</option>').join("");
@@ -1483,7 +1589,7 @@ async function unlock(pass, quiet){
     // Contacts are their own call: a missing or empty Contacts tab must not
     // stop the form opening, it just means the picker offers nobody.
     try {
-      const c = await call({ action:"contacts", passcode:pass });
+      const c = await call({ action:"contacts", ...auth() });
       CONTACTS = c.contacts || [];
     } catch { CONTACTS = []; }
     fillContacts(contactFor($("ministry").value));
@@ -1494,13 +1600,253 @@ async function unlock(pass, quiet){
     return true;
   } catch (err) {
     if (!quiet) fail(el, err);
-    try { sessionStorage.removeItem(KEY); } catch {}
+    try { sessionStorage.removeItem(KEY); sessionStorage.removeItem(TOKEN_KEY); } catch {}
     return false;
   }
 }
 
-$("unlock").addEventListener("click", () => unlock($("passcode").value, false));
-$("passcode").addEventListener("keydown", e => { if (e.key === "Enter") unlock($("passcode").value, false); });
+async function tryPasscode(pass, quiet){
+  IDTOKEN = "";
+  PASS = pass;
+  const ok = await unlock(quiet);
+  if (!ok) PASS = "";
+  return ok;
+}
+
+$("unlock").addEventListener("click", () => tryPasscode($("passcode").value, false));
+$("passcode").addEventListener("keydown", e => {
+  if (e.key === "Enter") tryPasscode($("passcode").value, false);
+});
+
+// ---------------------------------------------------------------------------
+// signing in with Google
+// ---------------------------------------------------------------------------
+
+/** Google has issued a token for this page. Find out whether it opens the door. */
+async function onCredential(response){
+  const token = response && response.credential;
+  if (!token) return;
+  PASS = "";
+  IDTOKEN = token;
+  const ok = await unlock(false);
+  if (!ok){
+    IDTOKEN = "";
+    // Their Google account is fine; it is simply not on the list. Leaving the
+    // button up invites the same refusal again, so offer the other door.
+    $("passBox").open = true;
+  }
+}
+
+/**
+ * Draw the sign-in button once Google's library is here.
+ *
+ * The library is loaded async, so it may arrive before or after this script
+ * runs — both orders happen, and only checking for one of them produces a page
+ * that works on some phones and not others. And it may never arrive at all: a
+ * blocked script, a school network, a privacy extension. That case cannot be
+ * left as an empty box where a button should be, so it falls through to the
+ * passcode with a word about why.
+ */
+function drawSignIn(){
+  if (!CONFIG.clientId) return;
+  if (!(window.google && google.accounts && google.accounts.id)) return false;
+  google.accounts.id.initialize({
+    client_id: CONFIG.clientId,
+    callback: onCredential,
+    auto_select: true,
+    cancel_on_tap_outside: false,
+  });
+  google.accounts.id.renderButton($("gsiButton"), {
+    theme: "outline", size: "large", text: "signin_with", shape: "pill", width: 280,
+  });
+  return true;
+}
+
+function signInUnavailable(){
+  if (CONFIG.signInRequired){
+    notice("Cannot reach Google sign-in",
+      "This page needs it and the passcode is switched off. Try again on another " +
+      "connection, or from a browser without an ad blocker.", "warn");
+    return;
+  }
+  $("signinBox").hidden = true;
+  $("passBox").classList.add("solo");
+  $("passBox").open = true;
+  say($("gateStatus"), "Google sign-in could not load, so use the passcode.", "err");
+}
+
+function paintWhoami(){
+  const el = $("whoami");
+  el.hidden = false;
+  el.textContent = "";
+  const line = document.createElement("span");
+  line.innerHTML = IDTOKEN
+    ? "Signed in as <b>" + esc(ME || "you") + "</b>"
+    : "Signed in with the shared passcode — nothing you do here will carry a name.";
+  el.appendChild(line);
+  const out = document.createElement("button");
+  out.type = "button";
+  out.textContent = "Sign out";
+  out.addEventListener("click", signOut);
+  el.appendChild(out);
+}
+
+function signOut(){
+  try { google.accounts.id.disableAutoSelect(); } catch {}
+  try { sessionStorage.removeItem(KEY); sessionStorage.removeItem(TOKEN_KEY); } catch {}
+  IDTOKEN = ""; PASS = ""; ME = "";
+  // A reload rather than hiding panes: it is the only way to be sure nothing
+  // loaded under the last person is still sitting on the page.
+  location.reload();
+}
+
+/**
+ * The server has refused the proof we were holding.
+ *
+ * Called from call(), so it can happen in the middle of anything. Whatever was
+ * half-typed stays on the page behind the gate; retyping it after signing in
+ * again is a smaller insult than losing it.
+ */
+function signedOut(msg){
+  try { google.accounts.id.disableAutoSelect(); } catch {}
+  try { sessionStorage.removeItem(KEY); sessionStorage.removeItem(TOKEN_KEY); } catch {}
+  IDTOKEN = ""; PASS = ""; ME = "";
+  $("app").hidden = true;
+  $("whoami").hidden = true;
+  $("gate").hidden = false;
+  say($("gateStatus"), msg || "That sign-in has expired. Sign in again to carry on.", "err");
+  if (!drawSignIn() && !CONFIG.signInRequired) $("passBox").open = true;
+}
+
+// ---------------------------------------------------------------------------
+// who may open this page
+// ---------------------------------------------------------------------------
+
+function paintLeaderMode(out){
+  const el = $("leaderMode");
+  if (out.signInRequired){
+    el.textContent = "The passcode no longer works. This list is the only way in, " +
+      "so do not empty it.";
+  } else if (out.signInReady){
+    el.textContent = "The passcode still works as well, so nobody is locked out while " +
+      "this is being set up. Once everyone here has signed in at least once, set " +
+      "REQUIRE_SIGNIN to yes in the script properties and the passcode stops being " +
+      "accepted.";
+  } else {
+    el.textContent = "Google sign-in is not switched on yet, so this list does nothing " +
+      "and the passcode is the only way in. See docs/ADMIN-SIGNIN.md.";
+  }
+}
+
+async function loadLeaders(){
+  const box = $("leaderList");
+  box.textContent = "Loading…";
+  try {
+    const out = await call({ action:"admin.leaders", ...auth() });
+    paintLeaderMode(out);
+    renderLeaders(out.leaders || []);
+  } catch (err) {
+    box.textContent = (err && err.fromServer && err.message) ||
+      "Could not load the leaders list.";
+  }
+}
+
+function renderLeaders(list){
+  const box = $("leaderList");
+  box.textContent = "";
+  if (!list.length){
+    box.textContent = "Nobody on the list yet.";
+    return;
+  }
+
+  list.forEach(leader => {
+    const card = document.createElement("div");
+    card.className = "person";
+
+    const who = document.createElement("div");
+    who.className = "who";
+    who.innerHTML = "<b>" + esc(leader.name || leader.email) + "</b>" +
+      "<span>" + esc(leader.email) + "</span>";
+    const st = document.createElement("span");
+    st.className = "st";
+    who.appendChild(st);
+    card.appendChild(who);
+
+    if (leader.notes){
+      const notes = document.createElement("p");
+      notes.style.cssText = "margin:0;font-size:.8rem;color:var(--ink-soft)";
+      notes.textContent = leader.notes;
+      card.appendChild(notes);
+    }
+
+    const acts = document.createElement("div");
+    acts.className = "acts";
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "danger";
+    remove.textContent = "Take off the list";
+    acts.appendChild(remove);
+    card.appendChild(acts);
+
+    // The same two deliberate presses used for removing a subscriber, and for
+    // the same reason: one stray tap here locks somebody out of the page.
+    let armed = null;
+    let armedAt = 0;
+    const disarm = () => {
+      clearTimeout(armed);
+      armed = null;
+      armedAt = 0;
+      remove.classList.remove("armed");
+      remove.textContent = "Take off the list";
+    };
+
+    remove.addEventListener("click", async () => {
+      if (!armed){
+        armedAt = Date.now();
+        remove.classList.add("armed");
+        remove.textContent = "Really remove " + (leader.name || leader.email) + "?";
+        armed = setTimeout(disarm, ARM_SECONDS * 1000);
+        return;
+      }
+      if (Date.now() - armedAt < ARM_DEAD_MS) return;
+      disarm();
+
+      remove.disabled = true;
+      st.className = "st";
+      st.textContent = "Removing…";
+      try {
+        const out = await call({ action:"admin.removeleader", ...auth(), email: leader.email });
+        renderLeaders(out.leaders || []);
+      } catch (err) {
+        st.className = "st err";
+        st.textContent = (err && err.fromServer && err.message) || "Could not remove";
+        remove.disabled = false;
+      }
+    });
+
+    box.appendChild(card);
+  });
+}
+
+$("addLeader").addEventListener("click", async () => {
+  const el = $("leaderStatus");
+  const name = $("leaderName").value.trim();
+  const email = $("leaderEmail").value.trim();
+  if (!name || !email){
+    say(el, "Both the name and the Google account, please.", "err");
+    return;
+  }
+  say(el, "Adding…");
+  try {
+    const out = await call({ action:"admin.addleader", ...auth(), name, email });
+    renderLeaders(out.leaders || []);
+    $("leaderName").value = "";
+    $("leaderEmail").value = "";
+    say(el, "Added. They can sign in now.", "ok");
+  } catch (err) {
+    fail(el, err);
+  }
+});
 
 async function start(){
   let cfg;
@@ -1517,10 +1863,47 @@ async function start(){
     return;
   }
 
+  // What the endpoint expects, asked before anything is offered. Which doors
+  // exist is the server's decision, not this page's guess, so that turning
+  // sign-in on takes one script property and no redeploy of the site.
+  try {
+    const cfg2 = await call({ action:"config" });
+    CONFIG.clientId = cfg2.clientId || "";
+    CONFIG.signInRequired = !!cfg2.signInRequired;
+  } catch {
+    // An endpoint too old to know the question still knows the passcode.
+  }
+
+  $("signinBox").hidden = !CONFIG.clientId;
+  $("passBox").hidden = CONFIG.signInRequired;
+  if (!CONFIG.clientId){
+    $("passBox").classList.add("solo");
+    $("passBox").open = true;
+  }
+
+  // A sign-in already in this tab, or a passcode kept for the session.
+  let token = "";
   let saved = "";
+  try { token = sessionStorage.getItem(TOKEN_KEY) || ""; } catch {}
   try { saved = sessionStorage.getItem(KEY) || ""; } catch {}
-  if (saved && await unlock(saved, true)) return;
+
+  if (token){
+    IDTOKEN = token;
+    if (await unlock(true)) return;
+    IDTOKEN = "";
+  }
+  if (saved && !CONFIG.signInRequired && await tryPasscode(saved, true)) return;
+
   $("gate").hidden = false;
+
+  if (CONFIG.clientId && !drawSignIn()){
+    // Either the library has not arrived yet or it never will. Both are
+    // covered: the hook for the first, a deadline for the second.
+    window.onGoogleLibraryLoad = drawSignIn;
+    setTimeout(() => {
+      if (!(window.google && google.accounts && google.accounts.id)) signInUnavailable();
+    }, 6000);
+  }
 }
 
 start();
