@@ -118,13 +118,30 @@ put one up in a hurry can take it down from the box they typed it into. An
 empty **save** is refused rather than treated as a clear, so a stray click
 cannot take a notice down silently.
 
-**The rail pages when it no longer fits.** A notice pushes "Coming up" down,
+**The rail crawls when it no longer fits.** A notice pushes "Coming up" down,
 and on a busy week the last item or two would fall off the bottom with nothing
-to say so. It holds a page for nine seconds, fades, and moves on, looping.
+to say so. It scrolls slowly and loops, at about four seconds a row.
 
-Paging rather than a continuous crawl: somebody glances at this for two
-seconds, and still text is readable where moving text is not. `PAGE_RAIL` at
-the top of the script switches it off if a crawl is ever preferred.
+The loop has no seam. The list is duplicated below itself with a rule between,
+and the travel is exactly the height of the first copy plus that rule — so at
+the moment it wraps, the copy is sitting precisely where the original began and
+nothing visibly moves. A loop that snaps back to the top reads as a fault, and
+without the rule you cannot tell where the list ended and started again.
+
+Speed is **seconds per row, not pixels per second**, so it reads the same on a
+1080p screen and a 4K one, and it is averaged across the rows rather than
+measured off the first — that one carries a countdown chip and is taller than
+the rest.
+
+`RAIL_MODE` at the top of the script switches between `"scroll"` and
+`"page"`, which holds a screenful, fades, and moves on. Anything else means no
+motion at all and the overflow simply is not seen. A device asking for reduced
+motion gets paging regardless: a wall that never stops moving is exactly what
+that setting is asking to avoid.
+
+Both modes move a layer **inside** the list's window rather than the window
+itself. Transforming the window took its own clipping edge with it and the
+list rode up over the "Coming up" heading.
 
 ## Running for months
 

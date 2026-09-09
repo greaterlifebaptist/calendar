@@ -98,7 +98,8 @@ body{
   padding:.9vw 1vw;display:flex;flex-direction:column;min-height:0;overflow:hidden;
 }
 .rail h2{font-family:var(--mono);font-size:.62em;letter-spacing:.18em;text-transform:uppercase;color:var(--clay);margin:0 0 .7vw;font-weight:600;flex:0 0 auto}
-.rail .items{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;gap:.6vw}
+.rail .items{flex:1;min-height:0;overflow:hidden;display:block}
+.rail .crawler{display:flex;flex-direction:column;gap:.6vw}
 .row{display:flex;gap:.8vw;align-items:flex-start;flex:0 0 auto}
 .row .date{
   flex:0 0 auto;width:3.6em;text-align:center;border-radius:.35vw;padding:.25em 0 .35em;color:#fff;
@@ -122,11 +123,27 @@ body{
 }
 .notice p{margin:0;font-family:var(--display);font-weight:700;font-size:1.35em;line-height:1.15}
 
-/* Paging, not scrolling. A wall display is glanced at for two seconds, and
-   text that is always mid-motion is harder to catch than text that is still.
-   Flip PAGE_RAIL below to false for a continuous crawl instead. */
-.items{transition:opacity .45s ease}
-.items.turning{opacity:0}
+/* A slow continuous crawl, looping.
+
+   The list is duplicated below itself with a rule between, and the animation
+   travels exactly the height of the first copy plus that rule — so when it
+   wraps, the second copy is sitting precisely where the first began and there
+   is no jump. A naive loop that snaps back to the top reads as a glitch, and
+   without the rule you cannot tell where the list ended and started again.
+
+   Speed is set in pixels per second rather than a fixed duration, so five
+   events and fifteen events crawl at the same readable pace. */
+.crawler{transition:opacity .45s ease}
+.crawler.turning{opacity:0}
+.crawler.crawling{
+  will-change:transform;
+  animation:railcrawl var(--crawl-dur) linear infinite;
+}
+.railsep{flex:0 0 auto;height:0;border-top:.15vw solid var(--rule);opacity:.9}
+@keyframes railcrawl{
+  from{transform:translateY(0)}
+  to{transform:translateY(calc(-1 * var(--crawl-dist)))}
+}
 
 .qrbox{
   flex:0 0 auto;background:var(--pine);border-radius:.7vw;padding:.9vw 1vw;
@@ -224,9 +241,19 @@ const CACHE    = "glbc.events.v1";
    minutes is the difference between that being useful and being a curiosity. */
 const NOTICE_POLL = 2 * 60 * 1000;
 
-/* Show the rail a page at a time when it overflows, rather than crawling. */
-const PAGE_RAIL   = true;
-const HOLD_PAGE   = 9000;
+/* What the rail does when there is more than fits.
+
+   "scroll" is a slow continuous crawl; "page" holds a screenful, fades, and
+   moves on. Scroll keeps the whole list moving past somebody standing there;
+   paging is easier to read in a two second glance. Scroll is the choice for
+   this wall. Anything else means no motion, and the overflow is simply not
+   seen. */
+const RAIL_MODE   = "scroll";
+const HOLD_PAGE   = 9000;      // page mode: how long a page holds
+/* Scroll speed as seconds per row, not pixels per second. A wall is 1080p or
+   4K and the rows scale with it, so a fixed pixel speed would read differently
+   on each. "A row goes past every four seconds" holds on any screen. */
+const CRAWL_SECS_PER_ROW = 4;
 
 const RELOAD_HOUR    = 4;
 const RELOAD_WINDOW  = 5;               // minutes past the hour to act within
@@ -563,40 +590,125 @@ async function loadNotice(){
  * because somebody glances at this for two seconds: still text is readable,
  * moving text is not.
  */
-function layoutRail(){
+/**
+ * Put the rail back to a standing start, whatever it was doing.
+ *
+ * Called before every measurement, because a rail mid-crawl or mid-page
+ * measures its transformed position rather than its real one, and the clones
+ * from a previous crawl would be counted as content.
+ */
+/**
+ * The element that actually moves.
+ *
+ * A separate layer inside .items so that .items keeps its overflow box still
+ * while the list travels through it. Transforming .items itself moved its own
+ * clipping edge with it, and the list rode up over the heading.
+ */
+function crawler(rail){
+  let box = rail.querySelector(".crawler");
+  if (!box){
+    box = document.createElement("div");
+    box.className = "crawler";
+    while (rail.firstChild) box.appendChild(rail.firstChild);
+    rail.appendChild(box);
+  }
+  return box;
+}
+
+function resetRail(box){
   clearTimeout(pageTimer);
-  const rail = $("rail");
-  rail.classList.remove("turning");
-  rail.style.transform = "";
+  box.classList.remove("turning", "crawling");
+  box.style.transform = "";
+  box.querySelectorAll(".railsep, .cloned").forEach((el) => el.remove());
+}
 
-  if (!PAGE_RAIL) return;
+/**
+ * A slow crawl that loops without a seam.
+ *
+ * The trick is duplicating the list below itself with a rule between: the
+ * animation travels exactly the height of the first copy plus that rule, so
+ * the moment it wraps, the copy is where the original started and nothing
+ * visibly moves. A loop that snaps back to the top reads as a fault, and
+ * without the rule you cannot tell where the list ended and began again.
+ */
+function crawlRail(box, contentHeight){
+  const sep = document.createElement("div");
+  sep.className = "railsep";
+  box.appendChild(sep);
 
-  const items = [...rail.children];
-  if (!items.length) return;
+  const originals = [...box.children].filter((el) => el !== sep);
+  originals.forEach((el) => {
+    const copy = el.cloneNode(true);
+    copy.classList.add("cloned");
+    copy.setAttribute("aria-hidden", "true");
+    box.appendChild(copy);
+  });
 
-  const box = rail.getBoundingClientRect();
-  // Where each item would have to scroll to sit at the top of the visible box.
+  // Exactly where the first clone now sits: translating by this puts it
+  // precisely where the original started, so the wrap is invisible.
+  const gap = parseFloat(getComputedStyle(box).rowGap) || 0;
+  const distance = contentHeight + sep.getBoundingClientRect().height + gap * 2;
+
+  // Averaged rather than measured off the first row, which carries a countdown
+  // chip and is taller than the rest — keying the speed to it would make every
+  // other row crawl slower than intended.
+  const rowHeight = contentHeight / originals.length;
+  const speed = rowHeight / CRAWL_SECS_PER_ROW;   // pixels per second
+
+  box.style.setProperty("--crawl-dist", distance + "px");
+  box.style.setProperty("--crawl-dur", (distance / speed) + "s");
+  // Force the browser to notice the animation is new, so a re-render restarts
+  // it from the top rather than resuming mid-list.
+  void box.offsetHeight;
+  box.classList.add("crawling");
+}
+
+/** Hold a screenful, fade, move on. */
+function pageRail(box, items, view){
   const offsets = [0];
   items.forEach((el) => {
-    const top = el.getBoundingClientRect().top - box.top;
+    const top = el.getBoundingClientRect().top - view.top;
     const bottom = top + el.getBoundingClientRect().height;
-    if (bottom > box.height + offsets[offsets.length - 1]) {
-      offsets.push(top);
-    }
+    if (bottom > view.height + offsets[offsets.length - 1]) offsets.push(top);
   });
-  if (offsets.length < 2) return;   // it all fits, nothing to page
+  if (offsets.length < 2) return;
 
   let page = 0;
   const turn = () => {
-    rail.classList.add("turning");
+    box.classList.add("turning");
     pageTimer = setTimeout(() => {
       page = (page + 1) % offsets.length;
-      rail.style.transform = "translateY(" + (-offsets[page]) + "px)";
-      rail.classList.remove("turning");
+      box.style.transform = "translateY(" + (-offsets[page]) + "px)";
+      box.classList.remove("turning");
       pageTimer = setTimeout(turn, HOLD_PAGE);
     }, 450);
   };
   pageTimer = setTimeout(turn, HOLD_PAGE);
+}
+
+/**
+ * Show the whole rail when it does not fit.
+ *
+ * A notice pushes "Coming up" down, so on a busy week the last item or two
+ * would sit below the fold with nothing to say so.
+ */
+function layoutRail(){
+  const rail = $("rail");
+  const box = crawler(rail);
+  resetRail(box);
+
+  const items = [...box.children];
+  if (!items.length) return;
+
+  const view = rail.getBoundingClientRect();
+  const last = items[items.length - 1].getBoundingClientRect();
+  const contentHeight = last.bottom - view.top;
+  if (contentHeight <= view.height + 1) return;   // it all fits
+
+  // Somebody who has asked their device for less motion should not be given a
+  // wall that never stops moving. Paging still shows them everything.
+  if (RAIL_MODE === "scroll" && !reduced) crawlRail(box, contentHeight);
+  else if (RAIL_MODE === "scroll" || RAIL_MODE === "page") pageRail(box, items, view);
 }
 
 function renderQr(){
