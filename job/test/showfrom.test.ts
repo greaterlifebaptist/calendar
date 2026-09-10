@@ -9,15 +9,19 @@ import { toPublicEvent } from '../src/publish.ts';
 import type { RawEvent, CalEvent } from '../src/types.ts';
 
 /**
- * "Start showing it on": a date before which an event is not public.
+ * "Put it on the TV from": a date before which an event stays off the wall.
  *
- * For something real but not yet relevant — a fundraiser deadline entered four
- * months early so it is not forgotten, which has no business on the foyer wall
- * until the fundraiser starts.
+ * The wall only, which is narrower than it first was. It briefly hid the event
+ * from the website and silenced its reminders too, on the reasoning that a
+ * message about something invisible is a message nobody can act on. That
+ * reasoning was built on an example the ladder cannot produce — the furthest
+ * rung is thirty days, so there is no such thing as a reminder months out —
+ * and it took away two things nobody asked to lose.
  *
  * A rule that hides things is the kind that fails quietly, in both directions:
  * hiding what should show is invisible until somebody misses it, and failing
- * to hide is only noticed by whoever is annoyed by the wall.
+ * to hide is only noticed by whoever is annoyed by the wall. Hence the tests
+ * below, on both sides of every boundary.
  */
 const cfg = loadConfig();
 const TZ = cfg.timezone;
@@ -97,13 +101,17 @@ test('the date reaches the website, and is left off when there is none', () => {
   assert.equal('showFrom' in without, false, 'nothing to say means say nothing');
 });
 
-test('the feeds carry it even while nothing else shows it', () => {
-  // A subscribed calendar that quietly omitted a date it knew about would be
-  // worse than an early one: somebody planning from their own phone should see
-  // everything on the calendar, which is what they subscribed to it for.
-  const ics = readFileSync(new URL('../src/ics.ts', import.meta.url), 'utf8');
-  assert.equal(ics.includes('showFrom'), false,
-    'the .ics feeds must not read this date');
+test('only the wall reads this date', () => {
+  // Everything else carries on exactly as though it were not set: the website
+  // lists the event, the feeds carry it, and its reminders run off its own
+  // date. The furthest rung is thirty days, so a deadline entered months early
+  // is not being reminded about yet anyway.
+  for (const file of ['../src/ics.ts', '../src/remind.ts']) {
+    const src = readFileSync(new URL(file, import.meta.url), 'utf8');
+    assert.equal(src.includes('showFrom'), false, file + ' must not read this date');
+  }
+  assert.equal(SITE.includes('showFrom'), false, 'the website must not read this date');
+  assert.ok(TV.includes('showFrom'), 'the wall is the one place that should');
 });
 
 // ---------------------------------------------------------------------------
@@ -124,12 +132,10 @@ test('the wall looks a fixed distance ahead', () => {
     'the horizon can no longer be changed without a deploy');
 });
 
-test('both pages hide what is not meant to be public yet', () => {
-  assert.ok(TV.includes('.filter(e => !notYet(e))'), 'the wall shows it early');
-  assert.ok(SITE.includes('.filter(e => !notYetPublic(e))'), 'the website shows it early');
-  // The month grid is a separate pass over the same data and was missed once.
-  assert.equal(SITE.split('!notYetPublic(e)').length - 1, 2,
-    'the agenda and the month grid must both filter');
+test('the wall hides it early and the website does not', () => {
+  assert.ok(TV.includes('.filter(e => !notYet(e))'), 'the wall shows it too early');
+  assert.equal(SITE.includes('notYetPublic'), false,
+    'the website is meant to list everything on the calendar');
 });
 
 test('the wall has one heading, not two', () => {
@@ -143,10 +149,9 @@ test('the wall has one heading, not two', () => {
 // what a held-back event does to the reminders
 // ---------------------------------------------------------------------------
 
-test('nothing is sent about an event that is not public yet', () => {
-  // A GroupMe in December about a fundraiser starting in February is a message
-  // nobody can act on about a thing that does not visibly exist: the same date
-  // is keeping it off the website they would go and look at.
+test('a date on the wall does not silence the reminders', () => {
+  // This is the case that was briefly broken: the thirty day rung for a
+  // deadline whose wall date has not arrived. It must still go out.
   const sept4 = new Date('2026-09-04T09:00:00-04:00');
   const due = normalize({
     ministry: 'youth',
@@ -164,20 +169,22 @@ test('nothing is sent about an event that is not public yet', () => {
     cfg, ministries: cfg.ministries, instances: [due], masters: [],
     state: { sent: {} }, now: sept4,
   });
-  assert.equal(held.due.length, 0, 'held back, so nothing goes out');
+  assert.equal(held.due.length, 1, 'the thirty day rung must still go out');
+  assert.match(held.due[0].ruleId, /30/);
 
-  // And once the date arrives, the rungs still ahead behave normally.
+  // And the seven day rung later, as normal.
   const sept27 = new Date('2026-09-27T09:00:00-04:00');
   const open = planReminders({
     cfg, ministries: cfg.ministries, instances: [due], masters: [],
     state: { sent: {} }, now: sept27,
   });
-  assert.equal(open.due.length, 1, 'the seven day rung should go out');
+  assert.equal(open.due.length, 1);
   assert.match(open.due[0].ruleId, /7/);
 });
 
-test('the weekly digest leaves a held-back event out too', () => {
-  // Sunday evening, with the event four days away and not yet public.
+test('the weekly digest still mentions it', () => {
+  // Sunday evening, with the event four days away and its wall date not yet
+  // reached. The digest is about the week ahead, and it is in the week ahead.
   const sunday = new Date('2026-09-06T19:00:00-04:00');
   const soon = normalize({
     ministry: 'youth',
@@ -194,7 +201,8 @@ test('the weekly digest leaves a held-back event out too', () => {
     cfg, ministries: cfg.ministries, instances: [soon], masters: [],
     state: { sent: {} }, now: sunday,
   });
-  assert.equal(lines.length, 0, 'a digest must not mention what is not public');
+  assert.equal(lines.length, 1);
+  assert.match(lines[0].text, /Fundraiser kickoff/);
 });
 
 // ---------------------------------------------------------------------------

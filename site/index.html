@@ -438,7 +438,6 @@ function upcoming(){
   const today = startOfToday();
   return DATA.events
     .filter(e => active.has(e.ministry))
-    .filter(e => !notYetPublic(e))
     .filter(e => parse(e.end || e.start) >= today)
     .sort((a,b) => parse(a.start) - parse(b.start));
 }
@@ -522,25 +521,6 @@ function forgetRsvp(e){
     delete all[rsvpKey(e)];
     localStorage.setItem(RSVP_KEY, JSON.stringify(all));
   } catch {}
-}
-
-/*
- * Something entered early that is not meant to be public yet.
- *
- * A fundraiser deadline months out is worth recording the moment somebody
- * thinks of it, and worth showing to nobody until the fundraiser starts. It
- * stays in the .ics feeds either way — a subscribed calendar that quietly
- * omitted a date it knew about would be worse than an early one.
- *
- * Compared in the browser rather than filtered out when the file is built, so
- * it appears on the right morning instead of at the next hourly build.
- */
-function notYetPublic(e){
-  if (!e.showFrom) return false;
-  const d = new Date();
-  const today = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") +
-    "-" + String(d.getDate()).padStart(2, "0");
-  return e.showFrom > today;
 }
 
 function addRsvp(card, e){
@@ -701,7 +681,6 @@ function renderGrid(){
       if (date.getTime() === today.getTime()) cell.classList.add("today");
       DATA.events
         .filter(e => active.has(e.ministry))
-        .filter(e => !notYetPublic(e))
         .filter(e => {
           const s = parse(e.start), en = parse(e.end || e.start);
           return date >= new Date(s.getFullYear(),s.getMonth(),s.getDate())

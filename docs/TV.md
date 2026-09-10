@@ -107,19 +107,19 @@ The number is a script property, `TV_DAYS`, changed from the Notices tab of
 the admin page — the church has no computer, so a number only reachable from a
 script editor is a number nobody will change.
 
-**An event can also be held back by date.** "Start showing it on" in the admin
-form, or a `show: 2027-01-15` line in the description, keeps something off the
-wall and off the website until that morning: a fundraiser deadline is worth
-recording the moment somebody thinks of it and worth nobody's attention until
-the fundraiser starts. Reminders respect it too: a GroupMe in December about a fundraiser starting in
-February is a message nobody can act on about a thing that does not visibly
-exist, since the same date keeps it off the website they would go and look at.
-Nothing is owed afterwards — a rung whose day passed while the event was held
-back is simply missed, and the ones still ahead go out normally.
+**An event can also be held back by date.** "Put it on the TV from" in the
+admin form, or a `show: 2027-01-15` line in the description, keeps something
+off the wall until that morning: a fundraiser deadline is worth recording the
+moment somebody thinks of it and has no business on the wall until the
+fundraiser starts. **It touches the wall and nothing else.** The website lists the event, the
+feeds carry it, and its reminders run off its own date.
 
-The .ics feeds are the exception and carry it regardless. A subscribed calendar
-quietly omitting a date it knows about would be worse than an early one:
-somebody planning from their own phone subscribed in order to see everything.
+It briefly did more than that — hiding the event from the website and silencing
+its reminders — on the reasoning that a message about something invisible is a
+message nobody can act on. The example that justified it, a reminder months
+ahead of an event, is not something the ladder can produce: the furthest rung
+is thirty days. So it was taking away two things nobody had asked to lose, to
+prevent something that could not happen.
 
 **An event can also be kept off the wall entirely**, with "Keep it off the TV"
 on the admin form. Separate from the date, for something that belongs on the

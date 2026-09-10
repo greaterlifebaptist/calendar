@@ -27,11 +27,12 @@ it was earning less than the space it took. Anything already pinned by hand
 keeps its setting: the form carries the value through a save rather than
 dropping it, which would have unpinned it silently.
 
-**It can hold something back.** "Start showing it on" keeps an event off the
-website and the TV until that date, for something real but not yet relevant —
-a fundraiser deadline entered four months early so it is not forgotten. The
-feeds and the reminders are untouched. Leave it empty and the event shows
-straight away, which is nearly always what is wanted.
+**It can keep something off the TV until a date.** "Put it on the TV from" is
+for an event entered early — a fundraiser deadline whose fundraiser has not
+started. It stays off the wall until that morning, and nothing else changes:
+the website lists it, the feeds carry it, its reminders run normally. Leave it
+empty and it reaches the wall as soon as it is close enough, which is nearly
+always what is wanted.
 
 **It offers the private calendars too.** Youth Leaders and Worship are in the
 dropdown, which the public signup page will never do.
