@@ -211,6 +211,24 @@ type PlanInput = {
  * only the follow-up rungs. A monthly series is not frequent enough to be a
  * nuisance and is left alone.
  */
+/**
+ * Held back: entered on the calendar, not yet meant to be heard about.
+ *
+ * A fundraiser deadline put in four months early is real, and a GroupMe about
+ * it in December — for a fundraiser that starts in February — is a message
+ * nobody can act on about a thing that does not visibly exist yet. Whoever
+ * receives it goes looking on the website and finds nothing, because the same
+ * date is keeping it off there too.
+ *
+ * Nothing is owed afterwards. A rung whose day passed while the event was
+ * held back is simply missed, the same as any other rung whose day has gone;
+ * the ones still ahead go out normally once the date arrives.
+ */
+function heldBack(ev: CalEvent, now: Date, tz: string): boolean {
+  if (!ev.showFrom) return false;
+  return isoDate(now, tz) < ev.showFrom;
+}
+
 function firstUpcomingOfSeries(instances: CalEvent[], now: Date): Set<string> {
   const earliest = new Map<string, CalEvent>();
   for (const ev of instances) {
@@ -254,6 +272,8 @@ export function planReminders(input: PlanInput): ReminderPlan {
 
     const channels = channelsFor(cfg, ministry);
     if (!channels.length) continue;
+
+    if (heldBack(ev, now, tz)) continue;
 
     const start = new Date(ev.startInstant);
     const daysOut = daysBetween(now, start, tz);
@@ -319,6 +339,7 @@ export function planDigest(input: PlanInput): PlannedReminder[] {
         return d >= 0 && d <= 7;
       })
       .filter((e) => e.type !== 'routine')
+      .filter((e) => !heldBack(e, now, tz))
       .sort((a, b) => (a.startInstant < b.startInstant ? -1 : 1));
 
     // A digest saying nothing is worse than no digest.

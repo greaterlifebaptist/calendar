@@ -46,7 +46,7 @@
  * file is handed over: the date, plus a letter if more than one goes out that
  * day.
  */
-var VERSION = '2026-09-10c';
+var VERSION = '2026-09-10d';
 
 var SITE = 'https://calendars.greaterlifebaptistchurch.com';
 var EVENTS_JSON = SITE + '/events.json';
@@ -1415,7 +1415,10 @@ function toResource_(ev) {
         // relevant — a fundraiser deadline put in months early so it is not
         // forgotten, which has no business on the foyer wall until the
         // fundraiser starts. Blank means show it from now, as always.
-        glbcShowFrom: showFromOr_(ev.showFrom)
+        glbcShowFrom: showFromOr_(ev.showFrom),
+        // Never on the wall in the foyer, whatever the horizon says. Still on
+        // the website, still in the feeds, still reminded about.
+        glbcHideTv: ev.hideTv ? 'true' : 'false'
       }
     }
   };
@@ -1513,6 +1516,7 @@ function handleAdminList_(body) {
       pinned: shared.glbcPinned === 'true',
       card: shared.glbcCard || '',
       showFrom: shared.glbcShowFrom || '',
+      hideTv: shared.glbcHideTv === 'true',
       rrule: (e.recurrence || []).filter(function (r) { return r.indexOf('RRULE') === 0; })[0] || ''
     };
   }).sort(function (a, b) { return a.start < b.start ? -1 : 1; });

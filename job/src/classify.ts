@@ -183,6 +183,7 @@ export function classify(ev: RawEvent, tz: string, now: Date = new Date()): Clas
 
   const propCard = readProp(ev, 'glbcCard');
   const propShowFrom = readProp(ev, 'glbcShowFrom');
+  const propHideTv = readProp(ev, 'glbcHideTv');
   const propType = readProp(ev, 'glbcType');
   const propPinned = readProp(ev, 'glbcPinned');
 
@@ -264,6 +265,7 @@ export function classify(ev: RawEvent, tz: string, now: Date = new Date()): Clas
     title,
     cardTitle: (propCard ?? "").trim(),
     showFrom: explicitShow ?? fields.showFrom,
+    hideFromTv: /^(1|true|yes|x)$/i.test((propHideTv ?? '').trim()),
     reason,
   };
 }

@@ -69,6 +69,7 @@ export function toPublicEvent(ev: CalEvent, tz: string): PublicEvent {
   // Published rather than filtered out, so the page can start showing it on
   // the right morning instead of waiting for the next hourly build.
   if (ev.showFrom) out.showFrom = ev.showFrom;
+  if (ev.hideFromTv) out.hideFromTv = true;
   if (ev.link) {
     out.link = ev.link;
     out.linkText = ev.linkText ?? 'Details';

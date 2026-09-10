@@ -17,7 +17,15 @@ particular way or remember a `DUE:` prefix.
 **It puts cost, contact and link in the right shape** so they come out as
 proper fields on the website rather than as a wall of description text.
 
-**It pins things.** One checkbox instead of a `PIN:` prefix.
+**It keeps things off the TV.** One checkbox. The event stays on the website,
+in the feeds and in the reminders; it simply never reaches the wall display.
+
+This replaced a "Pin it" checkbox. Pinning still happens — `PIN:` and `NOPIN:`
+still work, and the classifier still pins a trip or deadline more than sixty
+days out, which is what fills the plan-ahead section — but a manual control for
+it was earning less than the space it took. Anything already pinned by hand
+keeps its setting: the form carries the value through a save rather than
+dropping it, which would have unpinned it silently.
 
 **It can hold something back.** "Start showing it on" keeps an event off the
 website and the TV until that date, for something real but not yet relevant —

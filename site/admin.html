@@ -329,9 +329,10 @@ footer a{color:var(--clay)}
       </div>
 
       <label class="check" style="margin-top:14px">
-        <input type="checkbox" id="pinned">
-        <span><span class="lab">Pin it</span>
-        <span class="hint" id="pinHint">Keeps it in the "plan ahead" section even when it is months away.</span></span>
+        <input type="checkbox" id="hideTv">
+        <span><span class="lab">Keep it off the TV</span>
+        <span class="hint" id="pinHint">Still on the website, the feeds and the reminders — just
+        never on the wall in the foyer.</span></span>
       </label>
     </fieldset>
 
@@ -383,6 +384,8 @@ footer a{color:var(--clay)}
 </div>
 
 <div id="paneNotice" hidden>
+  <h2 style="font-family:var(--display);font-size:1.15rem;color:var(--pine);margin:0">
+    On the TV</h2>
   <p class="lede" style="font-size:.86rem">A message across the top of the TV in the foyer,
     above everything else. For "service moved to 6pm" — it appears within a couple of
     minutes, without waiting for the hourly sync.</p>
@@ -413,6 +416,19 @@ footer a{color:var(--clay)}
       month's urgent notice.</p>
   </div>
 
+  <div class="card">
+    <label>
+      <span class="lab">How far ahead the TV looks <span class="hint">— days. Anything further
+        off still shows on the website, just not on the wall, so a deadline months away cannot
+        lead a screen people read in two seconds.</span></span>
+      <input type="number" id="tvDays" min="7" max="400" step="1">
+    </label>
+    <div class="actions">
+      <button type="button" class="primary" id="tvDaysSave">Save</button>
+      <span class="status" id="tvDaysStatus"></span>
+    </div>
+  </div>
+
   <h2 style="font-family:var(--display);font-size:1.15rem;color:var(--pine);margin:26px 0 0">
     On the printed card</h2>
   <p class="lede" style="font-size:.86rem">Standing notes printed at the foot of the calendar
@@ -429,12 +445,6 @@ footer a{color:var(--clay)}
       <span class="lab">Email the card to <span class="hint">— when one is generated, and if
         it fails to build</span></span>
       <select id="cardEmail"></select>
-    </label>
-    <label>
-      <span class="lab">How far ahead the TV looks <span class="hint">— days. Anything further
-        off still shows on the website, just not on the wall, so a deadline months away cannot
-        lead a screen people read in two seconds.</span></span>
-      <input type="number" id="tvDays" min="7" max="400" step="1">
     </label>
     <div class="actions">
       <button type="button" class="primary" id="cardNotesSave">Save</button>
@@ -568,7 +578,7 @@ const TOKEN_KEY = "glbc.admin.idtoken";
  * Compared as text, which works because the marker is a fixed-width datestamp:
  * "2026-09-09f" sorts before "2026-09-10a" for the same reason the dates do.
  */
-const NEEDS_ENDPOINT = "2026-09-10c";
+const NEEDS_ENDPOINT = "2026-09-10d";
 
 let ENDPOINT = "";
 let MINISTRIES = [];
@@ -602,6 +612,7 @@ function auth(){
   return IDTOKEN ? { idToken: IDTOKEN } : { passcode: PASS };
 }
 let editingId = null;
+let editingPinned = false;
 
 const TYPE_WHY = {
   event:    "Reminders a week before and the day before.",
@@ -714,13 +725,14 @@ function setType(type){
     b.setAttribute("aria-pressed", String(b.dataset.type === type));
   });
   $("typeWhy").textContent = TYPE_WHY[type] || "";
-  // Routine is never pinned, so do not offer a control that does nothing.
+  // A routine fixture never reaches the wall anyway, so say so rather than
+  // leaving a switch that looks like it does something.
   const routine = type === "routine";
-  $("pinned").disabled = routine;
-  if (routine) $("pinned").checked = false;
+  $("hideTv").disabled = routine;
   $("pinHint").textContent = routine
-    ? "A routine fixture is never pinned."
-    : "Keeps it in the \"plan ahead\" section even when it is months away.";
+    ? "A routine fixture never reaches the TV in the first place."
+    : "Still on the website, the feeds and the reminders — just never on the " +
+      "wall in the foyer.";
 }
 
 /* Quarter hours only. A dropdown rather than a time field, so the choices are
@@ -908,7 +920,8 @@ function clearForm(){
   ["title","location","startDate","startTime","endDate","endTime","notes","cost","card","contact","link","showFrom"]
     .forEach(id => { $(id).value = ""; });
   $("allDay").checked = false;
-  $("pinned").checked = false;
+  $("hideTv").checked = false;
+  editingPinned = false;
   endDateTouched = false;
   endTimeTouched = false;
   fillContacts(contactFor($("ministry").value));
@@ -967,7 +980,15 @@ function loadIntoForm(ev){
   $("repeatUntil").value = r.until;
 
   setType(ev.type || "event");
-  $("pinned").checked = !!ev.pinned;
+  $("hideTv").checked = !!ev.hideTv;
+  // Carried rather than shown.
+  //
+  // The pin checkbox was taken off this form: PIN:/NOPIN: still work and the
+  // classifier still pins a trip or deadline that is months out, which is what
+  // fills the plan-ahead section, so a control for it earned its space no
+  // longer. But a save writes the whole event back, so dropping the value here
+  // would silently unpin anything that had been pinned by hand.
+  editingPinned = !!ev.pinned;
   syncAllDay(); syncRepeat();
 
   $("save").textContent = "Save changes";
@@ -1052,7 +1073,8 @@ $("save").addEventListener("click", async () => {
         endTime: allDay ? "" : $("endTime").value,
         rrule: buildRrule(),
         type: currentType(),
-        pinned: $("pinned").checked,
+        pinned: editingPinned,
+        hideTv: $("hideTv").checked,
         notes: $("notes").value.trim(),
         cost: $("cost").value.trim(),
         card: $("card").value.trim(),
@@ -1321,6 +1343,20 @@ $("cardMake").addEventListener("click", async () => {
   }
 });
 
+$("tvDaysSave").addEventListener("click", async () => {
+  const st = $("tvDaysStatus");
+  $("tvDaysSave").disabled = true;
+  say(st, "Saving…");
+  try {
+    await call({ action:"admin.settings", ...auth(), tvDays: Number($("tvDays").value) || 42 });
+    say(st, "Saved. The TV picks it up within a couple of minutes.", "ok");
+  } catch (err) {
+    fail(st, err);
+  } finally {
+    $("tvDaysSave").disabled = false;
+  }
+});
+
 $("cardNotesSave").addEventListener("click", async () => {
   const st = $("cardNotesStatus");
   $("cardNotesSave").disabled = true;
@@ -1331,7 +1367,6 @@ $("cardNotesSave").addEventListener("click", async () => {
       action:"admin.settings", ...auth(),
       cardNotes: $("cardNotes").value,
       cardEmail: $("cardEmail").value,
-      tvDays: Number($("tvDays").value) || 42,
     });
     st.className = "status ok";
     st.textContent = $("cardEmail").value

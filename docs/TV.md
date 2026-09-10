@@ -111,9 +111,20 @@ script editor is a number nobody will change.
 form, or a `show: 2027-01-15` line in the description, keeps something off the
 wall and off the website until that morning: a fundraiser deadline is worth
 recording the moment somebody thinks of it and worth nobody's attention until
-the fundraiser starts. It never affects the .ics feeds or the reminders — a
-subscribed calendar quietly omitting a date it knows about would be worse than
-an early one, and a reminder is governed by the event's own date.
+the fundraiser starts. Reminders respect it too: a GroupMe in December about a fundraiser starting in
+February is a message nobody can act on about a thing that does not visibly
+exist, since the same date keeps it off the website they would go and look at.
+Nothing is owed afterwards — a rung whose day passed while the event was held
+back is simply missed, and the ones still ahead go out normally.
+
+The .ics feeds are the exception and carry it regardless. A subscribed calendar
+quietly omitting a date it knows about would be worse than an early one:
+somebody planning from their own phone subscribed in order to see everything.
+
+**An event can also be kept off the wall entirely**, with "Keep it off the TV"
+on the admin form. Separate from the date, for something that belongs on the
+calendar and never belongs on a screen read in two seconds. It changes nothing
+else — website, feeds and reminders all carry on.
 
 The date is checked in the browser rather than filtered out when the file is
 built, so the event appears on the right morning rather than at whatever hour

@@ -448,6 +448,8 @@ function renderRail(){
     .filter(e => parse(e.end || e.start) >= today)
     .filter(e => parse(e.start) <= horizon)
     .filter(e => !notYet(e))
+    // Asked to stay off the wall, whatever the horizon says.
+    .filter(e => !e.hideFromTv)
     .sort((a,b) => parse(a.start) - parse(b.start));
 
   // Deadlines and pinned items first, then everything else in date order.

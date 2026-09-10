@@ -114,6 +114,15 @@ export type Classified = {
    * on the admin form, or they could never edit what they cannot find.
    */
   showFrom: string | null;
+  /**
+   * Never show this on the wall display.
+   *
+   * Separate from showFrom, which is a date. This is for something that
+   * belongs on the calendar and never belongs on a screen people read in two
+   * seconds while walking past. It changes nothing else: the website, the
+   * feeds and the reminders all carry on.
+   */
+  hideFromTv: boolean;
   /** Which path decided the type — useful when auditing misclassification. */
   reason: string;
 };
@@ -167,4 +176,6 @@ export type PublicEvent = {
    * that what the job publishes stays an honest picture of the calendar.
    */
   showFrom?: string;
+  /** Present only when a leader asked for it to stay off the wall display. */
+  hideFromTv?: true;
 };
