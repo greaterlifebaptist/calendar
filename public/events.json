@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-09T14:47:55.145Z",
+  "generated": "2026-09-10T01:31:47.525Z",
   "timezone": "America/New_York",
   "feeds": {
     "base": "https://calendars.greaterlifebaptistchurch.com/feeds/",
@@ -31,26 +31,6 @@
     }
   ],
   "events": [
-    {
-      "uid": "58hfr11d7u23eajef15k7k1mqk@google.com",
-      "ministry": "youth",
-      "type": "event",
-      "title": "Test Event",
-      "start": "2026-09-07T17:00:00",
-      "end": "2026-09-07T18:00:00",
-      "notes": "Testing a new event",
-      "contact": "Spencer Welch"
-    },
-    {
-      "uid": "ng0i0e6dap6brt733mj0o2rajo@google.com",
-      "ministry": "youth",
-      "type": "event",
-      "title": "Test 1 week",
-      "start": "2026-09-14T16:00:00",
-      "end": "2026-09-14T17:00:00",
-      "notes": "testing another event",
-      "contact": "Spencer Welch"
-    },
     {
       "uid": "jhrefasg3q4q1rrqdsovs3hsmk@google.com",
       "ministry": "youth",
@@ -94,14 +74,6 @@
       "notes": "The Youth will be leading and serving in multiple ministries today! Please encourage them and come ready to worship with them!"
     },
     {
-      "uid": "4ep0nchkek5ea0jflt6p3f841p@google.com",
-      "ministry": "church",
-      "type": "event",
-      "title": "Sunday Service",
-      "start": "2026-09-27T11:00:00",
-      "end": "2026-09-27T12:30:00"
-    },
-    {
       "uid": "1n6g9up6k4n57j8066um1odmfd@google.com",
       "ministry": "mens",
       "type": "event",
@@ -120,15 +92,6 @@
       "end": "2026-10-04T18:00:00",
       "location": "Greater Life Baptist Church, 305 Old Grey Rock Rd, Midland, GA 31820, USA",
       "notes": "Join us for Women's Fellowship"
-    },
-    {
-      "uid": "e33fsra1el2n8dtj0tvsveb1s4@google.com",
-      "ministry": "youth",
-      "type": "event",
-      "title": "testing 30 day event",
-      "start": "2026-10-07T19:00:00",
-      "end": "2026-10-07T20:00:00",
-      "contact": "Spencer Welch"
     },
     {
       "uid": "1n6g9up6k4n57j8066um1odmfd@google.com",
