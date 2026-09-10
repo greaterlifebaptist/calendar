@@ -46,7 +46,7 @@
  * file is handed over: the date, plus a letter if more than one goes out that
  * day.
  */
-var VERSION = '2026-09-10a';
+var VERSION = '2026-09-10b';
 
 var SITE = 'https://calendars.greaterlifebaptistchurch.com';
 var EVENTS_JSON = SITE + '/events.json';
@@ -318,22 +318,63 @@ function doGet() {
   });
 }
 
+/**
+ * Actions that only read.
+ *
+ * The lock below exists for one reason: two people submitting at once must not
+ * write to the same row of the sheet. Reads cannot cause that, and making them
+ * wait for it is what turned a slow calendar fetch into "Busy, please try
+ * again" for everybody — including signup and the RSVP form, which have
+ * nothing to do with whoever is browsing events in the admin page.
+ *
+ * Changing the ministry dropdown fetches a year of events from Google, which
+ * takes seconds. Three of those in a row used to hold the whole endpoint shut
+ * for most of a minute.
+ *
+ * A read taken while somebody else is mid-write may see the row as it was a
+ * moment ago. That was always true of the health check, which has never taken
+ * this lock, and it is the right trade: a slightly stale read costs a refresh,
+ * a queue costs everybody the service.
+ */
+var READ_ONLY = {
+  'config': 1, 'load': 1, 'contacts': 1, 'notice': 1,
+  'admin.hello': 1, 'admin.list': 1, 'admin.people': 1,
+  'admin.rsvps': 1, 'admin.leaders': 1
+};
+
 function doPost(e) {
-  var lock = LockService.getScriptLock();
-  try {
-    // Two people submitting at once must not write to the same row.
-    lock.waitLock(20000);
-  } catch (err) {
-    return json_({ ok: false, error: 'Busy, please try again.' });
+  if (!e || !e.postData || !e.postData.contents) {
+    return json_({ ok: false, error: 'Empty request.' });
   }
 
+  var body;
   try {
-    if (!e || !e.postData || !e.postData.contents) {
-      return json_({ ok: false, error: 'Empty request.' });
-    }
-    var body = JSON.parse(e.postData.contents);
-    var action = String(body.action || 'signup').toLowerCase();
+    body = JSON.parse(e.postData.contents);
+  } catch (err) {
+    return json_({ ok: false, error: 'That request was not readable.' });
+  }
+  var action = String(body.action || 'signup').toLowerCase();
 
+  if (READ_ONLY[action]) return route_(action, body);
+
+  var lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(20000);
+  } catch (err) {
+    return json_({
+      ok: false,
+      error: 'Somebody else is saving something right now. Try that again in a moment.'
+    });
+  }
+  try {
+    return route_(action, body);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function route_(action, body) {
+  try {
     if (action === 'signup') return handleSignup_(body);
     if (action === 'load') return handleLoad_(body);
     if (action === 'save') return handleSave_(body);
@@ -363,8 +404,6 @@ function doPost(e) {
     return json_({ ok: false, error: 'Unknown action.' });
   } catch (err) {
     return json_({ ok: false, error: String(err && err.message ? err.message : err) });
-  } finally {
-    lock.releaseLock();
   }
 }
 
@@ -809,7 +848,21 @@ function leaderHeaders_(sheet, width) {
   });
 }
 
+/**
+ * The leaders list, read once per request.
+ *
+ * checkAdmin_ asks who the caller is, the level check asks again, and the
+ * last-admin guard asks a third time — three round trips to the same handful
+ * of rows, on every single action. Apps Script runs one request per execution,
+ * so there is nobody else's list to hand back by mistake.
+ *
+ * Anything that writes to the tab clears this. There are three such places
+ * and they all go through appendLeader_, setLeaderCell_ or the delete below.
+ */
+var LEADERS_CACHE = null;
+
 function leaders_() {
+  if (LEADERS_CACHE) return LEADERS_CACHE;
   var sheet = leadersSheet_();
   var last = sheet.getLastRow();
   if (last < 2) return [];
@@ -844,6 +897,7 @@ function leaders_() {
       notes: cell(rows[i], 'notes')
     });
   }
+  LEADERS_CACHE = out;
   return out;
 }
 
@@ -854,6 +908,7 @@ function setLeaderCell_(row, name, value) {
   var at = headers.indexOf(name);
   if (at === -1) return;
   sheet.getRange(row, at + 1).setValue(value);
+  LEADERS_CACHE = null;
 }
 
 /** How many admins are left. The list must never run out of them. */
@@ -1115,6 +1170,7 @@ function appendLeader_(fields) {
     row.push(Object.prototype.hasOwnProperty.call(fields, headers[i]) ? fields[headers[i]] : '');
   }
   sheet.appendRow(row);
+  LEADERS_CACHE = null;
 }
 
 /**
@@ -1252,6 +1308,7 @@ function handleAdminRemoveLeader_(body) {
   }
 
   leadersSheet_().deleteRow(target.row);
+  LEADERS_CACHE = null;
   return json_({ ok: true, leaders: leadersList_() });
 }
 

@@ -167,17 +167,26 @@ function world(): World {
   const load = new Function('globals', `
     with (globals) {
       ${CODE}
+      // Apps Script runs one request per execution, so anything cached in a
+      // global lives for exactly one call and no longer. These tests reuse a
+      // single sandbox across many calls, so each entry point clears that
+      // state on the way in — otherwise the harness would hold a cache for a
+      // lifetime production never gives it, and a row edited straight in the
+      // sheet would look invisible when it is not.
+      function fresh(fn){
+        return function(){ LEADERS_CACHE = null; return fn.apply(null, arguments); };
+      }
       return {
-        checkAdmin_: checkAdmin_,
+        checkAdmin_: fresh(checkAdmin_),
         caller: function(){ return CALLER; },
         callerRole: function(){ return CALLER_ROLE; },
-        handleAdminLeaders_: handleAdminLeaders_,
-        handleAdminAddLeader_: handleAdminAddLeader_,
-        handleAdminRemoveLeader_: handleAdminRemoveLeader_,
-        handleAdminSetLeader_: handleAdminSetLeader_,
-        handleAdminRsvps_: handleAdminRsvps_,
+        handleAdminLeaders_: fresh(handleAdminLeaders_),
+        handleAdminAddLeader_: fresh(handleAdminAddLeader_),
+        handleAdminRemoveLeader_: fresh(handleAdminRemoveLeader_),
+        handleAdminSetLeader_: fresh(handleAdminSetLeader_),
+        handleAdminRsvps_: fresh(handleAdminRsvps_),
         handleConfig_: handleConfig_,
-        leaders_: leaders_
+        leaders_: fresh(leaders_)
       };
     }
   `) as (g: unknown) => Script;

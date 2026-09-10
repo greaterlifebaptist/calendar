@@ -110,3 +110,37 @@ test('the gate Code.gs actually ships is the one described here', () => {
   assert.ok(/String\(data\.aud \|\| ''\) !== clientId/.test(CODE));
   assert.ok(/String\(data\.email_verified\) !== 'true'/.test(CODE));
 });
+
+test('reads do not queue behind writes', () => {
+  // One script-wide lock protects the sheet from two people writing to the
+  // same row. Holding it for reads as well is what turned a slow calendar
+  // fetch into "Busy, please try again" for signup and the RSVP form, which
+  // have nothing to do with whoever is browsing events in the admin page.
+  const block = /var READ_ONLY = \{([\s\S]*?)\};/.exec(CODE);
+  assert.ok(block, 'the read-only list is gone, so everything is locked again');
+  const reads = block![1];
+
+  for (const action of [
+    'config', 'load', 'contacts', 'notice',
+    'admin.hello', 'admin.list', 'admin.people', 'admin.rsvps', 'admin.leaders',
+  ]) {
+    assert.ok(reads.includes("'" + action + "'"), action + ' should not need the lock');
+  }
+
+  // Anything that writes must stay behind it. One of these slipping into the
+  // list is a lost row rather than a slow page.
+  for (const action of [
+    'signup', 'save', 'rotate', 'share', 'rsvp',
+    'admin.save', 'admin.delete', 'admin.setgroups', 'admin.share', 'admin.remove',
+    'admin.notice', 'admin.settings', 'admin.makecard', 'card.mail',
+    'admin.addleader', 'admin.removeleader', 'admin.setleader',
+  ]) {
+    assert.equal(reads.includes("'" + action + "'"), false,
+      action + ' writes, so it must keep the lock');
+  }
+
+  // And the locked path is still there for everything else.
+  assert.ok(CODE.includes('if (READ_ONLY[action]) return route_(action, body);'));
+  assert.ok(CODE.includes('lock.waitLock(20000)'));
+  assert.ok(CODE.includes('lock.releaseLock()'));
+});
