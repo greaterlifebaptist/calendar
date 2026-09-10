@@ -46,7 +46,7 @@
  * file is handed over: the date, plus a letter if more than one goes out that
  * day.
  */
-var VERSION = '2026-09-10d';
+var VERSION = '2026-09-10e';
 
 var SITE = 'https://calendars.greaterlifebaptistchurch.com';
 var EVENTS_JSON = SITE + '/events.json';
@@ -307,10 +307,11 @@ function doGet() {
       'contacts', 'rsvp', 'admin.rsvps', 'notice', 'admin.notice', 'admin.settings',
       'card.mail', 'admin.makecard',
       'config', 'admin.leaders', 'admin.addleader', 'admin.removeleader',
-      'admin.setleader'
+      'admin.setleader', 'admin.rsvpdigest'
     ],
     adminReady: !!adminPasscode_(),
     signIn: signInHealth_(),
+    rsvps: rsvpHealth_(),
     calendar: calendarOk,
     sheetFrom: sheetSource_(),
     sheet: sheetOk,
@@ -401,6 +402,7 @@ function route_(action, body) {
     if (action === 'admin.addleader')    return handleAdminAddLeader_(body);
     if (action === 'admin.removeleader') return handleAdminRemoveLeader_(body);
     if (action === 'admin.setleader')    return handleAdminSetLeader_(body);
+    if (action === 'admin.rsvpdigest')   return handleAdminRsvpDigest_(body);
     return json_({ ok: false, error: 'Unknown action.' });
   } catch (err) {
     return json_({ ok: false, error: String(err && err.message ? err.message : err) });
@@ -1331,6 +1333,38 @@ function signInHealth_() {
     out.admins = adminCount_();
   } catch (err) {
     out.detail = String(err && err.message ? err.message : err);
+  }
+  return out;
+}
+
+/**
+ * Whether the RSVP digest has everything it needs.
+ *
+ * Every part of this fails silently. A trigger that was never created, a
+ * contact whose name does not match the Contacts tab, a Contacts row with no
+ * address — each of them ends in nobody receiving anything, and none of them
+ * says so anywhere. This is the one place somebody can look.
+ *
+ * Counts only, no names or addresses: this URL is public.
+ */
+function rsvpHealth_() {
+  var out = { digestTrigger: false, rows: 0, contacts: 0, reachable: 0, lastRun: '' };
+  try {
+    var triggers = ScriptApp.getProjectTriggers();
+    for (var i = 0; i < triggers.length; i++) {
+      if (triggers[i].getHandlerFunction() === 'dailyRsvpDigest') out.digestTrigger = true;
+    }
+  } catch (err) {
+    out.detail = String(err && err.message ? err.message : err);
+  }
+  try {
+    out.rows = Math.max(0, rsvpsSheet_().getLastRow() - 1);
+    var list = contacts_();
+    out.contacts = list.length;
+    for (var c = 0; c < list.length; c++) if (list[c].emails.length) out.reachable++;
+    out.lastRun = scriptProp_(DIGEST_MARK);
+  } catch (err2) {
+    if (!out.detail) out.detail = String(err2 && err2.message ? err2.message : err2);
   }
   return out;
 }
@@ -2467,10 +2501,6 @@ function setupDailyDigest() {
   Logger.log('Daily RSVP digest will run each morning around 7am Eastern.');
 }
 
-function todayKey_(date) {
-  return Utilities.formatDate(date, 'America/New_York', 'yyyy-MM-dd');
-}
-
 /**
  * One email per contact, once a day, only when something moved.
  *
@@ -2482,14 +2512,45 @@ function todayKey_(date) {
  * Silence is meaningful: no email means nobody responded yesterday, and the
  * last one they received is still accurate.
  */
+/** When the digest last ran, so "new since then" means something. */
+var DIGEST_MARK = 'rsvpDigestLastRun';
+
 function dailyRsvpDigest() {
+  return sendRsvpDigest_(false);
+}
+
+/**
+ * The daily headcount email.
+ *
+ * `force` sends the current list whatever has happened, for the button on the
+ * admin page. Otherwise it only writes to somebody whose list actually moved.
+ *
+ * What counts as moved used to be "recorded today", and that was wrong in a
+ * way that sent nothing at all. The trigger fires at 7am, so at the moment it
+ * asks, almost nothing has been recorded today — the replies that need
+ * reporting came in yesterday afternoon, and by 7am the next morning they no
+ * longer matched. An RSVP was only ever included if somebody filled the form
+ * in between midnight and seven.
+ *
+ * It now measures from the last run instead, kept in a script property. That
+ * is right whatever hour the trigger fires at, survives a day when the trigger
+ * did not run, and does not depend on the clock agreeing with the calendar
+ * date.
+ */
+function sendRsvpDigest_(force) {
   var sheet = rsvpsSheet_();
   var last = sheet.getLastRow();
-  if (last < 2) return;
+  if (last < 2) return 0;
 
   var rows = sheet.getRange(2, 1, last - 1, 10).getValues();
-  var today = todayKey_(new Date());
   var now = new Date();
+
+  var props = PropertiesService.getScriptProperties();
+  var mark = props.getProperty(DIGEST_MARK);
+  // First run after this landed: a day back, so the replies that arrived
+  // before anybody noticed the digest was broken still go out.
+  var since = mark ? new Date(mark) : new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  var sent = 0;
 
   // contact -> event key -> { title, starts, ministry, people[], changed }
   var byContact = {};
@@ -2521,7 +2582,7 @@ function dailyRsvpDigest() {
       note: String(rows[i][8] || '')
     });
     entry.total += Number(rows[i][6]) || 0;
-    if (rows[i][0] && todayKey_(new Date(rows[i][0])) === today) entry.changed = true;
+    if (force || (rows[i][0] && new Date(rows[i][0]) > since)) entry.changed = true;
   }
 
   for (var name in byContact) {
@@ -2574,7 +2635,27 @@ function dailyRsvpDigest() {
         'list above is still what it was.\n\n' +
         SITE + '\n'
     });
+    sent++;
   }
+
+  // Only the scheduled run moves the mark. A button press sends the list as it
+  // stands and must not swallow the window the next scheduled run measures.
+  if (!force) props.setProperty(DIGEST_MARK, now.toISOString());
+  return sent;
+}
+
+/**
+ * Send the headcounts now, without waiting for the morning.
+ *
+ * Gated with the other things that leave the building — the wall notice and
+ * the printed card — rather than with reading the RSVP list, because pressing
+ * it puts an email in somebody else's inbox.
+ */
+function handleAdminRsvpDigest_(body) {
+  var bad = checkAdmin_(body, 'notices');
+  if (bad) return bad;
+  var sent = sendRsvpDigest_(true);
+  return json_({ ok: true, sent: sent });
 }
 
 // ---------------------------------------------------------------------------

@@ -484,6 +484,16 @@ footer a{color:var(--clay)}
       <span class="hint">Nothing is ever deleted, so last year's numbers are still here.</span></span>
   </label>
   <div id="rsvps"></div>
+
+  <div class="card" id="digestCard">
+    <p class="lede" style="font-size:.84rem;margin:0 0 10px">Send every contact their list now,
+      instead of waiting for the morning. Useful for checking it works, and for the day before
+      something when a leader wants the numbers in front of them.</p>
+    <div class="actions">
+      <button type="button" id="sendDigest">Send the headcounts now</button>
+      <span class="status" id="digestStatus"></span>
+    </div>
+  </div>
 </div>
 
 <div id="panePeople" hidden>
@@ -579,7 +589,7 @@ const TOKEN_KEY = "glbc.admin.idtoken";
  * Compared as text, which works because the marker is a fixed-width datestamp:
  * "2026-09-09f" sorts before "2026-09-10a" for the same reason the dates do.
  */
-const NEEDS_ENDPOINT = "2026-09-10d";
+const NEEDS_ENDPOINT = "2026-09-10e";
 
 let ENDPOINT = "";
 let MINISTRIES = [];
@@ -1193,7 +1203,10 @@ function showTab(which){
     $(tabs[k]).setAttribute("aria-selected", String(k === which));
   });
   if (which === "people" && !peopleLoaded) loadPeople();
-  if (which === "rsvps") loadRsvps();
+  if (which === "rsvps"){
+    loadRsvps();
+    $("digestCard").hidden = !CAN.notices;
+  }
   if (which === "notice"){ loadNotice(); loadCardNotes(); }
   if (which === "leaders") loadLeaders();
 }
@@ -1692,6 +1705,25 @@ function renderPeople(){
     box.appendChild(card);
   });
 }
+
+$("sendDigest").addEventListener("click", async () => {
+  const st = $("digestStatus");
+  $("sendDigest").disabled = true;
+  say(st, "Sending…");
+  try {
+    const out = await call({ action:"admin.rsvpdigest", ...auth() });
+    // Nought is an answer, not a failure: nobody is named as the contact on an
+    // event anybody has responded to.
+    say(st, out.sent
+      ? "Sent to " + out.sent + " contact" + (out.sent === 1 ? "" : "s") + "."
+      : "Nothing to send — no responses yet, or no contact named on those events.",
+      out.sent ? "ok" : "");
+  } catch (err) {
+    fail(st, err);
+  } finally {
+    $("sendDigest").disabled = false;
+  }
+});
 
 $("peopleSearch").addEventListener("input", () => { if (peopleLoaded) renderPeople(); });
 

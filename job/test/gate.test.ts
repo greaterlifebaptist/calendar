@@ -609,3 +609,43 @@ test('a refusal for the wrong level is logged, and says which level', () => {
   assert.match(String(line[1]), /Viewer Person \(viewer\)/);
   assert.match(String(line[3]), /may not reach events/);
 });
+
+// ---------------------------------------------------------------------------
+// the RSVP digest
+// ---------------------------------------------------------------------------
+
+test('the digest measures from its last run, not from the calendar date', () => {
+  // The bug this replaced: "changed" meant "recorded today", and the trigger
+  // fires at 7am. At that hour almost nothing has been recorded today — the
+  // replies needing a headcount came in yesterday afternoon, and by 7am they
+  // no longer matched. An RSVP was only ever reported if somebody filled the
+  // form in between midnight and seven, so in practice no email ever went.
+  const code = readFileSync(
+    new URL('../../site/apps-script/Code.gs', import.meta.url), 'utf8');
+
+  assert.equal(code.includes('todayKey_'), false,
+    'the digest is back to comparing calendar dates');
+  assert.ok(code.includes('new Date(rows[i][0]) > since'),
+    'the digest no longer measures from its last run');
+  assert.ok(code.includes("props.setProperty(DIGEST_MARK, now.toISOString())"),
+    'the run is not recorded, so the next one has no window to measure');
+
+  // A button press sends the list as it stands. Moving the mark as well would
+  // swallow the window the next scheduled run measures, so the replies that
+  // arrived in between would never be reported.
+  assert.ok(code.includes('if (!force) props.setProperty(DIGEST_MARK'),
+    'a manual send must not move the mark');
+});
+
+test('every silent way the digest can fail is reported somewhere', () => {
+  // A trigger that was never created, a contact who does not match the
+  // Contacts tab, a Contacts row with no address: each ends in nobody
+  // receiving anything and none of them says so.
+  const code = readFileSync(
+    new URL('../../site/apps-script/Code.gs', import.meta.url), 'utf8');
+  assert.ok(code.includes('function rsvpHealth_'));
+  for (const field of ['digestTrigger', 'rows', 'contacts', 'reachable', 'lastRun']) {
+    assert.ok(code.includes(field + ':'), 'the health check does not report ' + field);
+  }
+  assert.ok(code.includes('rsvps: rsvpHealth_()'), 'it is not wired into doGet');
+});

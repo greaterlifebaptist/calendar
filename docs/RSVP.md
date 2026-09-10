@@ -3,6 +3,41 @@
 An event names somebody to respond to. People say they are coming and how
 many, and that person gets a headcount.
 
+## Why the digest sends nothing
+
+Every part of this fails quietly, so this is the order to check it in. The
+`/exec` health URL reports all of it under `rsvps`:
+
+```json
+"rsvps": { "digestTrigger": true, "rows": 4, "contacts": 3, "reachable": 3,
+           "lastRun": "2026-09-10T11:00:00.000Z" }
+```
+
+- **`digestTrigger: false`** — the daily trigger was never created. Open the
+  Apps Script editor, pick `setupDailyDigest` from the dropdown at the top and
+  press Run, once.
+- **`rows: 0`** — nobody has responded, or the RSVPs tab is not being written.
+- **`reachable`** below `contacts` — somebody on the Contacts tab has no email
+  address, so anything naming them as contact reaches nobody.
+- An event with **no contact named** is skipped entirely. The contact is what
+  the digest is addressed to; without one there is nobody to send to.
+- A contact name that does not match a row on the Contacts tab resolves to no
+  address, silently. The admin form offers a dropdown for exactly this reason.
+
+**"Send the headcounts now"** on the RSVPs tab sends the current list whatever
+has happened, which is the quickest way to tell working from silent.
+
+### The window it measures
+
+The digest emails a contact only when their list has moved since the last time
+it ran, and it keeps that time in a script property.
+
+It used to ask whether a reply was recorded *today*, which sounds equivalent
+and is not. The trigger fires at 7am; at that hour almost nothing has been
+recorded today, and the replies that need reporting came in yesterday
+afternoon. So an RSVP was only ever included if somebody filled the form in
+between midnight and seven — which is to say, essentially never.
+
 ## Two rules that shape all of it
 
 **Email addresses never reach a browser.** The dropdown gets names; an RSVP
