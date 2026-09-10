@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-10T01:31:47.525Z",
+  "generated": "2026-09-10T02:10:22.466Z",
   "timezone": "America/New_York",
   "feeds": {
     "base": "https://calendars.greaterlifebaptistchurch.com/feeds/",
@@ -20,6 +20,11 @@
       "color": "#6B9A12"
     },
     {
+      "id": "children",
+      "name": "Children",
+      "color": "#EE7B21"
+    },
+    {
       "id": "mens",
       "name": "Man Church",
       "color": "#2C7EA1"
@@ -31,6 +36,18 @@
     }
   ],
   "events": [
+    {
+      "uid": "l7fieo1cjso8d858jnuc2bgl20@google.com",
+      "ministry": "children",
+      "type": "event",
+      "title": "Grandparent’s Day",
+      "start": "2026-09-13T09:00:00",
+      "end": "2026-09-13T10:15:00",
+      "location": "Fellowship Hall",
+      "contact": "Andrea Hutchins and Michelle Jenson",
+      "link": "https://forms.cloud.microsoft/Pages/ResponsePage.aspx?id=DQSIkWdsW0yxEjajBLZtrQAAAAAAAAAAAAN__hY3zQFUOURMQjE5R0ZWNzIxU1VLV05MQlRMVlZDWS4u",
+      "linkText": "Details"
+    },
     {
       "uid": "jhrefasg3q4q1rrqdsovs3hsmk@google.com",
       "ministry": "youth",
@@ -94,6 +111,28 @@
       "notes": "Join us for Women's Fellowship"
     },
     {
+      "uid": "0dskclaglatncavuladmsqlao4@google.com",
+      "ministry": "youth",
+      "type": "event",
+      "title": "Judgement Journey Trip",
+      "start": "2026-10-17T17:00:00",
+      "end": "2026-10-17T23:00:00",
+      "location": "Faith Baptist Church, 552 Hammett Rd, LaGrange, GA 30241",
+      "notes": "Youth will meet at the church and ride to Lagrange, then eat Waffle House before returning to the church for pickup. Send money for food.",
+      "contact": "Spencer Welch",
+      "cardTitle": "Youth Judgement Journey Trip"
+    },
+    {
+      "uid": "6jogsu8cm2qa65q032vj8bnef0@google.com",
+      "ministry": "youth",
+      "type": "deadline",
+      "title": "Gun Raffle Deadline",
+      "start": "2026-10-18",
+      "allDay": true,
+      "notes": "All gun raffle tickets due - Live Drawing after church!",
+      "contact": "Spencer Welch"
+    },
+    {
       "uid": "1n6g9up6k4n57j8066um1odmfd@google.com",
       "ministry": "mens",
       "type": "event",
@@ -114,6 +153,28 @@
       "notes": "Join us for Women's Fellowship"
     },
     {
+      "uid": "95klc3nq7enq3hvhelgqe5632o@google.com",
+      "ministry": "youth",
+      "type": "event",
+      "title": "Babysitting for Shopping or Date Night",
+      "start": "2026-12-05T18:00:00",
+      "end": "2026-12-05T21:30:00",
+      "location": "Fellowship Hall",
+      "notes": "Youth Fundraiser - Babysitting service while parents go Christmas shopping or on a date night!",
+      "contact": "Spencer Welch"
+    },
+    {
+      "uid": "j1bj9g3h4j7n5que5abmdvpp20@google.com",
+      "ministry": "youth",
+      "type": "deadline",
+      "title": "Arise Deposit Due",
+      "start": "2026-12-06",
+      "allDay": true,
+      "notes": "Arise 2027 Deposit money due",
+      "cost": "100",
+      "contact": "Spencer Welch"
+    },
+    {
       "uid": "1n6g9up6k4n57j8066um1odmfd@google.com",
       "ministry": "mens",
       "type": "event",
@@ -132,6 +193,17 @@
       "end": "2026-12-06T18:00:00",
       "location": "Greater Life Baptist Church, 305 Old Grey Rock Rd, Midland, GA 31820, USA",
       "notes": "Join us for Women's Fellowship"
+    },
+    {
+      "uid": "3ec5eu4e2tcbvb2nq9oijo2rsc@google.com",
+      "ministry": "youth",
+      "type": "event",
+      "title": "Youth Lock-In",
+      "start": "2026-12-18T18:30:00",
+      "end": "2026-12-19T07:00:00",
+      "location": "Fellowship Hall",
+      "notes": "Youth Lock-In/Out, Scavenger Hunt, Stars and Strikes, Overnight event",
+      "contact": "Spencer Welch"
     },
     {
       "uid": "1n6g9up6k4n57j8066um1odmfd@google.com",
@@ -174,6 +246,16 @@
       "notes": "Join us for Women's Fellowship"
     },
     {
+      "uid": "7ciuc9ca5u3bs3qriqqvd0iv7k@google.com",
+      "ministry": "youth",
+      "type": "event",
+      "title": "Youth BBQ Fundraiser begins",
+      "start": "2027-02-18",
+      "allDay": true,
+      "notes": "Youth selling BBQ Pints - Get your orders in soon!",
+      "contact": "Spencer Welch"
+    },
+    {
       "uid": "1n6g9up6k4n57j8066um1odmfd@google.com",
       "ministry": "mens",
       "type": "event",
@@ -194,6 +276,16 @@
       "notes": "Join us for Women's Fellowship"
     },
     {
+      "uid": "171h1kl1d1vuq3p1dsvg1s2jtg@google.com",
+      "ministry": "youth",
+      "type": "deadline",
+      "title": "Youth BBQ Sales Deadline",
+      "start": "2027-03-28",
+      "allDay": true,
+      "notes": "All BBQ Pint sales are due - Last day to get your orders in!",
+      "contact": "Spencer Welch"
+    },
+    {
       "uid": "1n6g9up6k4n57j8066um1odmfd@google.com",
       "ministry": "mens",
       "type": "event",
@@ -212,6 +304,17 @@
       "end": "2027-04-04T18:00:00",
       "location": "Greater Life Baptist Church, 305 Old Grey Rock Rd, Midland, GA 31820, USA",
       "notes": "Join us for Women's Fellowship"
+    },
+    {
+      "uid": "2ft9nl3097d91lj7cmt5j3lp5k@google.com",
+      "ministry": "youth",
+      "type": "event",
+      "title": "Youth Campout",
+      "start": "2027-04-09T10:00:00",
+      "end": "2027-04-10T12:00:00",
+      "location": "Welch Land",
+      "notes": "Youth Campout around the pond, water slide, food, ATVs, and more!",
+      "contact": "Spencer Welch"
     },
     {
       "uid": "1n6g9up6k4n57j8066um1odmfd@google.com",
@@ -272,6 +375,18 @@
       "end": "2027-07-04T18:00:00",
       "location": "Greater Life Baptist Church, 305 Old Grey Rock Rd, Midland, GA 31820, USA",
       "notes": "Join us for Women's Fellowship"
+    },
+    {
+      "uid": "1u2thfmml2g2sm46gube73f2d8@google.com",
+      "ministry": "youth",
+      "type": "trip",
+      "title": "ARISE 2027",
+      "start": "2027-07-18",
+      "allDay": true,
+      "end": "2027-07-24",
+      "location": "Pigeon Forge, TN",
+      "notes": "Arise 2027 Youth Trip to Pigeon Forge, TN",
+      "contact": "Spencer Welch"
     },
     {
       "uid": "1n6g9up6k4n57j8066um1odmfd@google.com",
