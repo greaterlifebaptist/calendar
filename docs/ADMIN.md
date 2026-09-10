@@ -19,6 +19,12 @@ proper fields on the website rather than as a wall of description text.
 
 **It pins things.** One checkbox instead of a `PIN:` prefix.
 
+**It can hold something back.** "Start showing it on" keeps an event off the
+website and the TV until that date, for something real but not yet relevant —
+a fundraiser deadline entered four months early so it is not forgotten. The
+feeds and the reminders are untouched. Leave it empty and the event shows
+straight away, which is nearly always what is wanted.
+
 **It offers the private calendars too.** Youth Leaders and Worship are in the
 dropdown, which the public signup page will never do.
 

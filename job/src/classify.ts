@@ -84,11 +84,13 @@ type Fields = {
   link: string | null;
   linkText: string | null;
   contact: string | null;
+  showFrom: string | null;
 };
 
 /**
- * Pull optional `cost:` / `link:` / `contact:` lines out of the description.
- * Never required. Anything unrecognised stays in the notes verbatim.
+ * Pull optional `cost:` / `link:` / `contact:` / `show:` lines out of the
+ * description. Never required. Anything unrecognised stays in the notes
+ * verbatim.
  */
 export function parseFields(description: string): Fields {
   const text = toPlainText(description ?? '');
@@ -97,9 +99,10 @@ export function parseFields(description: string): Fields {
   let link: string | null = null;
   let linkText: string | null = null;
   let contact: string | null = null;
+  let showFrom: string | null = null;
 
   for (const line of text.split('\n')) {
-    const m = /^\s*(cost|link|contact)\s*:\s*(.+?)\s*$/i.exec(line);
+    const m = /^\s*(cost|link|contact|show)\s*:\s*(.+?)\s*$/i.exec(line);
     if (!m) {
       keep.push(line);
       continue;
@@ -108,6 +111,9 @@ export function parseFields(description: string): Fields {
     const value = m[2].trim();
     if (key === 'cost' && !cost) cost = value;
     if (key === 'contact' && !contact) contact = value;
+    // Only a plain date. Anything else is somebody writing prose, and a date
+    // we half-understood would hide an event on a day nobody chose.
+    if (key === 'show' && !showFrom && /^\d{4}-\d{2}-\d{2}$/.test(value)) showFrom = value;
     if (key === 'link' && !link) {
       // "link: Permission form https://..." — split label from URL.
       const urlMatch = /(https?:\/\/\S+)/i.exec(value);
@@ -127,6 +133,7 @@ export function parseFields(description: string): Fields {
     link,
     linkText,
     contact,
+    showFrom,
   };
 }
 
@@ -175,6 +182,7 @@ export function classify(ev: RawEvent, tz: string, now: Date = new Date()): Clas
   const fields = parseFields(ev.description ?? '');
 
   const propCard = readProp(ev, 'glbcCard');
+  const propShowFrom = readProp(ev, 'glbcShowFrom');
   const propType = readProp(ev, 'glbcType');
   const propPinned = readProp(ev, 'glbcPinned');
 
@@ -243,5 +251,19 @@ export function classify(ev: RawEvent, tz: string, now: Date = new Date()): Clas
     pinned = false;
   }
 
-  return { type, pinned, title, cardTitle: (propCard ?? '').trim(), reason, ...fields };
+  // The form wins over a show: line typed into the description, the same as
+  // every other explicit path here. Spread first so it cannot overwrite that.
+  const explicitShow = /^\d{4}-\d{2}-\d{2}$/.test((propShowFrom ?? '').trim())
+    ? (propShowFrom as string).trim()
+    : null;
+
+  return {
+    ...fields,
+    type,
+    pinned,
+    title,
+    cardTitle: (propCard ?? "").trim(),
+    showFrom: explicitShow ?? fields.showFrom,
+    reason,
+  };
 }

@@ -46,7 +46,7 @@
  * file is handed over: the date, plus a letter if more than one goes out that
  * day.
  */
-var VERSION = '2026-09-10b';
+var VERSION = '2026-09-10c';
 
 var SITE = 'https://calendars.greaterlifebaptistchurch.com';
 var EVENTS_JSON = SITE + '/events.json';
@@ -1384,6 +1384,13 @@ var VALID_TYPES = { deadline: 1, trip: 1, routine: 1, event: 1 };
  * path the classifier honours above everything else. That is the whole point
  * of the form: nobody has to phrase a title a particular way.
  */
+/** A plain date, or blank. Anything we half-understood would hide an event on
+ *  a day nobody chose, which is worse than showing it early. */
+function showFromOr_(raw) {
+  var value = String(raw || '').trim();
+  return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : '';
+}
+
 function toResource_(ev) {
   var title = String(ev.title || '').trim();
   if (!title) throw new Error('Give the event a title.');
@@ -1403,7 +1410,12 @@ function toResource_(ev) {
         // What the printed card should call this, when the real title is too
         // long or too detailed for a line on a card. Blank means use the title,
         // which is what it will be nearly always.
-        glbcCard: String(ev.card || '').trim().slice(0, 80)
+        glbcCard: String(ev.card || '').trim().slice(0, 80),
+        // Not shown publicly before this date. For something real but not yet
+        // relevant — a fundraiser deadline put in months early so it is not
+        // forgotten, which has no business on the foyer wall until the
+        // fundraiser starts. Blank means show it from now, as always.
+        glbcShowFrom: showFromOr_(ev.showFrom)
       }
     }
   };
@@ -1500,6 +1512,7 @@ function handleAdminList_(body) {
       type: shared.glbcType || '',
       pinned: shared.glbcPinned === 'true',
       card: shared.glbcCard || '',
+      showFrom: shared.glbcShowFrom || '',
       rrule: (e.recurrence || []).filter(function (r) { return r.indexOf('RRULE') === 0; })[0] || ''
     };
   }).sort(function (a, b) { return a.start < b.start ? -1 : 1; });
@@ -1841,8 +1854,17 @@ function handleAdminSettings_(body) {
     return json_({
       ok: true,
       cardNotes: readSetting_('cardNotes'),
-      cardEmail: readSetting_('cardEmail')
+      cardEmail: readSetting_('cardEmail'),
+      tvDays: tvDays_()
     });
+  }
+
+  if (body.tvDays !== undefined) {
+    var days = Math.round(Number(body.tvDays));
+    if (!days || days < 7 || days > 400) {
+      return json_({ ok: false, error: 'Give it somewhere between 7 and 400 days.' });
+    }
+    PropertiesService.getScriptProperties().setProperty('TV_DAYS', String(days));
   }
 
   if (body.cardNotes !== undefined) {
@@ -2105,16 +2127,43 @@ function readNotice_() {
  * passcode and this is a message intended for a room full of people anyway.
  * It returns only what is on screen: nothing about who set it or when.
  */
+/**
+ * How many days ahead the wall display looks.
+ *
+ * The TV is for people walking past on a Sunday, so its job is what is coming
+ * soon. Without a limit the rail took everything on the calendar and put
+ * deadlines first, so a fundraiser five months out led the wall above things
+ * happening that week.
+ *
+ * Six weeks by default rather than four: a deadline should still be on the
+ * wall when its first reminder goes out at thirty days, not vanish that same
+ * morning. Kept as a script property so it can be changed from a phone.
+ */
+var TV_DAYS_DEFAULT = 42;
+
+function tvDays_() {
+  var raw = Number(scriptProp_('TV_DAYS'));
+  if (!raw || raw < 1) return TV_DAYS_DEFAULT;
+  return Math.min(400, Math.round(raw));
+}
+
 function handleNotice_(body) {
+  var days = tvDays_();
   var n = readNotice_();
-  if (!n) return json_({ ok: true, notice: null });
+  if (!n) return json_({ ok: true, notice: null, tvDays: days });
 
   // Shown through the END of the chosen day, not from some time on it. "Until
   // Sunday" means Sunday, and a notice vanishing mid-service would be worse
   // than one lingering an afternoon.
-  if (n.until && n.until < todayLocal_()) return json_({ ok: true, notice: null });
+  if (n.until && n.until < todayLocal_()) {
+    return json_({ ok: true, notice: null, tvDays: days });
+  }
 
-  return json_({ ok: true, notice: { text: n.text, until: n.until || '' } });
+  return json_({
+    ok: true,
+    notice: { text: n.text, until: n.until || '' },
+    tvDays: days
+  });
 }
 
 /**

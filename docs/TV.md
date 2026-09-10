@@ -91,15 +91,43 @@ show youth and church-wide only.
 
 ## What reaches the rail
 
-Future events from whichever ministries are showing, soonest first. **There is
-no time horizon** — it is not "the next fortnight", it is the next few. A quiet
-month reaches two months out; a busy week shows only the next few days.
+Events from whichever ministries are showing, soonest first, **within the next
+six weeks**.
 
-Deadlines and pinned items lead, and the heading changes to "Don't forget".
-They used to *replace* the rest of the list rather than lead it, so one
-permission-form deadline could push every other event off the wall. That was
-defensible when three rows fit; now that the rail scrolls there is room to show
-what is urgent first and still show the rest.
+There was no horizon at first, on the theory that a quiet month should reach
+further than a busy one. What that actually produced was a fundraiser deadline
+five months out leading the wall, above things happening that week — because
+deadlines lead, and a deadline entered early is still a deadline. This screen
+is read by somebody walking past on a Sunday, so its subject is what is coming
+soon, and anything further off belongs on the website where people go to plan.
+
+Six weeks rather than four so a deadline is still on the wall when its first
+GroupMe reminder goes out at thirty days, instead of vanishing that morning.
+The number is a script property, `TV_DAYS`, changed from the Notices tab of
+the admin page — the church has no computer, so a number only reachable from a
+script editor is a number nobody will change.
+
+**An event can also be held back by date.** "Start showing it on" in the admin
+form, or a `show: 2027-01-15` line in the description, keeps something off the
+wall and off the website until that morning: a fundraiser deadline is worth
+recording the moment somebody thinks of it and worth nobody's attention until
+the fundraiser starts. It never affects the .ics feeds or the reminders — a
+subscribed calendar quietly omitting a date it knows about would be worse than
+an early one, and a reminder is governed by the event's own date.
+
+The date is checked in the browser rather than filtered out when the file is
+built, so the event appears on the right morning rather than at whatever hour
+the next build happens to run.
+
+Deadlines and pinned items lead the list. They used to *replace* the rest of it
+rather than lead it, so one permission-form deadline could push every other
+event off the wall. That was defensible when three rows fit; now that the rail
+scrolls there is room to show what is urgent first and still show the rest.
+
+The heading is always "Coming up". It used to switch to "Don't forget" whenever
+anything in the list was a deadline, which meant the wall changed its own
+heading under a reader who had glanced away, for no gain — the rows say which
+ones are due.
 
 Eight rows at most, `RAIL_MAX`. That is really a limit on how long somebody
 waits for the list to come back round to the thing they were looking for:

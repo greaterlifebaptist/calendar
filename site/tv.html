@@ -266,6 +266,39 @@ const CRAWL_PAUSE_MS = 5000;
    looking for. Eight rows plus the pause is about three quarters of a minute. */
 const RAIL_MAX = 8;
 
+/*
+ * How far ahead the wall looks, in days.
+ *
+ * This screen is for somebody walking past on a Sunday, so its subject is what
+ * is coming soon. Without a limit the rail took the whole calendar and put
+ * deadlines first, so a fundraiser five months out led the wall above things
+ * happening that week.
+ *
+ * Six weeks rather than four so a deadline is still up when its first reminder
+ * goes out at thirty days, instead of disappearing that morning. The endpoint
+ * can override it, which is what makes the number changeable from a phone.
+ */
+let TV_DAYS = 42;
+
+/** Today, as YYYY-MM-DD, for comparing against a show-from date. */
+function todayISO(){
+  const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") +
+    "-" + String(d.getDate()).padStart(2, "0");
+}
+
+/*
+ * Something real, entered early, that should not be on the wall yet.
+ *
+ * A fundraiser deadline four months out is worth recording the moment somebody
+ * thinks of it and worth nobody's attention until the fundraiser starts. The
+ * date is compared in the browser, so it appears on the right morning rather
+ * than at the next hourly build.
+ */
+function notYet(e){
+  return !!e.showFrom && e.showFrom > todayISO();
+}
+
 const RELOAD_HOUR    = 4;
 const RELOAD_WINDOW  = 5;               // minutes past the hour to act within
 const MIN_UPTIME     = 30 * 60 * 1000;  // so a 4am boot does not reload itself
@@ -410,8 +443,11 @@ function renderGrid(){
 
 function renderRail(){
   const today = startOfToday();
+  const horizon = new Date(today.getTime() + TV_DAYS * 86400000);
   const all = visibleEvents()
     .filter(e => parse(e.end || e.start) >= today)
+    .filter(e => parse(e.start) <= horizon)
+    .filter(e => !notYet(e))
     .sort((a,b) => parse(a.start) - parse(b.start));
 
   // Deadlines and pinned items first, then everything else in date order.
@@ -424,7 +460,7 @@ function renderRail(){
   const rest = all.filter(e => !urgent.includes(e));
   const list = [...urgent, ...rest].slice(0, RAIL_MAX);
 
-  $("railHead").textContent = urgent.length ? "Don't forget" : "Coming up";
+  $("railHead").textContent = "Coming up";
   const box = $("rail");
 
   if (!list.length){
@@ -592,7 +628,12 @@ async function loadNotice(){
     const out = await res.json();
     if (!out || !out.ok) return;
     NOTICE = out.notice || null;
+    // How far ahead this screen looks, decided by the endpoint so it can be
+    // changed from a phone. A poll that does not carry one leaves it alone
+    // rather than snapping back to the built-in number.
+    if (out.tvDays) TV_DAYS = out.tvDays;
     renderNotice();
+    renderRail();
   } catch {
     // Leave whatever is on screen. A missed poll is not news, and blanking a
     // notice because one request failed would be worse than showing it a few

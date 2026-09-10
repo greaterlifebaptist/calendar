@@ -66,6 +66,9 @@ export function toPublicEvent(ev: CalEvent, tz: string): PublicEvent {
   if (ev.cost) out.cost = ev.cost;
   if (ev.contact) out.contact = ev.contact;
   if (ev.cardTitle) out.cardTitle = ev.cardTitle;
+  // Published rather than filtered out, so the page can start showing it on
+  // the right morning instead of waiting for the next hourly build.
+  if (ev.showFrom) out.showFrom = ev.showFrom;
   if (ev.link) {
     out.link = ev.link;
     out.linkText = ev.linkText ?? 'Details';

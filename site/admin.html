@@ -348,6 +348,13 @@ footer a{color:var(--clay)}
           long or too detailed for a printed line</span></span>
         <input type="text" id="card" maxlength="80" placeholder="Example: Youth Revival Night 2">
       </label>
+      <label>
+        <span class="lab">Start showing it on <span class="hint">— optional. Leave it empty and
+          it shows straight away. Use it for something real but not yet relevant, like a
+          fundraiser deadline months out: it stays off the website and the TV until this
+          date, and reminders are unaffected.</span></span>
+        <input type="date" id="showFrom">
+      </label>
       <div class="row">
         <label><span class="lab">Cost</span><input type="text" id="cost" maxlength="60"></label>
         <label><span class="lab">Contact</span><select id="contact"></select></label>
@@ -422,6 +429,12 @@ footer a{color:var(--clay)}
       <span class="lab">Email the card to <span class="hint">— when one is generated, and if
         it fails to build</span></span>
       <select id="cardEmail"></select>
+    </label>
+    <label>
+      <span class="lab">How far ahead the TV looks <span class="hint">— days. Anything further
+        off still shows on the website, just not on the wall, so a deadline months away cannot
+        lead a screen people read in two seconds.</span></span>
+      <input type="number" id="tvDays" min="7" max="400" step="1">
     </label>
     <div class="actions">
       <button type="button" class="primary" id="cardNotesSave">Save</button>
@@ -555,7 +568,7 @@ const TOKEN_KEY = "glbc.admin.idtoken";
  * Compared as text, which works because the marker is a fixed-width datestamp:
  * "2026-09-09f" sorts before "2026-09-10a" for the same reason the dates do.
  */
-const NEEDS_ENDPOINT = "2026-09-10a";
+const NEEDS_ENDPOINT = "2026-09-10c";
 
 let ENDPOINT = "";
 let MINISTRIES = [];
@@ -892,7 +905,7 @@ function splitDescription(text){
 
 function clearForm(){
   editingId = null;
-  ["title","location","startDate","startTime","endDate","endTime","notes","cost","card","contact","link"]
+  ["title","location","startDate","startTime","endDate","endTime","notes","cost","card","contact","link","showFrom"]
     .forEach(id => { $(id).value = ""; });
   $("allDay").checked = false;
   $("pinned").checked = false;
@@ -944,6 +957,7 @@ function loadIntoForm(ev){
   $("cost").value = parts.cost;
   fillContacts(parts.contact);
   $("card").value = ev.card || "";
+  $("showFrom").value = ev.showFrom || "";
   $("link").value = parts.link;
 
   const r = readRrule(ev.rrule);
@@ -1042,6 +1056,7 @@ $("save").addEventListener("click", async () => {
         notes: $("notes").value.trim(),
         cost: $("cost").value.trim(),
         card: $("card").value.trim(),
+        showFrom: $("showFrom").value,
         contact: $("contact").value.trim(),
         link: $("link").value.trim(),
       },
@@ -1262,6 +1277,7 @@ async function loadCardNotes(){
   try {
     const out = await call({ action:"admin.settings", ...auth(), read:true });
     $("cardNotes").value = out.cardNotes || "";
+    $("tvDays").value = out.tvDays || 42;
 
     // The same people as everywhere else. Only names come back; the address is
     // resolved on the server when the card is actually sent, so correcting an
@@ -1315,6 +1331,7 @@ $("cardNotesSave").addEventListener("click", async () => {
       action:"admin.settings", ...auth(),
       cardNotes: $("cardNotes").value,
       cardEmail: $("cardEmail").value,
+      tvDays: Number($("tvDays").value) || 42,
     });
     st.className = "status ok";
     st.textContent = $("cardEmail").value

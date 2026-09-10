@@ -101,6 +101,19 @@ export type Classified = {
    * enough for print, and a field leaders must remember is a field they skip.
    */
   cardTitle: string;
+  /**
+   * The date this should start appearing publicly, as YYYY-MM-DD, or null.
+   *
+   * For something real but not yet relevant: a fundraiser deadline four months
+   * out, entered now so it is not forgotten, which has no business on the
+   * foyer wall until the fundraiser actually begins.
+   *
+   * It hides the event from the website and the TV, and nothing else. It stays
+   * in the .ics feeds — a subscribed calendar that quietly omits a date it
+   * knows about would be worse than an early one — and leaders always see it
+   * on the admin form, or they could never edit what they cannot find.
+   */
+  showFrom: string | null;
   /** Which path decided the type — useful when auditing misclassification. */
   reason: string;
 };
@@ -146,4 +159,12 @@ export type PublicEvent = {
   linkText?: string;
   /** Only present when a leader wanted the printed card to say something else. */
   cardTitle?: string;
+  /**
+   * Not to be shown before this date, YYYY-MM-DD.
+   *
+   * Checked in the browser rather than filtered out here, so the event appears
+   * on the morning it should rather than at the next hourly build — and so
+   * that what the job publishes stays an honest picture of the calendar.
+   */
+  showFrom?: string;
 };
