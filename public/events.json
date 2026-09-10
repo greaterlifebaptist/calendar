@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-10T02:10:22.466Z",
+  "generated": "2026-09-10T02:22:55.970Z",
   "timezone": "America/New_York",
   "feeds": {
     "base": "https://calendars.greaterlifebaptistchurch.com/feeds/",
@@ -151,6 +151,17 @@
       "end": "2026-11-01T18:00:00",
       "location": "Greater Life Baptist Church, 305 Old Grey Rock Rd, Midland, GA 31820, USA",
       "notes": "Join us for Women's Fellowship"
+    },
+    {
+      "uid": "luei4ph7q3ogm0fi987mc9o3ls@google.com",
+      "ministry": "youth",
+      "type": "event",
+      "title": "Youth Pumpkin Bash",
+      "start": "2026-11-14T11:00:00",
+      "end": "2026-11-14T14:00:00",
+      "location": "Church",
+      "notes": "Pumpkin smashing, launching, and more! Come hang out to play games and have a good time!",
+      "contact": "Spencer Welch"
     },
     {
       "uid": "95klc3nq7enq3hvhelgqe5632o@google.com",
