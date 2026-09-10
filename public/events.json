@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-10T14:22:28.674Z",
+  "generated": "2026-09-10T17:21:20.711Z",
   "timezone": "America/New_York",
   "feeds": {
     "base": "https://calendars.greaterlifebaptistchurch.com/feeds/",
@@ -175,6 +175,17 @@
       "contact": "Spencer Welch"
     },
     {
+      "uid": "j1bj9g3h4j7n5que5abmdvpp20@google.com",
+      "ministry": "youth",
+      "type": "deadline",
+      "title": "Arise Deposit Due",
+      "start": "2026-12-01",
+      "allDay": true,
+      "notes": "Arise 2027 Deposit money due",
+      "cost": "100",
+      "contact": "Spencer Welch"
+    },
+    {
       "uid": "95klc3nq7enq3hvhelgqe5632o@google.com",
       "ministry": "youth",
       "type": "event",
@@ -183,17 +194,6 @@
       "end": "2026-12-05T21:30:00",
       "location": "Fellowship Hall",
       "notes": "Youth Fundraiser - Babysitting service while parents go Christmas shopping or on a date night!",
-      "contact": "Spencer Welch"
-    },
-    {
-      "uid": "j1bj9g3h4j7n5que5abmdvpp20@google.com",
-      "ministry": "youth",
-      "type": "deadline",
-      "title": "Arise Deposit Due",
-      "start": "2026-12-06",
-      "allDay": true,
-      "notes": "Arise 2027 Deposit money due",
-      "cost": "100",
       "contact": "Spencer Welch"
     },
     {
