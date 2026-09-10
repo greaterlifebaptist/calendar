@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-10T03:18:05.707Z",
+  "generated": "2026-09-10T13:22:17.621Z",
   "timezone": "America/New_York",
   "feeds": {
     "base": "https://calendars.greaterlifebaptistchurch.com/feeds/",
@@ -79,6 +79,17 @@
       "end": "2026-09-19T21:00:00",
       "location": "Fellowship Hall",
       "notes": "Youth and adults invited to attend Youth Revival Night 3! We will have Travis Kiriluk with us and have food, fellowship, and a kids vs parents kickball game afterwards!",
+      "contact": "Spencer Welch"
+    },
+    {
+      "uid": "aj9l64m06og7ppgr5b7fhg8p84@google.com",
+      "ministry": "youth",
+      "type": "event",
+      "title": "Youth Parent Meeting",
+      "start": "2026-09-19T20:00:00",
+      "end": "2026-09-19T21:00:00",
+      "location": "Fellowship Hall",
+      "notes": "URGENT! Youth Parent Meeting following Kids vs Parents Kickball Game on last night of Youth Revival!",
       "contact": "Spencer Welch"
     },
     {
