@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-10T02:22:55.970Z",
+  "generated": "2026-09-10T03:18:05.707Z",
   "timezone": "America/New_York",
   "feeds": {
     "base": "https://calendars.greaterlifebaptistchurch.com/feeds/",
@@ -294,7 +294,8 @@
       "start": "2027-03-28",
       "allDay": true,
       "notes": "All BBQ Pint sales are due - Last day to get your orders in!",
-      "contact": "Spencer Welch"
+      "contact": "Spencer Welch",
+      "showFrom": "2027-02-28"
     },
     {
       "uid": "1n6g9up6k4n57j8066um1odmfd@google.com",
