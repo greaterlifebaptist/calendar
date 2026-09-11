@@ -630,12 +630,24 @@ async function loadNotice(){
     const out = await res.json();
     if (!out || !out.ok) return;
     NOTICE = out.notice || null;
+    renderNotice();
+
     // How far ahead this screen looks, decided by the endpoint so it can be
     // changed from a phone. A poll that does not carry one leaves it alone
     // rather than snapping back to the built-in number.
-    if (out.tvDays) TV_DAYS = out.tvDays;
-    renderNotice();
-    renderRail();
+    //
+    // Only a change rebuilds the rail. This runs every two minutes, and it
+    // used to rebuild every time: renderRail replaces the list wholesale, which
+    // threw away the crawl layer, and nothing asked for the fit to be checked
+    // again — so within two minutes of loading, a list too long for the rail
+    // stopped moving and sat there with its last row cut off. Even done
+    // properly, rebuilding on every poll would restart the crawl from the top
+    // every two minutes for no reason.
+    if (out.tvDays && out.tvDays !== TV_DAYS){
+      TV_DAYS = out.tvDays;
+      renderRail();
+      layoutRail();
+    }
   } catch {
     // Leave whatever is on screen. A missed poll is not news, and blanking a
     // notice because one request failed would be worse than showing it a few
@@ -912,6 +924,54 @@ function keepAwake(){
   };
   hold();
   document.addEventListener("visibilitychange", hold);
+}
+
+/*
+ * Decide again whether the rail fits, whenever it changes size.
+ *
+ * The decision to crawl was taken once, when the page drew, and never again.
+ * Everything that changes the answer happens after that: the window moved to
+ * the TV from the laptop screen it opened on, F11 taking away the browser's
+ * own bars, the notice bar arriving and pushing the rail down, and the
+ * church's fonts landing a moment after the fallback ones were measured. Any
+ * of them left a list that no longer fitted sitting still with its last row
+ * cut off, or one that now fitted crawling for no reason.
+ *
+ * Watching the rail's own box covers all of those at once. It is safe to
+ * re-lay from inside the observer because laying out moves what is inside the
+ * rail, never the rail's own size, so it cannot set itself off again.
+ *
+ * Debounced, because dragging a window across screens fires this dozens of
+ * times a second and each re-lay rebuilds the crawl.
+ */
+let fitTimer = null;
+
+function refitSoon(){
+  clearTimeout(fitTimer);
+  // Always lays out again, with no attempt to skip a size that looks already
+  // done. That check was tried: it remembered the last size this function saw,
+  // not the size the rail was last actually laid out at — the first draw, a
+  // notice arriving and a poll all lay it out too — so the two drifted, and a
+  // window growing back to an earlier size was waved through while a crawl
+  // from the smaller size kept running. Laying out when nothing changed costs
+  // one crawl restarting from the top. On a TV nothing resizes after setup.
+  //
+  // Width counts as much as height, which the observer covers: a narrower
+  // rail wraps titles onto a second line and the list grows while the box
+  // stays the same height.
+  fitTimer = setTimeout(layoutRail, 250);
+}
+
+if ("ResizeObserver" in window) new ResizeObserver(refitSoon).observe($("rail"));
+// Belt and braces for a browser without it, and for the fullscreen switch,
+// which some browsers report late.
+window.addEventListener("resize", refitSoon);
+document.addEventListener("fullscreenchange", refitSoon);
+
+// The church's fonts arrive after the fallback text has been measured, and
+// they are not the same size. Measure again once they are in.
+if (document.fonts && document.fonts.ready){
+  document.fonts.ready.then(refitSoon);
 }
 
 renderClock();

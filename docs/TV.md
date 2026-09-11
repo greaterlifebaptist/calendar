@@ -183,6 +183,24 @@ cannot take a notice down silently.
 "Coming up" down, and on a busy week the last item or two would fall off the
 bottom with nothing to say so. A list that fits does not move at all.
 
+**Whether it fits is decided again every time the rail changes size.** It used
+to be decided once, when the page drew. Everything that changes the answer
+happens later: the window dragged from the laptop screen it opened on to the
+TV, F11 taking away the browser's bars, the notice bar pushing the rail down,
+and the church's fonts arriving after the fallback ones were measured. Any of
+them left a list that no longer fitted sitting still with its last row cut off.
+A ResizeObserver on the rail covers all of them, with window resize, fullscreen
+and font loading as backstops.
+
+It lays out again whenever asked, with no attempt to skip a size it thinks it
+has already handled. That was tried and it drifted: it remembered the last size
+it saw, not the size the rail was last laid out at by everything else. On a TV
+nothing resizes after setup, so the cost of always re-laying is nil.
+
+The notice poll no longer rebuilds the rail unless the horizon it reports has
+actually changed. It used to rebuild every two minutes, which threw away the
+crawl and left nothing to restart it.
+
 It scrolls at about five seconds a row, slow enough to read on the way past,
 then **rests for five seconds with the top of the list showing** before going
 round again. The rest lands exactly where the rule clears the top of the

@@ -128,7 +128,7 @@ test('the wall looks a fixed distance ahead', () => {
   assert.match(TV, /let TV_DAYS = 42;/);
   assert.ok(TV.includes('.filter(e => parse(e.start) <= horizon)'),
     'the rail no longer stops at a horizon');
-  assert.ok(TV.includes('if (out.tvDays) TV_DAYS = out.tvDays;'),
+  assert.ok(TV.includes('TV_DAYS = out.tvDays;'),
     'the horizon can no longer be changed without a deploy');
 });
 
@@ -234,4 +234,52 @@ test('the pin is carried through a save rather than dropped', () => {
   assert.ok(ADMIN.includes('editingPinned = !!ev.pinned;'), 'the pin is not read back');
   assert.ok(ADMIN.includes('pinned: editingPinned,'), 'the pin is not sent back');
   assert.equal(ADMIN.includes('$("pinned")'), false, 'the pin checkbox is still there');
+});
+
+// ---------------------------------------------------------------------------
+// the rail has to keep deciding whether it fits
+// ---------------------------------------------------------------------------
+
+test('a notice poll does not tear the rail down', () => {
+  // The poll runs every two minutes. It used to rebuild the rail each time,
+  // which replaced the crawl layer wholesale with nothing asking for the fit to
+  // be checked again — so a list too long for the rail stopped moving within
+  // two minutes and sat with its last row cut off.
+  const at = TV.indexOf('async function loadNotice');
+  assert.notEqual(at, -1, 'loadNotice is gone');
+  const body = TV.slice(at, TV.indexOf('\n}\n', at));
+
+  assert.ok(body.includes('out.tvDays !== TV_DAYS'),
+    'the poll rebuilds the rail even when nothing changed');
+  // Wherever the poll does rebuild, the fit has to be decided again after.
+  const rebuild = body.indexOf('renderRail();');
+  assert.ok(rebuild !== -1 && body.indexOf('layoutRail();', rebuild) !== -1,
+    'the poll rebuilds the rail without laying it out again');
+});
+
+test('every rebuild of the rail is followed by a fresh fit check', () => {
+  // renderRail replaces the list, which throws the crawl away. Anywhere it is
+  // called, layoutRail has to follow, or the crawl silently stops.
+  const script = [...TV.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]).join('\n');
+  const calls = [...script.matchAll(/renderRail\(\);/g)].map((m) => m.index!);
+  assert.ok(calls.length >= 2, 'expected the initial draw and the poll');
+  for (const at of calls) {
+    const after = script.slice(at, at + 400);
+    assert.ok(after.includes('layoutRail();'),
+      'a renderRail() call is not followed by layoutRail(): ' + script.slice(at - 60, at + 20));
+  }
+});
+
+test('the rail refits when the screen changes under it', () => {
+  // Opened on a laptop, dragged to the TV, F11: each changes the rail's size
+  // after the one decision that used to be made at load.
+  assert.ok(TV.includes('new ResizeObserver(refitSoon).observe($("rail"))'),
+    'the rail is not watched for size changes');
+  assert.ok(TV.includes('window.addEventListener("resize", refitSoon)'),
+    'a window resize does not refit');
+  assert.ok(TV.includes('document.addEventListener("fullscreenchange", refitSoon)'),
+    'going fullscreen does not refit');
+  // The church's fonts arrive after the fallback text was measured.
+  assert.ok(TV.includes('document.fonts.ready.then'),
+    'the rail is measured before the real fonts are in');
 });
