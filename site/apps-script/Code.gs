@@ -46,7 +46,7 @@
  * file is handed over: the date, plus a letter if more than one goes out that
  * day.
  */
-var VERSION = '2026-09-10e';
+var VERSION = '2026-09-11a';
 
 var SITE = 'https://calendars.greaterlifebaptistchurch.com';
 var EVENTS_JSON = SITE + '/events.json';
@@ -2302,6 +2302,41 @@ function addresses_(cell) {
     .filter(function (a) { return a && a.indexOf('@') !== -1; });
 }
 
+/**
+ * One occurrence of one event, as a string that can be compared.
+ *
+ * The start is written into the sheet as text like 2026-09-18T19:00:00, and
+ * Sheets turns anything shaped like that into a date value in the cell. So it
+ * comes back as a Date, and comparing it against the text the page sends never
+ * matched — which quietly broke the whole point of the column: answering again
+ * appended a second row instead of replacing the first, and a leader counting
+ * heads counted the same family twice.
+ *
+ * Both shapes are normalised here rather than the sheet being fought, because
+ * the rows already written are half one and half the other.
+ */
+function startKey_(value) {
+  if (value instanceof Date) {
+    return Utilities.formatDate(value, 'America/New_York', "yyyy-MM-dd'T'HH:mm:ss");
+  }
+  return String(value || '').trim();
+}
+
+/** The same occurrence? All-day events carry a date with no time. */
+function sameStart_(a, b) {
+  var x = startKey_(a);
+  var y = startKey_(b);
+  if (!x || !y) return false;
+  if (x.length === 10 || y.length === 10) return x.slice(0, 10) === y.slice(0, 10);
+  return x.slice(0, 19) === y.slice(0, 19);
+}
+
+/** One person's answer to one occurrence, however either was spelled. */
+function rsvpKey_(eventId, starts, name) {
+  return String(eventId) + '|' + startKey_(starts).slice(0, 19) + '|' +
+    String(name || '').trim().toLowerCase();
+}
+
 /** Everyone who may be picked as a contact. Includes addresses; never returned to a browser. */
 function contacts_() {
   var sheet = contactsSheet_();
@@ -2412,7 +2447,7 @@ function handleRsvp_(body) {
       var existing = sheet.getRange(2, 1, last - 1, headers.length).getValues();
       for (var r = 0; r < existing.length; r++) {
         if (String(existing[r][1]) === eventId &&
-            String(existing[r][2]) === starts &&
+            sameStart_(existing[r][2], starts) &&
             String(existing[r][5]).trim().toLowerCase() === name.toLowerCase()) {
           sheet.getRange(r + 2, 1, 1, row.length).setValues([row]);
           replaced = true;
@@ -2446,26 +2481,40 @@ function handleAdminRsvps_(body) {
 
   var rows = sheet.getRange(2, 1, last - 1, 10).getValues();
   var out = [];
+  // Where each person's latest answer for each occurrence ended up, so a
+  // second attempt replaces the first here as well as in the email.
+  var at = {};
   for (var i = 0; i < rows.length; i++) {
     if (!String(rows[i][1] || '').trim()) continue;
     // A headcount is about somebody's own event. A scoped leader seeing every
     // other ministry's replies would be reading a list of names and phone
     // numbers that is none of their business.
     if (!mayTouchMinistry_(rows[i][4])) continue;
-    out.push({
-      when: rows[i][0] ? new Date(rows[i][0]).toISOString() : '',
-      eventId: String(rows[i][1]),
-      starts: String(rows[i][2]),
-      event: String(rows[i][3] || ''),
-      ministry: String(rows[i][4] || ''),
-      name: String(rows[i][5] || ''),
-      count: Number(rows[i][6]) || 0,
-      phone: String(rows[i][7] || ''),
-      note: String(rows[i][8] || ''),
-      contact: String(rows[i][9] || '')
-    });
+
+    var seenAt = rsvpKey_(rows[i][1], rows[i][2], rows[i][5]);
+    if (at[seenAt] !== undefined) {
+      out[at[seenAt]] = rsvpRow_(rows[i]);
+      continue;
+    }
+    at[seenAt] = out.length;
+    out.push(rsvpRow_(rows[i]));
   }
   return json_({ ok: true, rsvps: out });
+}
+
+function rsvpRow_(row) {
+  return {
+    when: row[0] ? new Date(row[0]).toISOString() : '',
+    eventId: String(row[1]),
+    starts: startKey_(row[2]),
+    event: String(row[3] || ''),
+    ministry: String(row[4] || ''),
+    name: String(row[5] || ''),
+    count: Number(row[6]) || 0,
+    phone: String(row[7] || ''),
+    note: String(row[8] || ''),
+    contact: String(row[9] || '')
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -2575,13 +2624,34 @@ function sendRsvpDigest_(force) {
       };
     }
     var entry = byContact[contact][key];
-    entry.people.push({
-      name: String(rows[i][5] || ''),
-      count: Number(rows[i][6]) || 0,
+    var who = String(rows[i][5] || '');
+    var count = Number(rows[i][6]) || 0;
+    var person = {
+      name: who,
+      count: count,
       phone: String(rows[i][7] || ''),
       note: String(rows[i][8] || '')
-    });
-    entry.total += Number(rows[i][6]) || 0;
+    };
+
+    // A later answer from the same person replaces their earlier one, rather
+    // than being counted alongside it. The write side means to do this in the
+    // sheet, and now does; this is what makes the number right for the rows
+    // written while it did not, without anybody editing the sheet by hand.
+    // Rows are in the order they were written, so the last one wins.
+    var already = -1;
+    for (var q = 0; q < entry.people.length; q++) {
+      if (entry.people[q].name.trim().toLowerCase() === who.trim().toLowerCase()) {
+        already = q;
+        break;
+      }
+    }
+    if (already === -1) {
+      entry.people.push(person);
+      entry.total += count;
+    } else {
+      entry.total += count - entry.people[already].count;
+      entry.people[already] = person;
+    }
     if (force || (rows[i][0] && new Date(rows[i][0]) > since)) entry.changed = true;
   }
 

@@ -496,10 +496,10 @@ function myRsvps(){
   catch { return {}; }
 }
 
-function rememberRsvp(e, name, count){
+function rememberRsvp(e, answer){
   try {
     const all = myRsvps();
-    all[rsvpKey(e)] = { name, count, at: Date.now() };
+    all[rsvpKey(e)] = { ...answer, at: Date.now() };
     // Only what is still ahead. A year of past events would otherwise sit in
     // storage forever for no benefit.
     const alive = {};
@@ -529,7 +529,18 @@ function addRsvp(card, e){
   btn.className = "rsvpbtn";
   card.appendChild(btn);
 
-  const mine = myRsvps()[rsvpKey(e)];
+  /*
+   * Read afresh every time, never captured.
+   *
+   * This used to be read once, when the card was drawn, and the click handler
+   * below closed over that one value. So the first answer of a visit left the
+   * handler still holding "nothing said yet", and pressing "change it" a
+   * moment later opened an empty form — which is how somebody ends up typing
+   * their name slightly differently and landing in the sheet twice.
+   */
+  const saved = () => myRsvps()[rsvpKey(e)];
+
+  const mine = saved();
   if (mine){
     btn.classList.add("done");
     btn.textContent = "You're down for " + mine.count + " — change it";
@@ -555,9 +566,14 @@ function addRsvp(card, e){
       '</div>' +
       '<div class="go"><button type="button">Send</button><span class="st"></span></div>';
     card.appendChild(form);
-    if (mine){
-      form.querySelector(".r-name").value = mine.name || "";
-      form.querySelector(".r-count").value = mine.count || 1;
+    // Everything they gave last time, not just the name and the number. The
+    // point of "change it" is changing one thing, not typing it all again.
+    const last = saved();
+    if (last){
+      form.querySelector(".r-name").value = last.name || "";
+      form.querySelector(".r-count").value = last.count || 1;
+      form.querySelector(".r-phone").value = last.phone || "";
+      form.querySelector(".r-note").value = last.note || "";
     }
     form.querySelector(".r-name").focus();
 
@@ -566,6 +582,8 @@ function addRsvp(card, e){
     send.addEventListener("click", async () => {
       const name = form.querySelector(".r-name").value.trim();
       const count = parseInt(form.querySelector(".r-count").value, 10);
+      const phone = form.querySelector(".r-phone").value.trim();
+      const note = form.querySelector(".r-note").value.trim();
       if (name.length < 2){ st.className = "st err"; st.textContent = "Please put your name."; return; }
       if (!(count >= 1)){ st.className = "st err"; st.textContent = "How many are coming?"; return; }
 
@@ -582,13 +600,13 @@ function addRsvp(card, e){
             starts: e.start,
             name: name,
             count: count,
-            phone: form.querySelector(".r-phone").value.trim(),
-            note: form.querySelector(".r-note").value.trim(),
+            phone: phone,
+            note: note,
           }),
         });
         const out = await res.json();
         if (!out.ok) throw new Error(out.error || "That did not go through.");
-        rememberRsvp(e, name, count);
+        rememberRsvp(e, { name, count, phone, note });
         form.remove();
         btn.hidden = false;
         btn.classList.add("done");

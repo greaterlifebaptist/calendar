@@ -85,6 +85,8 @@ type Script = {
   handleAdminRemoveLeader_: (body: Body) => Reply;
   handleAdminSetLeader_: (body: Body) => Reply;
   handleAdminRsvps_: (body: Body) => Reply;
+  sendRsvpDigest_: (force: boolean) => number;
+  sameStart_: (a: unknown, b: unknown) => boolean;
   handleConfig_: () => Reply;
   leaders_: () => Array<Record<string, unknown>>;
 };
@@ -95,6 +97,8 @@ type World = {
   book: FakeSpreadsheet;
   /** What tokeninfo says about a token, keyed by the token itself. */
   tokens: Map<string, Record<string, unknown>>;
+  /** Every email the script asked to send. */
+  mail: Array<Record<string, unknown>>;
   log: () => unknown[][];
 };
 
@@ -107,6 +111,7 @@ function world(): World {
   const book = new FakeSpreadsheet();
   const cache = new Map<string, string>();
   const tokens = new Map<string, Record<string, unknown>>();
+  const mail: Array<Record<string, unknown>> = [];
 
   const globals = {
     PropertiesService: {
@@ -151,6 +156,22 @@ function world(): World {
       computeDigest: (_alg: string, v: string) => v,
       DigestAlgorithm: { SHA_256: 'sha256' },
       sleep: () => {},
+      // Only the shapes Code.gs actually asks for. The date one matters: it is
+      // how a Date read back out of a cell becomes something that can be
+      // compared with the text the page sent.
+      formatDate: (d: Date, tz: string, pattern: string) => {
+        const parts = new Intl.DateTimeFormat('en-CA', {
+          timeZone: tz, hourCycle: 'h23',
+          year: 'numeric', month: '2-digit', day: '2-digit',
+          hour: '2-digit', minute: '2-digit', second: '2-digit',
+        }).formatToParts(d);
+        const g = (t: string) => parts.find((x) => x.type === t)!.value;
+        const date = g('year') + '-' + g('month') + '-' + g('day');
+        if (pattern.includes("'T'")) {
+          return date + 'T' + g('hour') + ':' + g('minute') + ':' + g('second');
+        }
+        return date;
+      },
     },
     ContentService: {
       MimeType: { JSON: 'json' },
@@ -158,6 +179,9 @@ function world(): World {
         json: JSON.parse(text),
         setMimeType() { return this; },
       }),
+    },
+    MailApp: {
+      sendEmail: (message: Record<string, unknown>) => { mail.push(message); },
     },
     Session: { getActiveUser: () => ({ getEmail: () => '' }) },
   };
@@ -185,6 +209,8 @@ function world(): World {
         handleAdminRemoveLeader_: fresh(handleAdminRemoveLeader_),
         handleAdminSetLeader_: fresh(handleAdminSetLeader_),
         handleAdminRsvps_: fresh(handleAdminRsvps_),
+        sendRsvpDigest_: fresh(sendRsvpDigest_),
+        sameStart_: sameStart_,
         handleConfig_: handleConfig_,
         leaders_: fresh(leaders_)
       };
@@ -193,7 +219,7 @@ function world(): World {
 
   const script = load(globals);
   return {
-    script, props, book, tokens,
+    script, props, book, tokens, mail,
     log: () => (book.getSheetByName('Admin log')?.rows.slice(1) ?? []),
   };
 }
@@ -648,4 +674,81 @@ test('every silent way the digest can fail is reported somewhere', () => {
     assert.ok(code.includes(field + ':'), 'the health check does not report ' + field);
   }
   assert.ok(code.includes('rsvps: rsvpHealth_()'), 'it is not wired into doGet');
+});
+
+// ---------------------------------------------------------------------------
+// answering twice
+// ---------------------------------------------------------------------------
+
+/** Seed an RSVPs tab, in the order the sheet would hold the rows. */
+function seedRsvps(w: World, rows: unknown[][]): void {
+  const tab = w.book.insertSheet('RSVPs');
+  tab.appendRow(['when', 'eventId', 'starts', 'event', 'ministry',
+    'name', 'count', 'phone', 'note', 'contact']);
+  rows.forEach((r) => tab.appendRow(r));
+}
+
+test('a start time matches whether the cell kept it as text or as a date', () => {
+  const w = world();
+  // The cause of the duplicate rows. The page sends text; Sheets turns
+  // anything shaped like that into a date value, so comparing the two as
+  // strings never matched and every answer appended a new row.
+  const asDate = new Date('2026-09-18T19:00:00-04:00');
+  assert.equal(w.script.sameStart_(asDate, '2026-09-18T19:00:00'), true);
+  assert.equal(w.script.sameStart_('2026-09-18T19:00:00', '2026-09-18T19:00:00'), true);
+
+  // An all-day event carries a date with no time, and the cell holds midnight.
+  assert.equal(w.script.sameStart_(new Date('2026-09-18T00:00:00-04:00'), '2026-09-18'), true);
+
+  // Different occurrences of the same series must stay apart.
+  assert.equal(w.script.sameStart_(asDate, '2026-09-19T19:00:00'), false);
+  assert.equal(w.script.sameStart_(asDate, ''), false);
+});
+
+test('somebody who answered twice is one family, not two', () => {
+  const w = world();
+  // The state Spencer's sheet was in: the same person, the same event, three
+  // attempts, because the replacement never matched.
+  seedRsvps(w, [
+    [new Date('2026-09-01T12:00:00Z'), 'ev1', '2026-09-18T19:00:00', 'Youth Revival',
+      'youth', 'Spencer Welch', 2, '', '', 'Spencer Welch'],
+    [new Date('2026-09-10T23:00:00Z'), 'ev1', '2026-09-18T19:00:00', 'Youth Revival',
+      'youth', 'Spencer Welch', 4, '555-1234', '', 'Spencer Welch'],
+    [new Date('2026-09-10T23:05:00Z'), 'ev1', '2026-09-18T19:00:00', 'Youth Revival',
+      'youth', 'spencer welch', 4, '555-1234', '', 'Spencer Welch'],
+    [new Date('2026-09-10T23:10:00Z'), 'ev1', '2026-09-18T19:00:00', 'Youth Revival',
+      'youth', 'Andrea Hutchins', 3, '', '', 'Spencer Welch'],
+  ]);
+
+  const out = w.script.handleAdminRsvps_({
+    action: 'admin.rsvps', passcode: 'correct horse battery staple',
+  });
+  const list = out.json.rsvps as Array<Record<string, unknown>>;
+  assert.equal(list.length, 2, 'one row each for two families');
+  const spencer = list.find((r) => String(r.name).toLowerCase() === 'spencer welch')!;
+  assert.equal(spencer.count, 4, 'the latest answer is the one that counts');
+});
+
+test('the headcount emailed is the headcount, not the number of attempts', () => {
+  const w = world();
+  const contacts = w.book.insertSheet('Contacts');
+  contacts.appendRow(['name', 'email', 'active']);
+  contacts.appendRow(['Spencer Welch', 'spencerwel2@gmail.com', 'yes']);
+
+  const future = new Date(Date.now() + 7 * 86400000).toISOString();
+  seedRsvps(w, [
+    [new Date(), 'ev1', future, 'Youth Revival', 'youth', 'Spencer Welch', 2, '', '', 'Spencer Welch'],
+    [new Date(), 'ev1', future, 'Youth Revival', 'youth', 'Spencer Welch', 4, '', '', 'Spencer Welch'],
+    [new Date(), 'ev1', future, 'Youth Revival', 'youth', 'Andrea Hutchins', 3, '', '', 'Spencer Welch'],
+  ]);
+
+  const sent = w.script.sendRsvpDigest_(true);
+  assert.equal(sent, 1, 'one contact, one email');
+  const body = String(w.mail[0].body);
+
+  // Two and four are the same family twice. Cooking for nine would be wrong.
+  assert.match(body, /7 coming, 2 responses/);
+  assert.equal(body.includes('Spencer Welch — 2'), false, 'the replaced answer is still listed');
+  assert.ok(body.includes('Spencer Welch — 4'));
+  assert.ok(body.includes('Andrea Hutchins — 3'));
 });
