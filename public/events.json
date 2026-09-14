@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-12T13:20:15.582Z",
+  "generated": "2026-09-14T04:21:39.759Z",
   "timezone": "America/New_York",
   "feeds": {
     "base": "https://calendars.greaterlifebaptistchurch.com/feeds/",
@@ -18,11 +18,6 @@
       "id": "youth",
       "name": "Greater Generation",
       "color": "#6B9A12"
-    },
-    {
-      "id": "children",
-      "name": "Children",
-      "color": "#EE7B21"
     },
     {
       "id": "mens",
@@ -100,6 +95,16 @@
       "start": "2026-09-20T11:00:00",
       "end": "2026-09-20T12:15:00",
       "notes": "The Youth will be leading and serving in multiple ministries today! Please encourage them and come ready to worship with them!"
+    },
+    {
+      "uid": "73himikvs1ntetserfhshv64pg@google.com",
+      "ministry": "church",
+      "type": "event",
+      "title": "Greater Things Offering",
+      "start": "2026-09-27T11:00:00",
+      "end": "2026-09-27T12:00:00",
+      "notes": "We will be receiving an offering towards the new sanctuary building!",
+      "contact": "JC Cross"
     },
     {
       "uid": "1n6g9up6k4n57j8066um1odmfd@google.com",
