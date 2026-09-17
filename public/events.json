@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-16T13:24:26.253Z",
+  "generated": "2026-09-17T00:28:37.897Z",
   "timezone": "America/New_York",
   "feeds": {
     "base": "https://calendars.greaterlifebaptistchurch.com/feeds/",
@@ -50,7 +50,7 @@
       "title": "Youth Revival",
       "start": "2026-09-17T19:00:00",
       "end": "2026-09-17T20:15:00",
-      "location": "Fellowship Hall",
+      "location": "Santuary",
       "notes": "Guest Evan Scofield preaching! Be sure to invite friends to attend!",
       "contact": "Spencer Welch"
     },
@@ -61,7 +61,7 @@
       "title": "Youth Revival & Bonfire",
       "start": "2026-09-18T19:00:00",
       "end": "2026-09-18T22:00:00",
-      "location": "Fellowship Hall",
+      "location": "Santuary",
       "notes": "Youth and adults invited to attend Youth Revival Night 2! We will have Evan Scofield back with us and have food, fellowship, and a bonfire afterwards!",
       "contact": "Spencer Welch"
     },
@@ -72,7 +72,7 @@
       "title": "Youth Revival & Kickball Game",
       "start": "2026-09-19T18:00:00",
       "end": "2026-09-19T21:00:00",
-      "location": "Fellowship Hall",
+      "location": "Santuary",
       "notes": "Youth and adults invited to attend Youth Revival Night 3! We will have Travis Kiriluk with us and have food, fellowship, and a kids vs parents kickball game afterwards!",
       "contact": "Spencer Welch"
     },
