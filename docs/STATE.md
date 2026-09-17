@@ -4,7 +4,7 @@ A living snapshot. The *reasoning* behind every decision lives in the other
 docs and in the commit messages; this is the part that goes stale — what is
 running, what is not, and what was being talked about.
 
-Last checked against the live system: **9 September 2026**.
+Last checked against the live system: **17 September 2026**.
 
 ## The four moving parts
 
@@ -16,16 +16,22 @@ Last checked against the live system: **9 September 2026**.
 | Endpoint | Apps Script web app, deployed by hand | **paste and redeploy manually** |
 
 The endpoint is the only piece that does not ship itself. Its version marker is
-a **datestamp** (`2026-09-09e` as of writing) — deliberately not Google's
+a **datestamp** (`2026-09-11a` as of writing) — deliberately not Google's
 deployment number, which drifted four times before this. Compare the marker in
 `Code.gs` against what the `/exec` URL reports; if they differ the deploy did
 not take.
 
 ## Verified live
 
-- Endpoint `2026-09-09e` — sheet ✓, calendar ✓, admin ✓, 21 actions
+- Endpoint `2026-09-11a` — sheet ✓, calendar ✓, 27 actions
+- Sign-in — Google client set, 6 leaders, 2 of them admins, **passcode still
+  accepted** (`REQUIRE_SIGNIN` not set)
+- RSVP digest — daily trigger present and running
+- **Reminders are live to the real youth parents group**, and have been since
+  10 September. The first real ones were the 7-day notices for the revival
+  nights and the parent meeting.
 - Worker — `ok 7 ministries, colour #1B5E45`
-- Site — publishing, 44 events
+- Site — publishing, 53 events; the website, TV and admin pages match the repo
 - Ten ministries: `church youth youth-leaders* children children-leaders*
   youngadults seniors mens womens worship*` (`*` private)
 - `/calendar` on the church site is public and the embed renders correctly
@@ -39,15 +45,25 @@ rail, personal feeds, combination feeds, Google-account sharing, the admin form,
 RSVPs with the daily digest, the printed card, the wall notice, and the contacts
 list. Each has a doc.
 
+Added since the first snapshot: Google sign-in for the admin page with four
+levels and per-ministry scope, and an Admin log of who did what. The TV looks a
+set number of days ahead (35, set from the Notices tab), an event can be kept
+off the TV entirely or until a date, and the rail re-decides whether to crawl
+whenever its size changes. An RSVP can be changed rather than added to.
+
+In use: the monthly card PDF arrives by email and is right; the TV runs from
+Spencer's laptop through the ATEM; `/tv` fits an iPad once the address bar is
+swiped away, which is the plan for the other building under Guided Access.
+
 ## Not done
 
 **In rough order of how much it matters.**
 
-1. **Reminders still point at a test GroupMe group.** This is the thing the
-   whole system was built for — the brief's "primary user need" — and no parent
-   has received one. Switching `GROUPME_BOT_YOUTH_PARENTS` to the real group is
-   a one-line secret change; being ready for thirty parents to start getting
-   messages is the actual decision.
+1. **The passcode still works.** Google sign-in and the four levels are in
+   place, but while `REQUIRE_SIGNIN` is unset the shared passcode is accepted
+   too, and it carries no level: whoever holds it is an admin over every
+   calendar. That makes the levels advisory. Once each of the six leaders shows
+   up in the Admin log by name at least once, set it. docs/ADMIN-SIGNIN.md.
 
 2. **Succession.** The brief calls this non-negotiable and it has not happened:
    a second admin on the Google account, the GitHub org and the sheet, recovery
@@ -55,24 +71,26 @@ list. Each has a doc.
    and the church loses its calendar, its member list, and the ability to fix
    any of it. This is a larger risk than any security item.
 
-3. **Nothing has been used by a real member.** Every flow has been tested by us,
-   against mocks or knowing what we meant. Nobody has scanned the code cold,
-   signed up in a foyer, or tapped an add-calendar link. Two or three families
-   through the whole thing before announcing.
+3. **Real use is still thin.** Reminders are reaching parents and working.
+   RSVPs have barely been used, and nobody has yet signed up cold from a QR
+   code or tapped an add-calendar link without one of us beside them.
 
-4. **Google sign-in works; the passcode has not been switched off.** A leader
-   signs in with their own Google account, checked against the Leaders tab,
-   and every action lands in the Admin log under their name. Four levels are
-   in place — admin, staff, leader, viewer — and a leader can be scoped to
-   particular ministries. What is left is setting `REQUIRE_SIGNIN` to yes,
-   once every leader has signed in at least once. Until then the passcode is
-   still accepted, and it carries no level: whoever holds it is an admin over
-   every calendar. docs/ADMIN-SIGNIN.md.
+4. **Half the contacts cannot be emailed.** The Contacts tab has 8 people and
+   only 4 addresses. An event naming one of the other four still collects
+   RSVPs, and nobody ever receives the headcount. The health URL reports this
+   as `rsvps.reachable` against `rsvps.contacts`.
 
-5. **The card has never been printed.** Type size, QR scannability and the safe
-   margins are unverified on paper.
+5. **The permanent TV machine.** A Pi was the plan and has been dropped: the
+   screen also has to play YouTube, video, audio and slideshows, run by
+   volunteers. The likely answer is a refurbished business mini PC on an
+   always-on outlet in the ATEM closet, with a small monitor. The open problem
+   is Thursdays, when the ATEM must record the service untouched while the TV
+   plays youth media — probably an HDMI switch that bypasses the ATEM. That is
+   being worked out separately; the Chrome startup settings and a volunteer
+   card come back here once it is settled.
 
-6. **No Pi yet** for the fellowship hall TV. A laptop will do meanwhile.
+6. **The card has never been printed.** The emailed PDF is right; type size,
+   QR scannability and the safe margins are unverified on paper.
 
 Deliberately dropped: protected ranges on the sheet (nobody else opens it), and
 the brief's `Log` tab (the Actions run summary replaced it).
@@ -118,3 +136,16 @@ for most of the work of doing it properly.
   emptied into a lockout.
 - **The admin page asks the endpoint which doors exist** rather than deciding
   for itself, so turning sign-in on is a script property and not a site deploy.
+- **There are two things called "state", and only this one is for people.**
+  `job/state/reminders.json` is the ledger of reminders already sent. Never
+  edit it by hand: removing a line makes the job send that reminder again.
+- **The reminder ledger is keyed by channel, not by bot.** Swapping the GroupMe
+  bot secret to a different group resends nothing and loses nothing.
+- **Sheets turns date-shaped text into dates.** Anything written like
+  `2026-09-18T19:00:00` comes back out of a cell as a Date, so comparing it
+  with the text that was written is always false. That is what made every RSVP
+  append instead of replace.
+- **A tab that is not being painted gets no resize events**, and no
+  ResizeObserver callbacks either — both ride on the rendering loop. The
+  browser pane used for testing often is not painting, so a resize test there
+  can fail when the code is right. A real screen people are looking at paints.
