@@ -178,7 +178,7 @@ export function reminderText(ev: CalEvent, days: number, tz: string): string {
 
   const tail: string[] = [];
   if (ev.cost) tail.push(`Cost: ${ev.cost}`);
-  if (ev.contact) tail.push(`Questions: ${ev.contact}`);
+  if (ev.contact) tail.push(`For questions, contact ${ev.contact}`);
   if (ev.link) tail.push(ev.link);
   if (tail.length) lines.push('', ...tail);
 

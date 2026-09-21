@@ -244,7 +244,7 @@ test('a deadline reminder names the date, not just a countdown', () => {
   assert.ok(text.includes('Friday, September 11'), 'the actual date must appear');
   assert.ok(text.includes('in a week'));
   assert.ok(text.includes('Cost: $75'));
-  assert.ok(text.includes('Questions: Bro. Spencer'));
+  assert.ok(text.includes('For questions, contact Bro. Spencer'));
 });
 
 test('a day-of deadline says so unmistakably', () => {

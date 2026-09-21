@@ -283,3 +283,17 @@ test('the rail refits when the screen changes under it', () => {
   assert.ok(TV.includes('document.fonts.ready.then'),
     'the rail is measured before the real fonts are in');
 });
+
+test('the wall page can be saved to a home screen and open on its own', () => {
+  // Under Guided Access on an iPad, the address bar is the whole problem:
+  // swiping it away is not durable, and the page reloads itself at 4am.
+  assert.ok(TV.includes('<meta name="apple-mobile-web-app-capable" content="yes">'),
+    'saving it to a home screen would still open inside Safari');
+
+  // A manifest beats these tags, and the calendar page's one starts at "./",
+  // so linking it here would make the icon open the calendar instead.
+  // The link element, not the filename: the comment above it in tv.html
+  // explains why the manifest is left out, and says its name to do so.
+  assert.equal(/<link[^>]+rel="manifest"/.test(TV), false,
+    "the wall page must not borrow the calendar page manifest");
+});

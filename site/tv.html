@@ -6,6 +6,26 @@
 <title>Greater Life Baptist Church — What's Coming Up</title>
 <meta name="robots" content="noindex">
 <link rel="icon" href="./icon.svg" type="image/svg+xml">
+
+<!--
+  Saved to an iPad home screen, this opens as its own thing: no address bar,
+  nothing to swipe away, and nothing that comes back when the page reloads
+  itself at four in the morning. That is what makes it usable as a wall
+  display in the other building, under Guided Access.
+
+  Deliberately NOT linked to manifest.webmanifest, which the calendar page
+  uses. A manifest wins over these tags, and that one starts at "./" — so the
+  icon would open the calendar page instead of this one.
+
+  The status bar is left light rather than translucent, because translucent
+  puts the clock on top of the heading instead of above it.
+-->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="GLBC TV">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1B5E45">
+<link rel="apple-touch-icon" href="./icon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
