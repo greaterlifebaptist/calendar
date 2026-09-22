@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-18T19:20:15.765Z",
+  "generated": "2026-09-22T12:26:51.116Z",
   "timezone": "America/New_York",
   "feeds": {
     "base": "https://calendars.greaterlifebaptistchurch.com/feeds/",
@@ -23,6 +23,11 @@
       "id": "children",
       "name": "Children",
       "color": "#EE7B21"
+    },
+    {
+      "id": "youngadults",
+      "name": "Ignite Young Adults",
+      "color": "#D14E2B"
     },
     {
       "id": "mens",
@@ -100,6 +105,17 @@
       "start": "2026-09-20T11:00:00",
       "end": "2026-09-20T12:15:00",
       "notes": "The Youth will be leading and serving in multiple ministries today! Please encourage them and come ready to worship with them!"
+    },
+    {
+      "uid": "2bmr2om5ca65k48ac8c9lbe9gc@google.com",
+      "ministry": "youngadults",
+      "type": "event",
+      "title": "Ice Cream Social",
+      "start": "2026-09-25T18:00:00",
+      "end": "2026-09-25T20:00:00",
+      "location": "Brusters, Whittlesey Rd",
+      "notes": "Young Adults 18+ join us for a sweet treat and fellowship",
+      "contact": "JC Cross"
     },
     {
       "uid": "73himikvs1ntetserfhshv64pg@google.com",
