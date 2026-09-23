@@ -4,7 +4,7 @@ A living snapshot. The *reasoning* behind every decision lives in the other
 docs and in the commit messages; this is the part that goes stale — what is
 running, what is not, and what was being talked about.
 
-Last checked against the live system: **17 September 2026**.
+Last checked against the live system: **23 September 2026**.
 
 ## The four moving parts
 
@@ -31,7 +31,7 @@ not take.
   10 September. The first real ones were the 7-day notices for the revival
   nights and the parent meeting.
 - Worker — `ok 7 ministries, colour #1B5E45`
-- Site — publishing, 53 events; the website, TV and admin pages match the repo
+- Site — publishing, 55 events; the website, TV and admin pages match the repo
 - Ten ministries: `church youth youth-leaders* children children-leaders*
   youngadults seniors mens womens worship*` (`*` private)
 - `/calendar` on the church site is public and the embed renders correctly
@@ -59,28 +59,17 @@ swiped away, which is the plan for the other building under Guided Access.
 
 **In rough order of how much it matters.**
 
-1. **The passcode still works.** Google sign-in and the four levels are in
-   place, but while `REQUIRE_SIGNIN` is unset the shared passcode is accepted
-   too, and it carries no level: whoever holds it is an admin over every
-   calendar. That makes the levels advisory. Once each of the six leaders shows
-   up in the Admin log by name at least once, set it. docs/ADMIN-SIGNIN.md.
-
-2. **Succession.** The brief calls this non-negotiable and it has not happened:
-   a second admin on the Google account, the GitHub org and the sheet, recovery
-   codes somewhere the church controls. Right now one person can be hit by a bus
-   and the church loses its calendar, its member list, and the ability to fix
-   any of it. This is a larger risk than any security item.
-
-3. **Real use is still thin.** Reminders are reaching parents and working.
+1. **Real use is still thin.** Reminders are reaching parents and working.
    RSVPs have barely been used, and nobody has yet signed up cold from a QR
    code or tapped an add-calendar link without one of us beside them.
 
-4. **Half the contacts cannot be emailed.** The Contacts tab has 8 people and
+2. **Half the contacts cannot be emailed.** The Contacts tab has 8 people and
    only 4 addresses. An event naming one of the other four still collects
-   RSVPs, and nobody ever receives the headcount. The health URL reports this
-   as `rsvps.reachable` against `rsvps.contacts`.
+   RSVPs, and nobody ever receives the headcount. Spencer is collecting the
+   missing addresses. The health URL reports this as `rsvps.reachable` against
+   `rsvps.contacts`, so it can be checked without opening the sheet.
 
-5. **The permanent TV machine.** A Pi was the plan and has been dropped: the
+3. **The permanent TV machine.** A Pi was the plan and has been dropped: the
    screen also has to play YouTube, video, audio and slideshows, run by
    volunteers. The likely answer is a refurbished business mini PC on an
    always-on outlet in the ATEM closet, with a small monitor. The open problem
@@ -89,13 +78,33 @@ swiped away, which is the plan for the other building under Guided Access.
    being worked out separately; the Chrome startup settings and a volunteer
    card come back here once it is settled.
 
-6. **The card has never been printed.** The emailed PDF is right; type size,
+4. **The card has never been printed.** The emailed PDF is right; type size,
    QR scannability and the safe margins are unverified on paper.
 
 Deliberately dropped: protected ranges on the sheet (nobody else opens it), and
 the brief's `Log` tab (the Actions run summary replaced it).
 
 ## Decided
+
+**Succession is handled.** Spencer has passed the account details to somebody
+else at the church, so the system no longer has exactly one person who can
+reach it. That was the brief's one non-negotiable and the only failure here
+that is permanent.
+
+Worth knowing what that does and does not cover, whenever anybody next looks
+at it: credentials mean somebody else can get *in*. Two-factor recovery codes
+held only on one phone, or being the sole owner of the GitHub repository, would
+still be single points of failure. Not urgent, and not a reason to reopen it.
+
+**The passcode stays on, alongside Google sign-in.** Deliberate, as of 23
+September. Sign-in works and the six leaders have levels, but `REQUIRE_SIGNIN`
+is left unset so the shared passcode is still accepted.
+
+The cost is worth stating plainly so nobody has to rediscover it: the passcode
+carries no name and therefore no level, so anybody holding it is an admin over
+every calendar, and the levels are advisory against them. Setting
+`REQUIRE_SIGNIN` to `yes` closes that whenever the time is right, takes effect
+immediately, and `no` brings the passcode back.
 
 **Google sign-in replaces the admin passcode**, checked against a Leaders tab in
 the sheet. Chosen over a handful of passcodes because the leaders already have
