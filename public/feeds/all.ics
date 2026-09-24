@@ -60,6 +60,28 @@ SEQUENCE:0
 TRANSP:OPAQUE
 END:VEVENT
 BEGIN:VEVENT
+UID:b5gc2h6kuls0m3m18glr2e51os@google.com
+DTSTAMP:20260924T125617Z
+DTSTART;TZID=America/New_York:20261011T123000
+DTEND;TZID=America/New_York:20261011T133000
+SUMMARY:Low Country Boil
+DESCRIPTION:Please RSVP to reserve your plates. All donations go directly t
+ o the building fund!\n\nContact: JC Cross\nDetails: https://forms.cloud.mi
+ crosoft/pages/responsepage.aspx?id=DQSIkWdsW0yxEjajBLZtrQAAAAAAAAAAAAN__hY
+ 3zQFUQjdaQlpIUlBQRjZMMU5CQVo0TEFESldPWi4u&origin=QRCode&route=shorturl
+LOCATION:Fellowship Hall
+URL:https://forms.cloud.microsoft/pages/responsepage.aspx?id=DQSIkWdsW0yxEj
+ ajBLZtrQAAAAAAAAAAAAN__hY3zQFUQjdaQlpIUlBQRjZMMU5CQVo0TEFESldPWi4u&origin=
+ QRCode&route=shorturl
+CATEGORIES:EVENT
+X-GLBC-MINISTRY:church
+X-GLBC-TYPE:event
+CREATED:20260924T125617Z
+LAST-MODIFIED:20260924T125617Z
+SEQUENCE:0
+TRANSP:OPAQUE
+END:VEVENT
+BEGIN:VEVENT
 UID:0dskclaglatncavuladmsqlao4@google.com
 DTSTAMP:20260910T014910Z
 DTSTART;TZID=America/New_York:20261017T170000
