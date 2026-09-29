@@ -119,6 +119,20 @@ body{
 /* The role, not the name, is what somebody is scanning for: they know they
    want the parking lot, not that they want James. */
 .spot .slidebody b{color:#B9D2C6;font-weight:700}
+/* An image slide. Two shapes: the picture on its own filling the panel, or
+   the picture on the LEFT with the words beside it — left so a QR code here
+   is as far as it can be from the calendar's own code in the bottom corner,
+   and the two never get scanned for each other. */
+.spot .slidepair{flex:1;min-height:0;display:flex;align-items:center;gap:1.8vw}
+.spot .slidepair .slideimg{flex:0 0 36%;width:36%}
+.spot .slidepair .slidetext{flex:1;min-width:0}
+.spot.imageonly .slideimg{flex:1;width:100%}
+/* White behind every slide image, always. A code printed straight onto this
+   dark green panel has no quiet zone around it and a phone will not read it,
+   and a donate slide nobody can scan is worse than no donate slide. On a
+   photograph it reads as a mat around the picture. */
+.spot .slideimg{min-height:0;background:#fff;border-radius:.6vw;padding:.9vw;box-sizing:border-box;display:flex;align-items:center;justify-content:center}
+.spot .slideimg img{max-width:100%;max-height:100%;object-fit:contain;display:block}
 .spot .item.deadline{border-left-color:#FF9878}
 .spot .item.deadline h3{color:#FFD9CC}
 
@@ -569,12 +583,8 @@ function featuredDays(byDay){
  * somebody looking at this knows they want the greeter and is hunting for the
  * word, not for the name.
  */
-function showSlide(slide){
-  const spot = $("spot");
-  spot.className = "spot slide";
-  spot.style.transformOrigin = "50% 50%";
-
-  const lines = String(slide.body || "").split("\n")
+function slideLines(body){
+  return String(body || "").split("\n")
     .map(l => l.trim()).filter(Boolean)
     .map(l => {
       const at = l.indexOf(":");
@@ -582,10 +592,43 @@ function showSlide(slide){
         ? "<p><b>" + esc(l.slice(0, at + 1)) + "</b> " + esc(l.slice(at + 1).trim()) + "</p>"
         : "<p>" + esc(l) + "</p>";
     }).join("");
+}
 
-  spot.innerHTML =
-    (slide.title ? '<div class="slidehead">' + esc(slide.title) + "</div>" : "") +
-    '<div class="slidebody">' + lines + "</div>";
+function showSlide(slide){
+  const spot = $("spot");
+  spot.style.transformOrigin = "50% 50%";
+
+  const hasImage = !!(slide.image || "").trim();
+  const hasText = !!slideLines(slide.body);
+  const head = slide.title ? '<div class="slidehead">' + esc(slide.title) + "</div>" : "";
+  const picture = '<div class="slideimg"><img src="' + esc(slide.image) + '" alt=""></div>';
+
+  // No words means the picture is the point, so it takes the whole panel.
+  // Words means the two share it, the picture on the left.
+  if (hasImage && !hasText){
+    spot.className = "spot slide imageonly";
+    spot.innerHTML = head + picture;
+  } else if (hasImage){
+    spot.className = "spot slide withimage";
+    spot.innerHTML = '<div class="slidepair">' + picture +
+      '<div class="slidetext">' + head +
+      '<div class="slidebody">' + slideLines(slide.body) + "</div></div></div>";
+  } else {
+    spot.className = "spot slide";
+    spot.innerHTML = head + '<div class="slidebody">' + slideLines(slide.body) + "</div>";
+  }
+
+  // An image that will not load leaves the words rather than a broken frame.
+  // A wall cannot be asked to try again, and a grey placeholder icon eight
+  // feet wide is the worst of the available outcomes.
+  const img = spot.querySelector(".slideimg img");
+  if (img){
+    img.addEventListener("error", () => {
+      spot.className = "spot slide";
+      spot.innerHTML = head + '<div class="slidebody">' + slideLines(slide.body) + "</div>";
+    });
+  }
+
   spot.classList.add("on");
 }
 

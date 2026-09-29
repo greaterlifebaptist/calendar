@@ -46,7 +46,7 @@
  * file is handed over: the date, plus a letter if more than one goes out that
  * day.
  */
-var VERSION = '2026-09-29a';
+var VERSION = '2026-09-29b';
 
 var SITE = 'https://calendars.greaterlifebaptistchurch.com';
 var EVENTS_JSON = SITE + '/events.json';
@@ -86,6 +86,28 @@ var SETTINGS_TAB = 'Settings';
  */
 var SLIDES_TAB = 'Slides';
 var SLIDES_MAX = 12;
+var SLIDE_COLUMNS = ['title', 'body', 'image', 'until', 'active'];
+
+/**
+ * Where an uploaded slide image lands in the repository.
+ *
+ * Under site/, so the same workflow that publishes a page publishes it, and it
+ * is then served from the calendar's own domain like everything else. Nothing
+ * new to host, no second account, and the leaders who upload get no access to
+ * the repository or to the church website - they have the admin page and
+ * nothing else.
+ */
+var SLIDE_IMG_DIR = 'site/img/slides/';
+var SLIDE_IMG_MAX = 1572864;
+
+/** What a browser may hand us, and what to call it on disk. */
+var SLIDE_IMG_TYPES = {
+  'image/png': 'png',
+  'image/jpeg': 'jpg',
+  'image/webp': 'webp',
+  'image/gif': 'gif',
+  'image/svg+xml': 'svg'
+};
 
 /**
  * Fallback spreadsheet id, for a script that is not bound to the sheet.
@@ -321,7 +343,7 @@ function doGet() {
       'contacts', 'rsvp', 'admin.rsvps', 'notice', 'admin.notice', 'admin.settings',
       'card.mail', 'admin.makecard',
       'config', 'admin.leaders', 'admin.addleader', 'admin.removeleader',
-      'admin.setleader', 'admin.rsvpdigest', 'admin.slides'
+      'admin.setleader', 'admin.rsvpdigest', 'admin.slides', 'admin.upload'
     ],
     adminReady: !!adminPasscode_(),
     signIn: signInHealth_(),
@@ -418,6 +440,7 @@ function route_(action, body) {
     if (action === 'admin.setleader')    return handleAdminSetLeader_(body);
     if (action === 'admin.rsvpdigest')   return handleAdminRsvpDigest_(body);
     if (action === 'admin.slides')       return handleAdminSlides_(body);
+    if (action === 'admin.upload')       return handleAdminUpload_(body);
     return json_({ ok: false, error: 'Unknown action.' });
   } catch (err) {
     return json_({ ok: false, error: String(err && err.message ? err.message : err) });
@@ -1414,26 +1437,133 @@ function handleAdminSlides_(body) {
     return json_({ ok: false, error: 'That is more than ' + SLIDES_MAX + ' slides.' });
   }
 
-  var rows = [];
+  var keep = [];
   for (var i = 0; i < wanted.length; i++) {
-    var title = String((wanted[i] && wanted[i].title) || '').trim();
-    var text = String((wanted[i] && wanted[i].body) || '').trim();
+    var one = wanted[i] || {};
+    var title = String(one.title || '').trim();
+    var text = String(one.body || '').trim();
+    var image = String(one.image || '').trim();
+    var until = String(one.until || '').trim();
+
     // An empty one is a row somebody added and did not fill in. Dropping it
     // quietly is kinder than refusing the whole save over it.
-    if (!title && !text) continue;
+    if (!title && !text && !image) continue;
     if (title.length > 80) return json_({ ok: false, error: 'A slide heading is too long.' });
     if (text.length > 600) {
       return json_({ ok: false, error: 'A slide is longer than a wall can hold. Split it in two.' });
     }
-    rows.push([title, text, 'yes']);
+    if (until && !/^\d{4}-\d{2}-\d{2}$/.test(until)) {
+      return json_({ ok: false, error: 'That end date does not look like a date.' });
+    }
+    keep.push({ title: title, body: text, image: image, until: until, active: 'yes' });
   }
 
   var sheet = slidesSheet_();
+  var headers = slideHeaders_(sheet, sheet.getLastColumn());
   var last = sheet.getLastRow();
   if (last > 1) sheet.deleteRows(2, last - 1);
-  for (var r = 0; r < rows.length; r++) sheet.appendRow(rows[r]);
+
+  for (var r = 0; r < keep.length; r++) {
+    // Built to the sheet's own column order: the two newest columns were
+    // appended on the end, so a fixed order here would file the end date
+    // under "active".
+    var row = [];
+    for (var c = 0; c < headers.length; c++) {
+      row.push(Object.prototype.hasOwnProperty.call(keep[r], headers[c]) ? keep[r][headers[c]] : '');
+    }
+    sheet.appendRow(row);
+  }
 
   return json_({ ok: true, slides: slides_(), slideEvery: slideEvery_() });
+}
+
+/**
+ * Put an image on the calendar site, from the admin page.
+ *
+ * It is committed into the repository the site is built from, using the same
+ * GitHub token that already asks for a rebuild. That is the whole reason this
+ * route was chosen: nothing new to host, no second account, and the leaders
+ * who upload get no access to the repository or to the church website. They
+ * have the admin page and nothing else.
+ *
+ * The commit lands on site/, which the publish workflow watches, so the image
+ * appears on the wall a couple of minutes later along with everything else.
+ *
+ * Two things worth knowing before using it. An image committed here is public
+ * and stays in the repository's history permanently, so it is not the place
+ * for anything that might need taking back. And nothing here can resize a
+ * picture, which is why anything much over a megabyte is refused rather than
+ * quietly making the wall slow.
+ */
+function handleAdminUpload_(body) {
+  var bad = checkAdmin_(body, 'notices');
+  if (bad) return bad;
+
+  var props = PropertiesService.getScriptProperties();
+  var repo = String(props.getProperty('GITHUB_REPO') || '').trim();
+  var token = String(props.getProperty('GITHUB_DISPATCH_TOKEN') || '').trim();
+  if (!repo || !token) {
+    return json_({ ok: false, error: 'Uploading is not set up: GITHUB_REPO or the token is missing.' });
+  }
+
+  var dataUrl = String(body.dataUrl || '');
+  var match = /^data:([a-z0-9.+\/-]+);base64,(.+)$/i.exec(dataUrl);
+  if (!match) return json_({ ok: false, error: 'That does not look like an image.' });
+
+  var mime = match[1].toLowerCase();
+  var b64 = match[2];
+  var ext = SLIDE_IMG_TYPES[mime];
+  if (!ext) {
+    return json_({ ok: false, error: 'Use a PNG, JPG, WEBP, GIF or SVG.' });
+  }
+
+  // Base64 carries three bytes in every four characters.
+  var bytes = Math.floor(b64.length * 3 / 4);
+  if (bytes > SLIDE_IMG_MAX) {
+    return json_({
+      ok: false,
+      error: 'That image is ' + Math.round(bytes / 1048576 * 10) / 10 +
+             'MB. Nothing here can shrink a picture, so please use one under 1.5MB.'
+    });
+  }
+
+  var stamp = Utilities.formatDate(new Date(), 'America/New_York', 'yyyyMMdd-HHmmss');
+  var slug = String(body.name || 'slide').toLowerCase()
+    .replace(/\.[a-z0-9]+$/, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 40) || 'slide';
+  var file = stamp + '-' + slug + '.' + ext;
+
+  var res = UrlFetchApp.fetch(
+    'https://api.github.com/repos/' + repo + '/contents/' + SLIDE_IMG_DIR + file, {
+      method: 'put',
+      muteHttpExceptions: true,
+      contentType: 'application/json',
+      headers: {
+        Authorization: 'Bearer ' + token,
+        Accept: 'application/vnd.github+json'
+      },
+      payload: JSON.stringify({
+        message: 'Slide image: ' + file,
+        content: b64
+      })
+    });
+
+  var code = res.getResponseCode();
+  if (code !== 201 && code !== 200) {
+    // 403 here almost always means one checkbox: the fine-grained token needs
+    // Contents read and write, which asking for a rebuild did not require.
+    return json_({
+      ok: false,
+      error: 'GitHub refused the upload (' + code + ')' +
+             (code === 403 || code === 404
+               ? '. The token may need "Contents: read and write" adding to it.'
+               : '.')
+    });
+  }
+
+  return json_({ ok: true, url: SITE + '/img/slides/' + file, file: file });
 }
 
 /** What the admin page needs to know before anybody has said who they are. */
@@ -1918,7 +2048,34 @@ function handleAdminRemove_(body) {
 
 function settingsSheet_() { return tab_(SETTINGS_TAB, ['key', 'value', 'what it is']); }
 
-function slidesSheet_() { return tab_(SLIDES_TAB, ['title', 'body', 'active']); }
+/**
+ * The Slides tab, with the columns this version needs.
+ *
+ * An image and an end date arrived after the tab did, so a sheet set up a day
+ * ago is missing both. They are added on the way past, the same as the Leaders
+ * tab, because "open the spreadsheet and insert a column" is not a step that
+ * happens on a phone.
+ */
+function slidesSheet_() {
+  var sheet = tab_(SLIDES_TAB, SLIDE_COLUMNS);
+  var width = Math.max(sheet.getLastColumn(), 1);
+  var headers = slideHeaders_(sheet, width);
+
+  var missing = [];
+  for (var i = 0; i < SLIDE_COLUMNS.length; i++) {
+    if (headers.indexOf(SLIDE_COLUMNS[i]) === -1) missing.push(SLIDE_COLUMNS[i]);
+  }
+  if (!missing.length) return sheet;
+
+  sheet.getRange(1, width + 1, 1, missing.length).setValues([missing]);
+  return sheet;
+}
+
+function slideHeaders_(sheet, width) {
+  return sheet.getRange(1, 1, 1, width).getValues()[0].map(function (h) {
+    return String(h || '').trim().toLowerCase();
+  });
+}
 
 /**
  * The slides the wall should rotate through, in order.
@@ -1927,21 +2084,61 @@ function slidesSheet_() { return tab_(SLIDES_TAB, ['title', 'body', 'active']); 
  * without ceremony, and switching one off takes a deliberate word. A row with
  * neither title nor body is somebody half way through typing, not a slide.
  */
+/**
+ * Every slide on the tab, expired ones included.
+ *
+ * Read by column name, not position: the tab gained two columns in the middle
+ * of its life and may gain more, and counting from the left is how a sheet
+ * starts quietly reporting one field as another.
+ *
+ * This is what the admin page edits. What the wall shows is wallSlides_.
+ */
 function slides_() {
   var sheet = slidesSheet_();
   var last = sheet.getLastRow();
   if (last < 2) return [];
-  var rows = sheet.getRange(2, 1, last - 1, 3).getValues();
+
+  var width = sheet.getLastColumn();
+  var headers = slideHeaders_(sheet, width);
+  var rows = sheet.getRange(2, 1, last - 1, width).getValues();
+
+  var cell = function (row, name) {
+    var at = headers.indexOf(name);
+    if (at === -1) return '';
+    // The end date may have been turned into a date by the sheet, the same way
+    // an RSVP start time is.
+    return name === 'until' ? startKey_(row[at]).slice(0, 10) : String(row[at] || '').trim();
+  };
+
   var out = [];
   for (var i = 0; i < rows.length && out.length < SLIDES_MAX; i++) {
-    var title = String(rows[i][0] || '').trim();
-    var body = String(rows[i][1] || '').trim();
-    var active = String(rows[i][2] || '').trim();
-    if (!title && !body) continue;
+    var title = cell(rows[i], 'title');
+    var body = cell(rows[i], 'body');
+    var image = cell(rows[i], 'image');
+    var active = cell(rows[i], 'active');
+    // A row with nothing on it at all is somebody half way through typing.
+    if (!title && !body && !image) continue;
     if (active && /^(no|n|off|false|0)$/i.test(active)) continue;
-    out.push({ title: title, body: body });
+    out.push({ title: title, body: body, image: image, until: cell(rows[i], 'until') });
   }
   return out;
+}
+
+/**
+ * The slides the wall should actually rotate through.
+ *
+ * An end date is optional and means "through the end of that day", the same as
+ * the wall notice. It exists because a slide for a one-off event would
+ * otherwise sit there until somebody remembered to delete it, which is exactly
+ * how a screen starts lying to the room.
+ */
+function wallSlides_() {
+  var today = todayLocal_();
+  return slides_().filter(function (s) {
+    return !s.until || s.until >= today;
+  }).map(function (s) {
+    return { title: s.title, body: s.body, image: s.image };
+  });
 }
 
 /**
@@ -2309,7 +2506,7 @@ function handleNotice_(body) {
   // couple of minutes without a second request. Like the notice, they are
   // readable by anyone: this action has no sign-in, and what it returns is
   // already on a screen in the foyer.
-  var deck = slides_();
+  var deck = wallSlides_();
   var every = slideEvery_();
   var n = readNotice_();
   if (!n) {

@@ -107,6 +107,63 @@ A line with a colon in it is split, and the part before the colon is coloured
 differently — "Greeter: Tim & Vivian Wiggs". Somebody reading this knows they
 want the greeter and is hunting for the word, not for the name.
 
+### Pictures
+
+A slide can carry one, and the layout follows from whether there are words:
+
+- **A picture with no lines fills the panel.** For a flyer.
+- **A picture with lines sits on the left, words on the right.** For a QR code
+  — left deliberately, so it is as far as it can be from the calendar's own
+  code in the bottom corner and a phone is never pointed between the two.
+
+A heading works with either.
+
+**Every slide picture is backed in white.** A code printed straight onto the
+dark green panel has no quiet zone around it and a phone will not read it, and
+a donate slide nobody can scan is worse than no donate slide. On a photograph
+it reads as a mat around the picture.
+
+A picture that fails to load leaves the words rather than a broken frame. A
+wall cannot be asked to try again, and a grey placeholder icon eight feet wide
+is the worst of the available outcomes. If there were no words, the slide
+shows its heading and little else for its nine seconds.
+
+### Where the pictures live
+
+Uploaded from the admin page, committed into `site/img/slides/` in this
+repository using the same GitHub token that already asks for a rebuild, and
+served from the calendar's own domain like everything else.
+
+That route was chosen over the obvious alternatives for one reason: the
+leaders who upload get access to nothing. Not the repository, not the church
+WordPress site. They have the admin page. The WordPress media library would
+have worked, and would have meant handing six people WordPress logins.
+
+Two consequences worth knowing. **The token needs "Contents: read and write"**,
+which asking for a rebuild did not require — a 403 on upload is almost always
+that one checkbox. And **an uploaded picture is public and stays in the
+repository's history permanently**, so it is not the place for anything that
+might need taking back.
+
+Nothing here can resize a picture, so anything over about 1.5MB is refused
+rather than quietly making the wall slow. The upload happens when the file is
+chosen, not when the slides are saved, so a picture chosen and then abandoned
+leaves a file nobody references. Harmless, and cheaper than the alternative.
+
+### Taking one down by itself
+
+Each slide has an optional end date, meaning "through the end of that day",
+the same as the wall notice. Blank means it stays until somebody removes it.
+
+It exists because a slide for a one-off event would otherwise sit there until
+somebody remembered, which is exactly how a screen starts lying to the room.
+The date is per slide, not one for all of them — a serving list has no end and
+a flyer does.
+
+Expired slides are dropped on the way to the wall, not deleted. They stay on
+the admin page and on the tab, or they could never be edited, reused or even
+found again.
+
 ### The rhythm
 
 `Show one after every` is how many calendar days go by between slides, three by

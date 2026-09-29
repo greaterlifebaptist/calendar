@@ -118,3 +118,35 @@ test('the admin page saves the list and the rhythm together', () => {
   assert.ok(ADMIN.includes('slideEvery: Number($("slideEvery").value) || 3'),
     'the interval is not saved with the slides');
 });
+
+// ---------------------------------------------------------------------------
+// picture slides
+// ---------------------------------------------------------------------------
+
+test('a picture alone fills the panel; a picture with words shares it', () => {
+  assert.ok(SCRIPT.includes('spot.className = "spot slide imageonly";'),
+    'a picture with no words does not take the whole panel');
+  assert.ok(SCRIPT.includes('spot.className = "spot slide withimage";'),
+    'a picture with words has no layout of its own');
+});
+
+test('the picture is on the left when it shares with words', () => {
+  // Left, so a QR code here is as far as it can be from the calendar's own
+  // code in the bottom corner and the two are not scanned for each other.
+  const pair = TV.indexOf('<div class="slidepair">');
+  assert.notEqual(pair, -1);
+  const block = TV.slice(pair, pair + 200);
+  assert.ok(block.indexOf('picture') < block.indexOf('slidetext'),
+    'the words come before the picture, so the picture is on the right');
+});
+
+test('every slide picture is backed in white', () => {
+  // A code printed onto the dark green panel has no quiet zone and a phone
+  // will not read it. A donate slide nobody can scan is worse than none.
+  assert.match(TV, /\.spot \.slideimg\{[^}]*background:#fff/);
+});
+
+test('a picture that will not load leaves the words, not a broken frame', () => {
+  assert.ok(SCRIPT.includes('img.addEventListener("error"'),
+    'a dead image URL would sit on the wall as a broken icon');
+});

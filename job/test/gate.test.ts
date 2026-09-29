@@ -87,6 +87,8 @@ type Script = {
   handleAdminRsvps_: (body: Body) => Reply;
   sendRsvpDigest_: (force: boolean) => number;
   handleAdminSlides_: (body: Body) => Reply;
+  handleAdminUpload_: (body: Body) => Reply;
+  wallSlides_: () => Array<Record<string, string>>;
   handleNotice_: (body: Body) => Reply;
   sameStart_: (a: unknown, b: unknown) => boolean;
   handleConfig_: () => Reply;
@@ -101,6 +103,8 @@ type World = {
   tokens: Map<string, Record<string, unknown>>;
   /** Every email the script asked to send. */
   mail: Array<Record<string, unknown>>;
+  /** Every file the script asked GitHub to commit. */
+  github: Array<{ url: string; payload: Record<string, unknown> }>;
   log: () => unknown[][];
 };
 
@@ -114,6 +118,7 @@ function world(): World {
   const cache = new Map<string, string>();
   const tokens = new Map<string, Record<string, unknown>>();
   const mail: Array<Record<string, unknown>> = [];
+  const github: Array<{ url: string; payload: Record<string, unknown> }> = [];
 
   const globals = {
     PropertiesService: {
@@ -131,7 +136,11 @@ function world(): World {
       }),
     },
     UrlFetchApp: {
-      fetch(url: string) {
+      fetch(url: string, options?: { payload?: string }) {
+        if (url.includes('api.github.com')) {
+          github.push({ url, payload: JSON.parse(String(options?.payload || '{}')) });
+          return { getResponseCode: () => 201, getContentText: () => '{}' };
+        }
         if (url.includes('ministries.json')) {
           return {
             getResponseCode: () => 200,
@@ -213,6 +222,8 @@ function world(): World {
         handleAdminRsvps_: fresh(handleAdminRsvps_),
         sendRsvpDigest_: fresh(sendRsvpDigest_),
         handleAdminSlides_: fresh(handleAdminSlides_),
+        handleAdminUpload_: fresh(handleAdminUpload_),
+        wallSlides_: fresh(wallSlides_),
         handleNotice_: fresh(handleNotice_),
         sameStart_: sameStart_,
         handleConfig_: handleConfig_,
@@ -223,7 +234,7 @@ function world(): World {
 
   const script = load(globals);
   return {
-    script, props, book, tokens, mail,
+    script, props, book, tokens, mail, github,
     log: () => (book.getSheetByName('Admin log')?.rows.slice(1) ?? []),
   };
 }
@@ -819,7 +830,11 @@ test('a slide switched off in the sheet stays off the wall', () => {
   const w = world();
   saveSlides(w, [{ title: 'On', body: 'a' }, { title: 'Off', body: 'b' }]);
   const tab = w.book.getSheetByName('Slides')!;
-  tab.rows[2][2] = 'no';
+  // By name, not position: the tab gained an image and an end date after it
+  // was created, so which column "active" is depends on when the sheet was made.
+  const active = (tab.rows[0] as string[]).indexOf("active");
+  assert.notEqual(active, -1, "the Slides tab has no active column");
+  tab.rows[2][active] = "no";
   const slides = w.script.handleAdminSlides_({
     action: 'admin.slides', ...PASS, read: true,
   }).json.slides as Array<Record<string, string>>;
@@ -849,4 +864,134 @@ test('the rhythm defaults to three and refuses nonsense', () => {
   }
 
   assert.equal(saveSlides(w, [{ title: 'A', body: 'b' }], 5).json.slideEvery, 5);
+});
+
+// ---------------------------------------------------------------------------
+// pictures on slides, and slides that expire
+// ---------------------------------------------------------------------------
+
+/** A one pixel PNG, as a browser would hand it over. */
+const PIXEL =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+
+test('a slide can be a picture with nothing written on it', () => {
+  const w = world();
+  const out = saveSlides(w, [{ title: '', body: '', image: 'https://example.org/flyer.png' }]);
+  assert.equal(out.json.ok, true);
+  const slides = out.json.slides as Array<Record<string, string>>;
+  assert.equal(slides.length, 1, 'a picture on its own is a slide, not an empty row');
+  assert.equal(slides[0].image, 'https://example.org/flyer.png');
+});
+
+test('an end date takes a slide off the wall, and only off the wall', () => {
+  const w = world();
+  const yesterday = '2000-01-01';
+  const far = '2999-12-31';
+  saveSlides(w, [
+    { title: 'Over', body: 'a', until: yesterday },
+    { title: 'Still on', body: 'b', until: far },
+    { title: 'Forever', body: 'c' },
+  ]);
+
+  // The wall drops the expired one...
+  const wall = w.script.wallSlides_();
+  assert.deepEqual(wall.map((s) => s.title), ['Still on', 'Forever']);
+  // ...and it carries no end date, which is not the wall's business.
+  assert.equal('until' in wall[0], false);
+
+  // ...but the admin page still sees it, or it could never be edited or removed.
+  const edit = w.script.handleAdminSlides_({ action: 'admin.slides', ...PASS, read: true });
+  assert.equal((edit.json.slides as unknown[]).length, 3);
+});
+
+test('a date that is not a date is refused rather than ignored', () => {
+  const w = world();
+  const out = saveSlides(w, [{ title: 'A', body: 'b', until: 'next Easter' }]);
+  assert.equal(out.json.ok, false);
+  assert.match(String(out.json.error), /does not look like a date/);
+});
+
+test('a tab made before pictures existed gains the columns and files them right', () => {
+  const w = world();
+  // The Slides tab as it was a day earlier.
+  const old = w.book.insertSheet('Slides');
+  old.appendRow(['title', 'body', 'active']);
+  old.appendRow(['Serving', 'Greeters', 'yes']);
+
+  saveSlides(w, [
+    { title: 'Serving', body: 'Greeters' },
+    { title: 'Giving', body: 'In the box', image: 'https://example.org/qr.svg', until: '2999-01-01' },
+  ]);
+
+  // The new columns are appended on the end, so writing a row by fixed
+  // position would file the end date under "active" and switch the slide off.
+  const headers = (old.rows[0] as string[]).map(String);
+  assert.ok(headers.includes('image') && headers.includes('until'));
+
+  const back = w.script.handleAdminSlides_({ action: 'admin.slides', ...PASS, read: true })
+    .json.slides as Array<Record<string, string>>;
+  assert.equal(back[1].image, 'https://example.org/qr.svg');
+  assert.equal(back[1].until, '2999-01-01');
+  assert.equal(back[1].title, 'Giving');
+  assert.equal(w.script.wallSlides_().length, 2, 'neither should have been switched off');
+});
+
+// ---------------------------------------------------------------------------
+// uploading
+// ---------------------------------------------------------------------------
+
+test('an uploaded picture is committed to the site and served from it', () => {
+  const w = world();
+  w.props.set('GITHUB_REPO', 'greaterlifebaptist/calendar');
+  w.props.set('GITHUB_DISPATCH_TOKEN', 'tok');
+
+  const out = w.script.handleAdminUpload_({
+    action: 'admin.upload', ...PASS, name: 'Donate QR.png', dataUrl: PIXEL,
+  });
+
+  assert.equal(out.json.ok, true, String(out.json.error || ''));
+  assert.equal(w.github.length, 1);
+  // Under site/, because that is what the publish workflow watches.
+  assert.match(w.github[0].url, /contents\/site\/img\/slides\//);
+  assert.match(String(out.json.url), /^https:\/\/calendars\..+\/img\/slides\/.+-donate-qr\.png$/);
+  // The bytes, not the data: URL wrapper.
+  assert.equal(String(w.github[0].payload.content).startsWith('data:'), false);
+});
+
+test('only a picture, and only a reasonable one', () => {
+  const w = world();
+  w.props.set('GITHUB_REPO', 'greaterlifebaptist/calendar');
+  w.props.set('GITHUB_DISPATCH_TOKEN', 'tok');
+
+  const notAnImage = w.script.handleAdminUpload_({
+    action: 'admin.upload', ...PASS, name: 'notes.txt', dataUrl: 'data:text/plain;base64,aGk=',
+  });
+  assert.equal(notAnImage.json.ok, false);
+  assert.match(String(notAnImage.json.error), /PNG, JPG/);
+
+  const nonsense = w.script.handleAdminUpload_({
+    action: 'admin.upload', ...PASS, name: 'x', dataUrl: 'hello',
+  });
+  assert.equal(nonsense.json.ok, false);
+
+  // Base64 carries three bytes in four characters, so exactly 2MB of it is
+  // exactly the 1.5MB limit and is allowed. This one is comfortably over.
+  const huge = 'data:image/png;base64,' + 'A'.repeat(3 * 1024 * 1024);
+  const tooBig = w.script.handleAdminUpload_({
+    action: 'admin.upload', ...PASS, name: 'photo.png', dataUrl: huge,
+  });
+  assert.equal(tooBig.json.ok, false);
+  assert.match(String(tooBig.json.error), /under 1.5MB/);
+
+  assert.equal(w.github.length, 0, 'nothing refused should have been committed');
+});
+
+test('uploading says so plainly when it was never set up', () => {
+  const w = world();
+  w.props.delete('GITHUB_REPO');
+  const out = w.script.handleAdminUpload_({
+    action: 'admin.upload', ...PASS, name: 'a.png', dataUrl: PIXEL,
+  });
+  assert.equal(out.json.ok, false);
+  assert.match(String(out.json.error), /not set up/);
 });

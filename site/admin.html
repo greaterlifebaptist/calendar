@@ -136,6 +136,10 @@ button.danger:hover{border-color:var(--clay)}
 #paneNotice textarea{min-height:70px}
 #paneNotice .slide{border:1.5px solid var(--rule);border-radius:10px;padding:12px 14px;margin-bottom:10px;background:#fff}
 #paneNotice .slide textarea{min-height:96px}
+#paneNotice .slide .s-pic{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:2px 0 4px}
+#paneNotice .slide .s-thumb{max-width:120px;max-height:84px;border:1.5px solid var(--rule);border-radius:8px;background:#fff;padding:4px;object-fit:contain}
+#paneNotice .slide .s-clear{font-family:var(--body);font-size:.78rem;font-weight:700;border:1.5px solid var(--rule);background:var(--card);color:var(--ink-soft);border-radius:7px;padding:6px 11px;cursor:pointer}
+#paneNotice .slide .s-clear:hover{border-color:var(--clay);color:var(--clay)}
 #paneNotice .slide .acts{display:flex;justify-content:flex-end;padding-top:4px}
 #paneNotice .slide .acts button{font-family:var(--body);font-size:.78rem;font-weight:700;border:1.5px solid var(--rule);background:var(--card);color:var(--clay);border-radius:7px;padding:6px 11px;cursor:pointer}
 #paneNotice .slide .acts button:hover{border-color:var(--clay)}
@@ -441,6 +445,12 @@ footer a{color:var(--clay)}
       to see about serving, how to give. The month grid and "Coming up" stay on screen around
       them, and each slide is up for about nine seconds.</p>
 
+    <p class="lede" style="font-size:.84rem;margin:0 0 13px"><b>A picture with no lines fills the
+      screen</b> — use that for a flyer. <b>A picture with lines sits on the left, the words on
+      the right</b> — use that for a QR code, so it is well away from the calendar's own code in
+      the bottom corner and the two do not get scanned for each other. A heading works with
+      either.</p>
+
     <div id="slideList"></div>
 
     <div class="actions" style="margin-bottom:16px">
@@ -620,7 +630,7 @@ const TOKEN_KEY = "glbc.admin.idtoken";
  * Compared as text, which works because the marker is a fixed-width datestamp:
  * "2026-09-09f" sorts before "2026-09-10a" for the same reason the dates do.
  */
-const NEEDS_ENDPOINT = "2026-09-29a";
+const NEEDS_ENDPOINT = "2026-09-29b";
 
 let ENDPOINT = "";
 let MINISTRIES = [];
@@ -1409,9 +1419,76 @@ function slideRow(slide){
       // several lines it is rather than one long run-on.
       'placeholder="Example: Contact a team lead to get involved.&#10;Greeters&#10;' +
       'Parking&#10;Children&#10;Coffee Bar"></textarea></label>' +
+    '<label><span class="lab">Picture <span class="hint">— optional. Under 1.5MB: nothing here ' +
+      'can shrink a photograph.</span></span>' +
+      '<span class="s-pic">' +
+        '<img class="s-thumb" alt="" hidden>' +
+        '<input type="file" class="s-file" accept="image/*">' +
+        '<button type="button" class="s-clear" hidden>Remove picture</button>' +
+        '<span class="status s-up"></span>' +
+      '</span></label>' +
+    '<input type="hidden" class="s-image">' +
+    '<label><span class="lab">Show until <span class="hint">— optional. Blank means it stays ' +
+      'until somebody takes it down; a date means it comes off the wall after that ' +
+      'day.</span></span>' +
+      '<input type="date" class="s-until"></label>' +
     '<div class="acts"><button type="button">Remove</button></div>';
+
   box.querySelector(".s-title").value = slide.title || "";
   box.querySelector(".s-body").value = slide.body || "";
+  box.querySelector(".s-image").value = slide.image || "";
+  box.querySelector(".s-until").value = slide.until || "";
+
+  const thumb = box.querySelector(".s-thumb");
+  const clear = box.querySelector(".s-clear");
+  const file = box.querySelector(".s-file");
+  const said = box.querySelector(".s-up");
+
+  const showPicture = (url) => {
+    box.querySelector(".s-image").value = url || "";
+    thumb.hidden = !url;
+    clear.hidden = !url;
+    file.hidden = !!url;
+    if (url) thumb.src = url;
+  };
+  showPicture(slide.image || "");
+
+  clear.addEventListener("click", () => {
+    // Off this slide only. The file itself stays where it was uploaded, which
+    // is deliberate: another slide may be using it, and a wall going blank
+    // because somebody tidied up is worse than an unused file in a folder.
+    showPicture("");
+    file.value = "";
+    say(said, "");
+  });
+
+  file.addEventListener("change", async () => {
+    const picked = file.files && file.files[0];
+    if (!picked) return;
+    // Checked here as well as on the server, so somebody with a six megabyte
+    // photograph hears about it now rather than after the upload.
+    if (picked.size > 1.5 * 1024 * 1024){
+      say(said, "That is " + (picked.size / 1048576).toFixed(1) + "MB. Please use one under 1.5MB.", "err");
+      file.value = "";
+      return;
+    }
+    say(said, "Uploading…");
+    try {
+      const dataUrl = await new Promise((done, fail2) => {
+        const reader = new FileReader();
+        reader.onload = () => done(String(reader.result));
+        reader.onerror = () => fail2(new Error("Could not read that file."));
+        reader.readAsDataURL(picked);
+      });
+      const out = await call({ action:"admin.upload", ...auth(), name: picked.name, dataUrl });
+      showPicture(out.url);
+      say(said, "Added. Save the slides to use it.", "ok");
+    } catch (err) {
+      fail(said, err);
+      file.value = "";
+    }
+  });
+
   box.querySelector(".acts button").addEventListener("click", () => box.remove());
   return box;
 }
@@ -1448,6 +1525,8 @@ $("saveSlides").addEventListener("click", async () => {
     const slides = [...$("slideList").children].map(box => ({
       title: box.querySelector(".s-title").value.trim(),
       body: box.querySelector(".s-body").value.trim(),
+      image: box.querySelector(".s-image").value.trim(),
+      until: box.querySelector(".s-until").value,
     }));
     const out = await call({ action:"admin.slides", ...auth(), slides,
       slideEvery: Number($("slideEvery").value) || 3 });
