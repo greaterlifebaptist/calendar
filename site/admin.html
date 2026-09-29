@@ -1406,7 +1406,10 @@ function slideRow(slide){
       'role, like "Greeter: Tim &amp; Vivian Wiggs", and the role stands out on the ' +
       'screen.</span></span>' +
       '<textarea class="s-body" maxlength="600" ' +
-      'placeholder="Example: Greeter: Tim &amp; Vivian Wiggs"></textarea></label>' +
+      // &#10; is a newline inside an attribute, so the example shows as the
+      // several lines it is rather than one long run-on.
+      'placeholder="Example: Contact a team lead to get involved.&#10;Greeters&#10;' +
+      'Parking&#10;Children&#10;Coffee Bar"></textarea></label>' +
     '<div class="acts"><button type="button">Remove</button></div>';
   box.querySelector(".s-title").value = slide.title || "";
   box.querySelector(".s-body").value = slide.body || "";
