@@ -86,6 +86,8 @@ type Script = {
   handleAdminSetLeader_: (body: Body) => Reply;
   handleAdminRsvps_: (body: Body) => Reply;
   sendRsvpDigest_: (force: boolean) => number;
+  handleAdminSlides_: (body: Body) => Reply;
+  handleNotice_: (body: Body) => Reply;
   sameStart_: (a: unknown, b: unknown) => boolean;
   handleConfig_: () => Reply;
   leaders_: () => Array<Record<string, unknown>>;
@@ -210,6 +212,8 @@ function world(): World {
         handleAdminSetLeader_: fresh(handleAdminSetLeader_),
         handleAdminRsvps_: fresh(handleAdminRsvps_),
         sendRsvpDigest_: fresh(sendRsvpDigest_),
+        handleAdminSlides_: fresh(handleAdminSlides_),
+        handleNotice_: fresh(handleNotice_),
         sameStart_: sameStart_,
         handleConfig_: handleConfig_,
         leaders_: fresh(leaders_)
@@ -751,4 +755,98 @@ test('the headcount emailed is the headcount, not the number of attempts', () =>
   assert.equal(body.includes('Spencer Welch — 2'), false, 'the replaced answer is still listed');
   assert.ok(body.includes('Spencer Welch — 4'));
   assert.ok(body.includes('Andrea Hutchins — 3'));
+});
+
+// ---------------------------------------------------------------------------
+// standing slides
+// ---------------------------------------------------------------------------
+
+const PASS = { passcode: 'correct horse battery staple' };
+
+function saveSlides(w: World, slides: unknown[], slideEvery?: number): Reply {
+  return w.script.handleAdminSlides_({
+    action: 'admin.slides', ...PASS, slides, slideEvery,
+  });
+}
+
+test('slides come back in the order they were saved', () => {
+  const w = world();
+  assert.deepEqual(
+    w.script.handleAdminSlides_({ action: 'admin.slides', ...PASS, read: true }).json.slides,
+    [],
+    'a church that has never set one should see an empty list, not an error');
+
+  const out = saveSlides(w, [
+    { title: 'Interested in serving?', body: 'Greeter: Tim & Vivian Wiggs\nMusic: Nelson Tomlinson' },
+    { title: 'Giving', body: 'In the box at the back, or online.' },
+  ], 3);
+
+  const slides = out.json.slides as Array<Record<string, string>>;
+  assert.equal(slides.length, 2);
+  assert.equal(slides[0].title, 'Interested in serving?');
+  assert.equal(slides[1].title, 'Giving');
+  // Order is the whole point: it decides which one comes up next.
+  assert.match(slides[0].body, /Greeter/);
+});
+
+test('saving replaces the lot, so removing one removes it', () => {
+  const w = world();
+  saveSlides(w, [{ title: 'One', body: 'a' }, { title: 'Two', body: 'b' }]);
+  const out = saveSlides(w, [{ title: 'Two', body: 'b' }]);
+  const slides = out.json.slides as Array<Record<string, string>>;
+  assert.equal(slides.length, 1);
+  assert.equal(slides[0].title, 'Two');
+});
+
+test('a row somebody added and thought better of is dropped, not refused', () => {
+  const w = world();
+  const out = saveSlides(w, [
+    { title: 'Real', body: 'something' },
+    { title: '', body: '' },
+  ]);
+  assert.equal(out.json.ok, true, 'an empty row must not block the save');
+  assert.equal((out.json.slides as unknown[]).length, 1);
+});
+
+test('a slide longer than a wall can hold is refused', () => {
+  const w = world();
+  const out = saveSlides(w, [{ title: 'Long', body: 'x'.repeat(601) }]);
+  assert.equal(out.json.ok, false);
+  assert.match(String(out.json.error), /Split it in two/);
+});
+
+test('a slide switched off in the sheet stays off the wall', () => {
+  const w = world();
+  saveSlides(w, [{ title: 'On', body: 'a' }, { title: 'Off', body: 'b' }]);
+  const tab = w.book.getSheetByName('Slides')!;
+  tab.rows[2][2] = 'no';
+  const slides = w.script.handleAdminSlides_({
+    action: 'admin.slides', ...PASS, read: true,
+  }).json.slides as Array<Record<string, string>>;
+  assert.equal(slides.length, 1);
+  assert.equal(slides[0].title, 'On');
+});
+
+test('the wall is told the slides on the poll it already makes', () => {
+  const w = world();
+  saveSlides(w, [{ title: 'Serving', body: 'Parking Lot: James Cullefer' }], 4);
+
+  // No sign-in on this action: it is what the TV itself calls, and what it
+  // returns is already on a screen in the foyer.
+  const out = w.script.handleNotice_({ action: 'notice' });
+  assert.equal(out.json.ok, true);
+  assert.equal((out.json.slides as unknown[]).length, 1);
+  assert.equal(out.json.slideEvery, 4);
+});
+
+test('the rhythm defaults to three and refuses nonsense', () => {
+  const w = world();
+  assert.equal(w.script.handleNotice_({ action: 'notice' }).json.slideEvery, 3);
+
+  for (const bad of [0, -1, 21, 'soon']) {
+    const out = saveSlides(w, [{ title: 'A', body: 'b' }], bad as number);
+    assert.equal(out.json.ok, false, String(bad) + ' should be refused');
+  }
+
+  assert.equal(saveSlides(w, [{ title: 'A', body: 'b' }], 5).json.slideEvery, 5);
 });

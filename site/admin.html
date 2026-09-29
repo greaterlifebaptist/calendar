@@ -134,6 +134,11 @@ button.danger:hover{border-color:var(--clay)}
 .rsvpev .note{color:var(--ink-soft);font-size:.82rem}
 
 #paneNotice textarea{min-height:70px}
+#paneNotice .slide{border:1.5px solid var(--rule);border-radius:10px;padding:12px 14px;margin-bottom:10px;background:#fff}
+#paneNotice .slide textarea{min-height:96px}
+#paneNotice .slide .acts{display:flex;justify-content:flex-end;padding-top:4px}
+#paneNotice .slide .acts button{font-family:var(--body);font-size:.78rem;font-weight:700;border:1.5px solid var(--rule);background:var(--card);color:var(--clay);border-radius:7px;padding:6px 11px;cursor:pointer}
+#paneNotice .slide .acts button:hover{border-color:var(--clay)}
 #paneNotice .live{margin:0 0 14px;padding:11px 13px;border-radius:9px;font-size:.86rem;background:#E9F2EC;border:1.5px solid #BCD9C8;color:#17503B}
 #paneNotice .live b{display:block;font-family:var(--display);font-size:1rem;margin-bottom:3px}
 #paneNotice .live.gone{background:#FBF8F1;border-color:var(--rule);color:var(--ink-soft)}
@@ -430,6 +435,32 @@ footer a{color:var(--clay)}
     </div>
   </div>
 
+  <div class="card">
+    <p class="lede" style="font-size:.84rem;margin:0 0 13px">Standing slides take their turn in
+      the rotation, between the calendar days. For things worth saying that are not events — who
+      to see about serving, how to give. The month grid and "Coming up" stay on screen around
+      them, and each slide is up for about nine seconds.</p>
+
+    <div id="slideList"></div>
+
+    <div class="actions" style="margin-bottom:16px">
+      <button type="button" id="addSlide">Add a slide</button>
+    </div>
+
+    <label>
+      <span class="lab">Show one after every
+        <span class="hint">— calendar days between slides. Three means three days, a slide,
+        three days, the next slide. Worth lowering rather than raising as the list grows: the
+        more slides there are, the longer each one waits before it comes round again.</span></span>
+      <input type="number" id="slideEvery" min="1" max="20" step="1">
+    </label>
+
+    <div class="actions">
+      <button type="button" class="primary" id="saveSlides">Save slides</button>
+      <span class="status" id="slidesStatus"></span>
+    </div>
+  </div>
+
   <h2 style="font-family:var(--display);font-size:1.15rem;color:var(--pine);margin:26px 0 0">
     On the printed card</h2>
   <p class="lede" style="font-size:.86rem">Standing notes printed at the foot of the calendar
@@ -589,7 +620,7 @@ const TOKEN_KEY = "glbc.admin.idtoken";
  * Compared as text, which works because the marker is a fixed-width datestamp:
  * "2026-09-09f" sorts before "2026-09-10a" for the same reason the dates do.
  */
-const NEEDS_ENDPOINT = "2026-09-11a";
+const NEEDS_ENDPOINT = "2026-09-29a";
 
 let ENDPOINT = "";
 let MINISTRIES = [];
@@ -1207,7 +1238,7 @@ function showTab(which){
     loadRsvps();
     $("digestCard").hidden = !CAN.notices;
   }
-  if (which === "notice"){ loadNotice(); loadCardNotes(); }
+  if (which === "notice"){ loadNotice(); loadCardNotes(); loadSlides(); }
   if (which === "leaders") loadLeaders();
 }
 
@@ -1354,6 +1385,79 @@ $("cardMake").addEventListener("click", async () => {
     // Left enabled: a second press is refused by the endpoint rather than
     // being silently impossible, which is the more honest of the two.
     $("cardMake").disabled = false;
+  }
+});
+
+/**
+ * One editor per slide, in the order they will appear.
+ *
+ * Order is the order of the rows, so moving one is removing and re-adding it.
+ * With a handful of slides that is cheaper than building drag handles that
+ * have to work with a finger on a phone.
+ */
+function slideRow(slide){
+  const box = document.createElement("div");
+  box.className = "slide";
+  box.innerHTML =
+    '<label><span class="lab">Heading</span>' +
+      '<input type="text" class="s-title" maxlength="80" ' +
+      'placeholder="Example: Interested in serving?"></label>' +
+    '<label><span class="lab">Lines <span class="hint">— one per line. Put a colon after the ' +
+      'role, like "Greeter: Tim &amp; Vivian Wiggs", and the role stands out on the ' +
+      'screen.</span></span>' +
+      '<textarea class="s-body" maxlength="600" ' +
+      'placeholder="Example: Greeter: Tim &amp; Vivian Wiggs"></textarea></label>' +
+    '<div class="acts"><button type="button">Remove</button></div>';
+  box.querySelector(".s-title").value = slide.title || "";
+  box.querySelector(".s-body").value = slide.body || "";
+  box.querySelector(".acts button").addEventListener("click", () => box.remove());
+  return box;
+}
+
+function renderSlides(list){
+  const box = $("slideList");
+  box.textContent = "";
+  (list || []).forEach(s => box.appendChild(slideRow(s)));
+}
+
+async function loadSlides(){
+  try {
+    const out = await call({ action:"admin.slides", ...auth(), read:true });
+    renderSlides(out.slides);
+    $("slideEvery").value = out.slideEvery || 3;
+  } catch (err) {
+    say($("slidesStatus"),
+      (err && err.fromServer && err.message) || "Could not load the slides.", "err");
+  }
+}
+
+$("addSlide").addEventListener("click", () => {
+  $("slideList").appendChild(slideRow({}));
+});
+
+$("saveSlides").addEventListener("click", async () => {
+  const st = $("slidesStatus");
+  $("saveSlides").disabled = true;
+  say(st, "Saving…");
+  try {
+    // Sent whole, in the order on screen. An empty one is dropped by the
+    // server rather than refused, so a row somebody added and thought better
+    // of does not block the save.
+    const slides = [...$("slideList").children].map(box => ({
+      title: box.querySelector(".s-title").value.trim(),
+      body: box.querySelector(".s-body").value.trim(),
+    }));
+    const out = await call({ action:"admin.slides", ...auth(), slides,
+      slideEvery: Number($("slideEvery").value) || 3 });
+    renderSlides(out.slides);
+    $("slideEvery").value = out.slideEvery || 3;
+    say(st, (out.slides || []).length
+      ? "Saved. The TV picks it up within a couple of minutes."
+      : "Saved. Nothing standing on the TV now.", "ok");
+  } catch (err) {
+    fail(st, err);
+  } finally {
+    $("saveSlides").disabled = false;
   }
 });
 

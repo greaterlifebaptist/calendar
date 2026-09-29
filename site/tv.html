@@ -109,6 +109,16 @@ body{
 .spot .item .meta{font-size:.85em;color:#B9D2C6;display:flex;flex-wrap:wrap;gap:.2em 1.1em}
 .spot .item .meta .who{font-weight:700}
 .spot .item p{margin:.25em 0 0;font-size:.82em;color:#CFE2D8;line-height:1.35}
+/* A standing slide: something worth saying that is not an event. No day to
+   grow out of, so it is centred rather than anchored, and the type is sized to
+   be read across a room like everything else here. */
+.spot.slide{justify-content:center}
+.spot .slidehead{font-family:var(--display);font-size:1.9em;font-weight:700;line-height:1.1;color:var(--sun);margin:0 0 .6em;flex:0 0 auto}
+.spot .slidebody{flex:0 1 auto;min-height:0;overflow:hidden;display:flex;flex-direction:column;gap:.4em}
+.spot .slidebody p{margin:0;font-size:1.2em;line-height:1.3;color:#fff}
+/* The role, not the name, is what somebody is scanning for: they know they
+   want the parking lot, not that they want James. */
+.spot .slidebody b{color:#B9D2C6;font-weight:700}
 .spot .item.deadline{border-left-color:#FF9878}
 .spot .item.deadline h3{color:#FFD9CC}
 
@@ -299,6 +309,20 @@ const RAIL_MAX = 8;
  * can override it, which is what makes the number changeable from a phone.
  */
 let TV_DAYS = 42;
+
+/*
+ * Standing slides, and how often one takes a turn.
+ *
+ * Both come down with the notice poll, so they can be changed from a phone and
+ * appear within a couple of minutes. SLIDE_EVERY is how many calendar days go
+ * by between slides: three means three days, a slide, three days, the next
+ * slide.
+ */
+let SLIDES = [];
+let SLIDE_EVERY = 3;
+
+/** The days the rotation is currently working through, so it can be restarted. */
+let CYCLE_DAYS = [];
 
 /** Today, as YYYY-MM-DD, for comparing against a show-from date. */
 function todayISO(){
@@ -538,8 +562,37 @@ function featuredDays(byDay){
   return out;
 }
 
+/**
+ * A standing slide.
+ *
+ * A line reading "Greeter: Tim & Vivian Wiggs" is split at the colon, because
+ * somebody looking at this knows they want the greeter and is hunting for the
+ * word, not for the name.
+ */
+function showSlide(slide){
+  const spot = $("spot");
+  spot.className = "spot slide";
+  spot.style.transformOrigin = "50% 50%";
+
+  const lines = String(slide.body || "").split("\n")
+    .map(l => l.trim()).filter(Boolean)
+    .map(l => {
+      const at = l.indexOf(":");
+      return at > 0
+        ? "<p><b>" + esc(l.slice(0, at + 1)) + "</b> " + esc(l.slice(at + 1).trim()) + "</p>"
+        : "<p>" + esc(l) + "</p>";
+    }).join("");
+
+  spot.innerHTML =
+    (slide.title ? '<div class="slidehead">' + esc(slide.title) + "</div>" : "") +
+    '<div class="slidebody">' + lines + "</div>";
+  spot.classList.add("on");
+}
+
 function showSpot(day){
   const spot = $("spot");
+  // Back to the plain panel: the slide before this one left its own class on.
+  spot.className = "spot";
   const cell = document.querySelector('.day[data-day="' + day.key + '"]');
   const left = document.querySelector(".left");
 
@@ -578,19 +631,54 @@ function hideSpot(){
   document.querySelectorAll(".day.lit").forEach(c => c.classList.remove("lit"));
 }
 
+/**
+ * Whose turn is it: a day from the calendar, or a standing slide?
+ *
+ * Kept apart from the timers and the DOM so the order can be tested, because
+ * the order is the whole design and it is invisible on a screen that changes
+ * every fourteen seconds.
+ *
+ * Both lists wrap independently, so the slides take their turns in rotation
+ * rather than the first one coming up every time. Returns null only when there
+ * is nothing at all to show.
+ */
+function pickTurn(state, dayCount, slideCount, every){
+  // With nothing on the calendar the slides carry the screen on their own.
+  // Otherwise a quiet January would sit on a frozen grid.
+  const wantSlide = slideCount > 0 && (dayCount === 0 || state.since >= every);
+
+  if (wantSlide){
+    return {
+      kind: "slide",
+      index: state.slide % slideCount,
+      next: { day: state.day, slide: (state.slide + 1) % slideCount, since: 0 },
+    };
+  }
+  if (!dayCount) return null;
+  return {
+    kind: "day",
+    index: state.day % dayCount,
+    next: { day: (state.day + 1) % dayCount, slide: state.slide, since: state.since + 1 },
+  };
+}
+
 function runCycle(days){
   clearTimeout(cycleTimer);
   hideSpot();
-  if (!days.length) return;
+  CYCLE_DAYS = days;
+  if (!days.length && !SLIDES.length) return;
 
-  let i = 0;
+  let state = { day: 0, slide: 0, since: 0 };
   const step = () => {
     // Hold on the plain grid first. This pause is the whole reason somebody
     // can walk up, find their own date, and leave without waiting.
     hideSpot();
     cycleTimer = setTimeout(() => {
-      showSpot(days[i % days.length]);
-      i++;
+      const turn = pickTurn(state, days.length, SLIDES.length, SLIDE_EVERY);
+      if (!turn) return;
+      state = turn.next;
+      if (turn.kind === "slide") showSlide(SLIDES[turn.index]);
+      else showSpot(days[turn.index]);
       cycleTimer = setTimeout(step, HOLD_SPOT + ZOOM_MS);
     }, HOLD_GRID);
   };
@@ -667,6 +755,16 @@ async function loadNotice(){
       TV_DAYS = out.tvDays;
       renderRail();
       layoutRail();
+    }
+
+    // Only when they actually changed. Restarting the rotation every two
+    // minutes would mean the later slides never came round at all.
+    const deck = JSON.stringify(out.slides || []);
+    const every = out.slideEvery || SLIDE_EVERY;
+    if (deck !== JSON.stringify(SLIDES) || every !== SLIDE_EVERY){
+      SLIDES = out.slides || [];
+      SLIDE_EVERY = every;
+      runCycle(CYCLE_DAYS);
     }
   } catch {
     // Leave whatever is on screen. A missed poll is not news, and blanking a

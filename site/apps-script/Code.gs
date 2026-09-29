@@ -46,7 +46,7 @@
  * file is handed over: the date, plus a letter if more than one goes out that
  * day.
  */
-var VERSION = '2026-09-11a';
+var VERSION = '2026-09-29a';
 
 var SITE = 'https://calendars.greaterlifebaptistchurch.com';
 var EVENTS_JSON = SITE + '/events.json';
@@ -72,6 +72,20 @@ var RSVPS_TAB = 'RSVPs';
  * fallback than a value only this page can see.
  */
 var SETTINGS_TAB = 'Settings';
+
+/**
+ * Standing slides for the wall display.
+ *
+ * Things worth saying that are not events: who to see about serving, how to
+ * give. They take their turn in the same rotation the calendar days go
+ * through, so the month grid and the "Coming up" list stay on screen around
+ * them.
+ *
+ * A tab rather than a settings row, because it is a list that will grow and
+ * somebody may want to reorder it in the sheet. Row order is slide order.
+ */
+var SLIDES_TAB = 'Slides';
+var SLIDES_MAX = 12;
 
 /**
  * Fallback spreadsheet id, for a script that is not bound to the sheet.
@@ -307,7 +321,7 @@ function doGet() {
       'contacts', 'rsvp', 'admin.rsvps', 'notice', 'admin.notice', 'admin.settings',
       'card.mail', 'admin.makecard',
       'config', 'admin.leaders', 'admin.addleader', 'admin.removeleader',
-      'admin.setleader', 'admin.rsvpdigest'
+      'admin.setleader', 'admin.rsvpdigest', 'admin.slides'
     ],
     adminReady: !!adminPasscode_(),
     signIn: signInHealth_(),
@@ -403,6 +417,7 @@ function route_(action, body) {
     if (action === 'admin.removeleader') return handleAdminRemoveLeader_(body);
     if (action === 'admin.setleader')    return handleAdminSetLeader_(body);
     if (action === 'admin.rsvpdigest')   return handleAdminRsvpDigest_(body);
+    if (action === 'admin.slides')       return handleAdminSlides_(body);
     return json_({ ok: false, error: 'Unknown action.' });
   } catch (err) {
     return json_({ ok: false, error: String(err && err.message ? err.message : err) });
@@ -1369,6 +1384,58 @@ function rsvpHealth_() {
   return out;
 }
 
+/**
+ * Read the slides, or replace the lot.
+ *
+ * Replace-all rather than edit-one: the list is short, the page holds all of
+ * it on screen at once, and row order is slide order — which makes "move this
+ * one up" an ordinary part of saving rather than its own action.
+ */
+function handleAdminSlides_(body) {
+  var bad = checkAdmin_(body, 'notices');
+  if (bad) return bad;
+
+  if (body.read) {
+    return json_({ ok: true, slides: slides_(), slideEvery: slideEvery_() });
+  }
+
+  if (body.slideEvery !== undefined) {
+    var every3 = Math.round(Number(body.slideEvery));
+    if (!every3 || every3 < 1 || every3 > 20) {
+      return json_({ ok: false, error: 'Show one after every 1 to 20 days.' });
+    }
+    writeSetting_('tvSlideEvery', String(every3),
+      'How many calendar days the TV shows between standing slides.');
+  }
+
+  var wanted = Array.isArray(body.slides) ? body.slides : null;
+  if (!wanted) return json_({ ok: false, error: 'Nothing to save.' });
+  if (wanted.length > SLIDES_MAX) {
+    return json_({ ok: false, error: 'That is more than ' + SLIDES_MAX + ' slides.' });
+  }
+
+  var rows = [];
+  for (var i = 0; i < wanted.length; i++) {
+    var title = String((wanted[i] && wanted[i].title) || '').trim();
+    var text = String((wanted[i] && wanted[i].body) || '').trim();
+    // An empty one is a row somebody added and did not fill in. Dropping it
+    // quietly is kinder than refusing the whole save over it.
+    if (!title && !text) continue;
+    if (title.length > 80) return json_({ ok: false, error: 'A slide heading is too long.' });
+    if (text.length > 600) {
+      return json_({ ok: false, error: 'A slide is longer than a wall can hold. Split it in two.' });
+    }
+    rows.push([title, text, 'yes']);
+  }
+
+  var sheet = slidesSheet_();
+  var last = sheet.getLastRow();
+  if (last > 1) sheet.deleteRows(2, last - 1);
+  for (var r = 0; r < rows.length; r++) sheet.appendRow(rows[r]);
+
+  return json_({ ok: true, slides: slides_(), slideEvery: slideEvery_() });
+}
+
 /** What the admin page needs to know before anybody has said who they are. */
 function handleConfig_() {
   return json_({
@@ -1851,6 +1918,46 @@ function handleAdminRemove_(body) {
 
 function settingsSheet_() { return tab_(SETTINGS_TAB, ['key', 'value', 'what it is']); }
 
+function slidesSheet_() { return tab_(SLIDES_TAB, ['title', 'body', 'active']); }
+
+/**
+ * The slides the wall should rotate through, in order.
+ *
+ * Blank "active" means yes, the same as Contacts and Leaders: a new row works
+ * without ceremony, and switching one off takes a deliberate word. A row with
+ * neither title nor body is somebody half way through typing, not a slide.
+ */
+function slides_() {
+  var sheet = slidesSheet_();
+  var last = sheet.getLastRow();
+  if (last < 2) return [];
+  var rows = sheet.getRange(2, 1, last - 1, 3).getValues();
+  var out = [];
+  for (var i = 0; i < rows.length && out.length < SLIDES_MAX; i++) {
+    var title = String(rows[i][0] || '').trim();
+    var body = String(rows[i][1] || '').trim();
+    var active = String(rows[i][2] || '').trim();
+    if (!title && !body) continue;
+    if (active && /^(no|n|off|false|0)$/i.test(active)) continue;
+    out.push({ title: title, body: body });
+  }
+  return out;
+}
+
+/**
+ * How many calendar days go by between standing slides.
+ *
+ * Three means three days then a slide, then three days then the next slide.
+ * Counter-intuitively this wants to get smaller as slides are added, not
+ * bigger: the share of the screen they take is fixed by this number, but each
+ * individual slide comes round more rarely the more there are of them.
+ */
+function slideEvery_() {
+  var raw = Math.round(Number(readSetting_('tvSlideEvery')));
+  if (!raw || raw < 1) return 3;
+  return Math.min(20, raw);
+}
+
 function readSetting_(key) {
   var sheet = settingsSheet_();
   var last = sheet.getLastRow();
@@ -1893,7 +2000,8 @@ function handleAdminSettings_(body) {
       ok: true,
       cardNotes: readSetting_('cardNotes'),
       cardEmail: readSetting_('cardEmail'),
-      tvDays: tvDays_()
+      tvDays: tvDays_(),
+      tvSlideEvery: slideEvery_()
     });
   }
 
@@ -1903,6 +2011,15 @@ function handleAdminSettings_(body) {
       return json_({ ok: false, error: 'Give it somewhere between 7 and 400 days.' });
     }
     PropertiesService.getScriptProperties().setProperty('TV_DAYS', String(days));
+  }
+
+  if (body.tvSlideEvery !== undefined) {
+    var every2 = Math.round(Number(body.tvSlideEvery));
+    if (!every2 || every2 < 1 || every2 > 20) {
+      return json_({ ok: false, error: 'Give it a number between 1 and 20.' });
+    }
+    writeSetting_('tvSlideEvery', String(every2),
+      'How many calendar days the TV shows between standing slides.');
   }
 
   if (body.cardNotes !== undefined) {
@@ -1928,6 +2045,7 @@ function handleAdminSettings_(body) {
 
   return json_({
     ok: true,
+    tvSlideEvery: slideEvery_(),
     cardNotes: readSetting_('cardNotes'),
     cardEmail: readSetting_('cardEmail')
   });
@@ -2187,20 +2305,30 @@ function tvDays_() {
 
 function handleNotice_(body) {
   var days = tvDays_();
+  // Carried on the poll the wall already makes, so slides reach it within a
+  // couple of minutes without a second request. Like the notice, they are
+  // readable by anyone: this action has no sign-in, and what it returns is
+  // already on a screen in the foyer.
+  var deck = slides_();
+  var every = slideEvery_();
   var n = readNotice_();
-  if (!n) return json_({ ok: true, notice: null, tvDays: days });
+  if (!n) {
+    return json_({ ok: true, notice: null, tvDays: days, slides: deck, slideEvery: every });
+  }
 
   // Shown through the END of the chosen day, not from some time on it. "Until
   // Sunday" means Sunday, and a notice vanishing mid-service would be worse
   // than one lingering an afternoon.
   if (n.until && n.until < todayLocal_()) {
-    return json_({ ok: true, notice: null, tvDays: days });
+    return json_({ ok: true, notice: null, tvDays: days, slides: deck, slideEvery: every });
   }
 
   return json_({
     ok: true,
     notice: { text: n.text, until: n.until || '' },
-    tvDays: days
+    tvDays: days,
+    slides: deck,
+    slideEvery: every
   });
 }
 

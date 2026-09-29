@@ -170,6 +170,13 @@ you want; "the file" means it will be lost the next time somebody pastes a new
 with a 403. The `detail` field says which half is missing. It is checked here
 so that shows up now rather than the first time somebody adds something real.
 
+## The Notices tab
+
+Two headings. **On the TV** holds the wall notice, how far ahead the rail
+looks, and the standing slides that take their turn in the rotation —
+docs/TV.md covers what those do. **On the printed card** holds the standing
+notes and who the card is emailed to.
+
 ## Getting in
 
 Two doors, and they are not equal.

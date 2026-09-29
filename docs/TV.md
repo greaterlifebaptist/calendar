@@ -89,6 +89,59 @@ stands watching the men's calendar for twenty seconds.
 `?ministry=` should still filter, so a future tablet in the youth building can
 show youth and church-wide only.
 
+## Standing slides
+
+Things worth saying that are not events — who to see about serving, how to
+give — take their turn in the same rotation the calendar days go through. The
+month grid and "Coming up" stay on screen around them, which is the reason
+they live here rather than in a separate slideshow that would replace the
+calendar while it played.
+
+They are edited on the Notices tab of the admin page, under **On the TV**, and
+stored on a **Slides** tab in the sheet: title, body, active. Row order is
+slide order. Blank "active" means yes, like Contacts and Leaders. They reach
+the wall on the notice poll it already makes, so a change appears within a
+couple of minutes.
+
+A line with a colon in it is split, and the part before the colon is coloured
+differently — "Greeter: Tim & Vivian Wiggs". Somebody reading this knows they
+want the greeter and is hunting for the word, not for the name.
+
+### The rhythm
+
+`Show one after every` is how many calendar days go by between slides, three by
+default: three days, a slide, three days, the **next** slide. The slides take
+turns rather than the first one coming up every time.
+
+The number wants to get *smaller* as slides are added, not bigger, which is the
+opposite of what it sounds like. The share of the screen they take is fixed by
+it either way, but each individual slide comes round more rarely the more there
+are. One turn is about fourteen seconds, so at every-third:
+
+| Slides | Each one comes back every |
+|---|---|
+| 2 | ~1.8 minutes |
+| 4 | ~3.7 minutes |
+| 6 | ~5.5 minutes |
+
+At six slides and every-fifth, a single slide would only reappear every eight
+minutes, and the last one would be seen by almost nobody.
+
+**With nothing on the calendar the slides carry the screen on their own.**
+Without that, a quiet January would sit on a frozen grid, which reads as
+broken rather than as quiet. With no slides set, the rotation behaves exactly
+as it did before they existed.
+
+The one risk is the opposite of the wall notice's. A notice that lingers is
+obvious; a serving list quietly goes wrong when somebody stops greeting and
+their name stays up for a year. Nothing technical fixes that — it is worth
+looking at the tab a couple of times a year.
+
+Note that the action the TV calls to fetch these has no sign-in, so the slides
+are readable by anyone who finds the endpoint. They are already on a screen in
+a public foyer, but it is a reason not to put anything on one that should not
+be.
+
 ## What reaches the rail
 
 Events from whichever ministries are showing, soonest first, **within the next
