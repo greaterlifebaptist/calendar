@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-26T00:28:37.687Z",
+  "generated": "2026-10-01T04:25:46.111Z",
   "timezone": "America/New_York",
   "feeds": {
     "base": "https://calendars.greaterlifebaptistchurch.com/feeds/",
@@ -36,92 +36,6 @@
     }
   ],
   "events": [
-    {
-      "uid": "l7fieo1cjso8d858jnuc2bgl20@google.com",
-      "ministry": "children",
-      "type": "event",
-      "title": "Grandparent’s Day",
-      "start": "2026-09-13T09:00:00",
-      "end": "2026-09-13T10:15:00",
-      "location": "Fellowship Hall",
-      "contact": "Andrea Hutchins and Michelle Jenson",
-      "link": "https://forms.cloud.microsoft/Pages/ResponsePage.aspx?id=DQSIkWdsW0yxEjajBLZtrQAAAAAAAAAAAAN__hY3zQFUOURMQjE5R0ZWNzIxU1VLV05MQlRMVlZDWS4u",
-      "linkText": "Details"
-    },
-    {
-      "uid": "jhrefasg3q4q1rrqdsovs3hsmk@google.com",
-      "ministry": "youth",
-      "type": "event",
-      "title": "Youth Revival",
-      "start": "2026-09-17T19:00:00",
-      "end": "2026-09-17T20:15:00",
-      "location": "Santuary",
-      "notes": "Guest Evan Scofield preaching! Be sure to invite friends to attend!",
-      "contact": "Spencer Welch"
-    },
-    {
-      "uid": "7qrjsamrrgnd726r7m4nmvrvi8@google.com",
-      "ministry": "youth",
-      "type": "event",
-      "title": "Youth Revival & Bonfire",
-      "start": "2026-09-18T19:00:00",
-      "end": "2026-09-18T22:00:00",
-      "location": "Santuary",
-      "notes": "Youth and adults invited to attend Youth Revival Night 2! We will have Evan Scofield back with us and have food, fellowship, and a bonfire afterwards!",
-      "contact": "Spencer Welch"
-    },
-    {
-      "uid": "9jcse5nv2n7ng9h47v4m5q8ii8@google.com",
-      "ministry": "youth",
-      "type": "event",
-      "title": "Youth Revival & Kickball Game",
-      "start": "2026-09-19T18:00:00",
-      "end": "2026-09-19T21:00:00",
-      "location": "Santuary",
-      "notes": "Youth and adults invited to attend Youth Revival Night 3! We will have Travis Kiriluk with us and have food, fellowship, and a kids vs parents kickball game afterwards!",
-      "contact": "Spencer Welch"
-    },
-    {
-      "uid": "aj9l64m06og7ppgr5b7fhg8p84@google.com",
-      "ministry": "youth",
-      "type": "event",
-      "title": "Youth Parent Meeting",
-      "start": "2026-09-19T20:00:00",
-      "end": "2026-09-19T21:00:00",
-      "location": "Fellowship Hall",
-      "notes": "URGENT! Youth Parent Meeting following Kids vs Parents Kickball Game on last night of Youth Revival!",
-      "contact": "Spencer Welch"
-    },
-    {
-      "uid": "3rfjdbbq5iuc363rs65046jp5c@google.com",
-      "ministry": "church",
-      "type": "event",
-      "title": "Youth Led Sunday",
-      "start": "2026-09-20T11:00:00",
-      "end": "2026-09-20T12:15:00",
-      "notes": "The Youth will be leading and serving in multiple ministries today! Please encourage them and come ready to worship with them!"
-    },
-    {
-      "uid": "2bmr2om5ca65k48ac8c9lbe9gc@google.com",
-      "ministry": "youngadults",
-      "type": "event",
-      "title": "Ice Cream Social",
-      "start": "2026-09-25T18:00:00",
-      "end": "2026-09-25T20:00:00",
-      "location": "Brusters, Whittlesey Rd",
-      "notes": "Young Adults 18+ join us for a sweet treat and fellowship",
-      "contact": "JC Cross"
-    },
-    {
-      "uid": "73himikvs1ntetserfhshv64pg@google.com",
-      "ministry": "church",
-      "type": "event",
-      "title": "Greater Things Offering",
-      "start": "2026-09-27T11:00:00",
-      "end": "2026-09-27T12:00:00",
-      "notes": "We will be receiving an offering towards the new sanctuary building!",
-      "contact": "JC Cross"
-    },
     {
       "uid": "1n6g9up6k4n57j8066um1odmfd@google.com",
       "ministry": "mens",
