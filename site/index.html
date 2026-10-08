@@ -128,6 +128,8 @@ body{background:var(--ivory);color:var(--ink);font-family:var(--body);font-size:
 .rsvpform .fields{display:flex;flex-wrap:wrap;gap:8px}
 .rsvpform label{flex:1;min-width:130px;font-size:.76rem;font-weight:700;color:var(--ink-soft)}
 .rsvpform label.wide{flex-basis:100%}
+.rsvpform label.num{flex:1;min-width:96px}
+.rsvpform label .opt{font-weight:400;color:var(--ink-soft)}
 .rsvpform input{width:100%;margin-top:3px;font-family:var(--body);font-size:.95rem;padding:8px 10px;border:1.5px solid var(--rule);border-radius:7px;background:#fff;color:var(--ink)}
 .rsvpform input:focus{outline:2px solid var(--sun);outline-offset:1px}
 .rsvpform .go{margin-top:10px;display:flex;gap:9px;align-items:center;flex-wrap:wrap}
@@ -557,8 +559,10 @@ function addRsvp(card, e){
     form.innerHTML =
       '<p class="ask">Let ' + esc(e.contact) + ' know you are coming.</p>' +
       '<div class="fields">' +
-        '<label>Your name<input type="text" class="r-name" maxlength="80" autocomplete="name"></label>' +
-        '<label>How many<input type="number" class="r-count" min="1" max="99" value="1" inputmode="numeric"></label>' +
+        '<label class="wide">Your name<input type="text" class="r-name" maxlength="80" autocomplete="name"></label>' +
+        '<label class="num">Adults<input type="number" class="r-adults" min="0" max="99" value="1" inputmode="numeric"></label>' +
+        '<label class="num">Children <span class="opt">(if any)</span>' +
+          '<input type="number" class="r-kids" min="0" max="99" placeholder="0" inputmode="numeric"></label>' +
         '<label class="wide">Phone <span style="font-weight:400">(optional)</span>' +
           '<input type="tel" class="r-phone" maxlength="30" autocomplete="tel"></label>' +
         '<label class="wide">Anything they should know <span style="font-weight:400">(optional)</span>' +
@@ -571,7 +575,12 @@ function addRsvp(card, e){
     const last = saved();
     if (last){
       form.querySelector(".r-name").value = last.name || "";
-      form.querySelector(".r-count").value = last.count || 1;
+      // Answers remembered before the form asked separately have a total and
+      // nothing else. Putting that total in "adults" keeps the number right,
+      // and they can move some of it across if they want to.
+      form.querySelector(".r-adults").value =
+        last.adults !== undefined ? last.adults : (last.count || 1);
+      form.querySelector(".r-kids").value = last.kids || "";
       form.querySelector(".r-phone").value = last.phone || "";
       form.querySelector(".r-note").value = last.note || "";
     }
@@ -581,11 +590,17 @@ function addRsvp(card, e){
     const send = form.querySelector("button");
     send.addEventListener("click", async () => {
       const name = form.querySelector(".r-name").value.trim();
-      const count = parseInt(form.querySelector(".r-count").value, 10);
+      // Children is not a required box, so an empty one is nought. What has to
+      // add up to at least one is the total, not the adults: somebody sending
+      // two children and not staying themselves is an ordinary answer.
+      const adults = Math.max(0, parseInt(form.querySelector(".r-adults").value, 10) || 0);
+      const kids = Math.max(0, parseInt(form.querySelector(".r-kids").value, 10) || 0);
+      const count = adults + kids;
       const phone = form.querySelector(".r-phone").value.trim();
       const note = form.querySelector(".r-note").value.trim();
       if (name.length < 2){ st.className = "st err"; st.textContent = "Please put your name."; return; }
       if (!(count >= 1)){ st.className = "st err"; st.textContent = "How many are coming?"; return; }
+      if (count > 99){ st.className = "st err"; st.textContent = "That is more than this form can take — ring instead."; return; }
 
       send.disabled = true;
       st.className = "st";
@@ -599,14 +614,15 @@ function addRsvp(card, e){
             eventId: e.uid,
             starts: e.start,
             name: name,
-            count: count,
+            adults: adults,
+            children: kids,
             phone: phone,
             note: note,
           }),
         });
         const out = await res.json();
         if (!out.ok) throw new Error(out.error || "That did not go through.");
-        rememberRsvp(e, { name, count, phone, note });
+        rememberRsvp(e, { name, count, adults, kids, phone, note });
         form.remove();
         btn.hidden = false;
         btn.classList.add("done");

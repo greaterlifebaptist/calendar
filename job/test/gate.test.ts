@@ -88,6 +88,7 @@ type Script = {
   sendRsvpDigest_: (force: boolean) => number;
   handleAdminSlides_: (body: Body) => Reply;
   handleAdminUpload_: (body: Body) => Reply;
+  handleRsvp_: (body: Body) => Reply;
   wallSlides_: () => Array<Record<string, string>>;
   handleNotice_: (body: Body) => Reply;
   sameStart_: (a: unknown, b: unknown) => boolean;
@@ -140,6 +141,15 @@ function world(): World {
         if (url.includes('api.github.com')) {
           github.push({ url, payload: JSON.parse(String(options?.payload || '{}')) });
           return { getResponseCode: () => 201, getContentText: () => '{}' };
+        }
+        if (url.includes('events.json')) {
+          return {
+            getResponseCode: () => 200,
+            getContentText: () => JSON.stringify({ events: [{
+              uid: 'ev1', start: '2099-09-18T19:00:00', title: 'Fall Festival',
+              ministry: 'youth', contact: 'Spencer Welch',
+            }] }),
+          };
         }
         if (url.includes('ministries.json')) {
           return {
@@ -194,6 +204,9 @@ function world(): World {
     MailApp: {
       sendEmail: (message: Record<string, unknown>) => { mail.push(message); },
     },
+    LockService: {
+      getScriptLock: () => ({ waitLock: () => {}, releaseLock: () => {} }),
+    },
     Session: { getActiveUser: () => ({ getEmail: () => '' }) },
   };
 
@@ -223,6 +236,7 @@ function world(): World {
         sendRsvpDigest_: fresh(sendRsvpDigest_),
         handleAdminSlides_: fresh(handleAdminSlides_),
         handleAdminUpload_: fresh(handleAdminUpload_),
+        handleRsvp_: fresh(handleRsvp_),
         wallSlides_: fresh(wallSlides_),
         handleNotice_: fresh(handleNotice_),
         sameStart_: sameStart_,
@@ -666,7 +680,11 @@ test('the digest measures from its last run, not from the calendar date', () => 
 
   assert.equal(code.includes('todayKey_'), false,
     'the digest is back to comparing calendar dates');
-  assert.ok(code.includes('new Date(rows[i][0]) > since'),
+  // Read by column name now, but the rule is the same one: newer than the
+  // last run, not "recorded on todays date".
+  assert.ok(code.includes("rsvpCell_(rows[i], headers, 'when')"),
+    'the digest reads the timestamp by position again');
+  assert.ok(code.includes('new Date(at) > since'),
     'the digest no longer measures from its last run');
   assert.ok(code.includes("props.setProperty(DIGEST_MARK, now.toISOString())"),
     'the run is not recorded, so the next one has no window to measure');
@@ -994,4 +1012,125 @@ test('uploading says so plainly when it was never set up', () => {
   });
   assert.equal(out.json.ok, false);
   assert.match(String(out.json.error), /not set up/);
+});
+
+// ---------------------------------------------------------------------------
+// how many adults, how many children
+// ---------------------------------------------------------------------------
+
+const EVENT = { eventId: 'ev1', starts: '2099-09-18T19:00:00' };
+
+function rsvp(w: World, answer: Record<string, unknown>): Reply {
+  return w.script.handleRsvp_({ action: 'rsvp', ...EVENT, ...answer });
+}
+
+function onlyRow(w: World): Record<string, unknown> {
+  const list = w.script.handleAdminRsvps_({ action: 'admin.rsvps', ...PASS })
+    .json.rsvps as Array<Record<string, unknown>>;
+  assert.equal(list.length, 1, 'expected exactly one response');
+  return list[0];
+}
+
+test('the total is what rules, and it is the two added up', () => {
+  const w = world();
+  assert.equal(rsvp(w, { name: 'Spencer Welch', adults: 2, children: 3 }).json.ok, true);
+  const row = onlyRow(w);
+  assert.equal(row.count, 5, 'the total is what every tally already reads');
+  assert.equal(row.adults, 2);
+  assert.equal(row.children, 3);
+});
+
+test('children is not a required box', () => {
+  const w = world();
+  assert.equal(rsvp(w, { name: 'Just Me', adults: 1 }).json.ok, true);
+  const row = onlyRow(w);
+  assert.equal(row.count, 1);
+  assert.equal(row.children, 0);
+});
+
+test('a parent sending children and not staying is an ordinary answer', () => {
+  // The reason the total is what must reach one, rather than the adults.
+  const w = world();
+  assert.equal(rsvp(w, { name: 'Dropping Off', adults: 0, children: 2 }).json.ok, true);
+  const row = onlyRow(w);
+  assert.equal(row.count, 2);
+  assert.equal(row.adults, 0);
+  assert.equal(row.children, 2);
+});
+
+test('nobody at all is still refused', () => {
+  const w = world();
+  const out = rsvp(w, { name: 'Nobody', adults: 0, children: 0 });
+  assert.equal(out.json.ok, false);
+  assert.match(String(out.json.error), /How many are coming/);
+});
+
+test('a page that only knows how to send a total is still accepted', () => {
+  // The site and the endpoint deploy separately, so there is always a window
+  // where one is newer. An RSVP lost in it is a family who think they replied.
+  const w = world();
+  assert.equal(rsvp(w, { name: 'Old Page', count: 4 }).json.ok, true);
+  const row = onlyRow(w);
+  assert.equal(row.count, 4);
+  // And it must not come back claiming they brought no children.
+  assert.equal('adults' in row, false);
+  assert.equal('children' in row, false);
+});
+
+test('answering again replaces the split as well as the number', () => {
+  const w = world();
+  rsvp(w, { name: 'Spencer Welch', adults: 2, children: 2 });
+  const second = rsvp(w, { name: 'spencer welch', adults: 2, children: 0 });
+  assert.equal(second.json.updated, true, 'it should have replaced, not added');
+  const row = onlyRow(w);
+  assert.equal(row.count, 2);
+  assert.equal(row.children, 0);
+});
+
+test('the split is written to the right columns on a tab that predates it', () => {
+  const w = world();
+  // The RSVPs tab as every church already has it.
+  const old = w.book.insertSheet('RSVPs');
+  old.appendRow(['when', 'eventId', 'starts', 'event', 'ministry',
+    'name', 'count', 'phone', 'note', 'contact']);
+
+  rsvp(w, { name: 'Spencer Welch', adults: 2, children: 3, phone: '555' });
+
+  const headers = (old.rows[0] as string[]).map(String);
+  assert.ok(headers.includes('adults') && headers.includes('children'));
+  const row = onlyRow(w);
+  // Written by name: a fixed order would have put the adults under "contact".
+  assert.equal(row.adults, 2);
+  assert.equal(row.children, 3);
+  assert.equal(row.contact, 'Spencer Welch');
+  assert.equal(row.phone, '555');
+});
+
+test('the email adds the split up only when every answer said', () => {
+  const w = world();
+  const contacts = w.book.insertSheet('Contacts');
+  contacts.appendRow(['name', 'email', 'active']);
+  contacts.appendRow(['Spencer Welch', 'spencerwel2@gmail.com', 'yes']);
+
+  rsvp(w, { name: 'A Family', adults: 2, children: 2 });
+  rsvp(w, { name: 'B Family', adults: 1, children: 0 });
+
+  w.script.sendRsvpDigest_(true);
+  let body = String(w.mail[0].body);
+  assert.match(body, /5 coming \(3 adults, 2 children\), 2 responses/);
+  assert.match(body, /A Family — 4 \(2 adults, 2 children\)/);
+  assert.match(body, /B Family — 1 \(1 adult\)/);
+
+  // Now one answer with no split at all. Printing "5 coming (3 adults, 2
+  // children)" beside a total of eight would read as a miscount rather than
+  // as missing information, so the breakdown is dropped from the total.
+  rsvp(w, { name: 'C Family', count: 3 });
+  w.mail.length = 0;
+  w.script.sendRsvpDigest_(true);
+  body = String(w.mail[0].body);
+  assert.match(body, /8 coming, 3 responses/);
+  assert.equal(/8 coming \(/.test(body), false);
+  // The ones that did say still say so on their own line.
+  assert.match(body, /A Family — 4 \(2 adults, 2 children\)/);
+  assert.match(body, /C Family — 3\n/);
 });

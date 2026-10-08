@@ -46,7 +46,7 @@
  * file is handed over: the date, plus a letter if more than one goes out that
  * day.
  */
-var VERSION = '2026-09-29b';
+var VERSION = '2026-10-07a';
 
 var SITE = 'https://calendars.greaterlifebaptistchurch.com';
 var EVENTS_JSON = SITE + '/events.json';
@@ -2606,11 +2606,67 @@ function tab_(name, headers) {
 }
 
 function contactsSheet_() { return tab_(CONTACTS_TAB, ['name', 'email', 'active']); }
+var RSVP_COLUMNS = [
+  'when', 'eventId', 'starts', 'event', 'ministry',
+  'name', 'count', 'phone', 'note', 'contact', 'adults', 'children'
+];
+
+/**
+ * The RSVPs tab, with the columns this version needs.
+ *
+ * Adults and children arrived long after the tab did, so every sheet in use
+ * is missing them. They are added on the way past, the same as the Leaders and
+ * Slides tabs, and appended on the end — which is exactly why nothing here may
+ * read a row by counting from the left.
+ *
+ * `count` stays, and stays the total. Everything downstream reads it: the
+ * tally on the leaders page, the number in the morning email, and the "you are
+ * down for four" on the button. Splitting it in two would have meant changing
+ * all of them and invalidating every row already recorded.
+ */
 function rsvpsSheet_() {
-  return tab_(RSVPS_TAB, [
-    'when', 'eventId', 'starts', 'event', 'ministry',
-    'name', 'count', 'phone', 'note', 'contact'
-  ]);
+  var sheet = tab_(RSVPS_TAB, RSVP_COLUMNS);
+  var headers = headers_(sheet);
+  var missing = [];
+  for (var i = 0; i < RSVP_COLUMNS.length; i++) {
+    if (columnIndex_(headers, RSVP_COLUMNS[i]) === -1) missing.push(RSVP_COLUMNS[i]);
+  }
+  if (missing.length) {
+    sheet.getRange(1, headers.length + 1, 1, missing.length).setValues([missing]);
+  }
+  return sheet;
+}
+
+/** One field of one response, by column name. Never by position. */
+function rsvpCell_(row, headers, name) {
+  var at = columnIndex_(headers, name);
+  return at === -1 ? '' : row[at];
+}
+
+/**
+ * How many adults and how many children, when the answer said.
+ *
+ * Responses recorded before the form asked have a total and no split, and must
+ * not come back as "0 children" — that would be inventing something nobody
+ * said. Blank means unknown, which is why these are strings-or-null rather
+ * than numbers defaulting to zero.
+ */
+function rsvpSplit_(row, headers) {
+  var adults = String(rsvpCell_(row, headers, 'adults') || '').trim();
+  var kids = String(rsvpCell_(row, headers, 'children') || '').trim();
+  if (adults === '' && kids === '') return null;
+  return { adults: Number(adults) || 0, children: Number(kids) || 0 };
+}
+
+/** "2 adults, 1 child", or nothing at all when the answer did not say. */
+function splitWords_(split) {
+  if (!split) return '';
+  var bits = [];
+  if (split.adults) bits.push(split.adults + ' adult' + (split.adults === 1 ? '' : 's'));
+  if (split.children) {
+    bits.push(split.children + (split.children === 1 ? ' child' : ' children'));
+  }
+  return bits.join(', ');
 }
 
 /**
@@ -2731,7 +2787,25 @@ function handleRsvp_(body) {
   var eventId = String(body.eventId || '').trim();
   var starts = String(body.starts || '').trim();
   var name = String(body.name || '').trim();
-  var count = parseInt(body.count, 10);
+
+  /*
+   * Adults and children, with the total still the number that rules.
+   *
+   * Children is not a required box, so a blank one is nought rather than a
+   * refusal. The total is what must be at least one, not the adults — a parent
+   * sending two children and not staying is an ordinary answer, and requiring
+   * an adult would have turned it into an argument with a form.
+   *
+   * A page that only knows how to send a total is still accepted. The site and
+   * this endpoint deploy separately, so there is always a window where one is
+   * newer than the other, and an RSVP lost in that window is a family who
+   * thinks they have replied.
+   */
+  var saidSplit = body.adults !== undefined || body.children !== undefined;
+  var adults = Math.max(0, parseInt(body.adults, 10) || 0);
+  var kids = Math.max(0, parseInt(body.children, 10) || 0);
+  var count = saidSplit ? adults + kids : parseInt(body.count, 10);
+
   var phone = String(body.phone || '').trim();
   var note = String(body.note || '').trim();
 
@@ -2758,10 +2832,29 @@ function handleRsvp_(body) {
   try {
     var sheet = rsvpsSheet_();
     var headers = headers_(sheet);
-    var row = [
-      new Date(), eventId, starts, event.title || '', event.ministry || '',
-      name, count, phone, note, event.contact || ''
-    ];
+
+    // Built to the sheet's own column order. Adults and children were appended
+    // on the end of a tab that already existed, so a fixed order here would
+    // file them under whatever happened to be in those positions.
+    var values = {
+      when: new Date(),
+      eventid: eventId,
+      starts: starts,
+      event: event.title || '',
+      ministry: event.ministry || '',
+      name: name,
+      count: count,
+      phone: phone,
+      note: note,
+      contact: event.contact || '',
+      adults: saidSplit ? adults : '',
+      children: saidSplit ? kids : ''
+    };
+    var row = [];
+    for (var h = 0; h < headers.length; h++) {
+      var key = headers[h].toLowerCase();
+      row.push(Object.prototype.hasOwnProperty.call(values, key) ? values[key] : '');
+    }
 
     // Answering again replaces the earlier answer rather than adding a second
     // one. People change their minds about numbers, and a leader counting a
@@ -2771,9 +2864,10 @@ function handleRsvp_(body) {
     if (last > 1) {
       var existing = sheet.getRange(2, 1, last - 1, headers.length).getValues();
       for (var r = 0; r < existing.length; r++) {
-        if (String(existing[r][1]) === eventId &&
-            sameStart_(existing[r][2], starts) &&
-            String(existing[r][5]).trim().toLowerCase() === name.toLowerCase()) {
+        if (String(rsvpCell_(existing[r], headers, 'eventId')) === eventId &&
+            sameStart_(rsvpCell_(existing[r], headers, 'starts'), starts) &&
+            String(rsvpCell_(existing[r], headers, 'name')).trim().toLowerCase()
+              === name.toLowerCase()) {
           sheet.getRange(r + 2, 1, 1, row.length).setValues([row]);
           replaced = true;
           break;
@@ -2804,42 +2898,55 @@ function handleAdminRsvps_(body) {
   var last = sheet.getLastRow();
   if (last < 2) return json_({ ok: true, rsvps: [] });
 
-  var rows = sheet.getRange(2, 1, last - 1, 10).getValues();
+  var headers = headers_(sheet);
+  var rows = sheet.getRange(2, 1, last - 1, headers.length).getValues();
   var out = [];
   // Where each person's latest answer for each occurrence ended up, so a
   // second attempt replaces the first here as well as in the email.
   var at = {};
   for (var i = 0; i < rows.length; i++) {
-    if (!String(rows[i][1] || '').trim()) continue;
+    if (!String(rsvpCell_(rows[i], headers, 'eventId') || '').trim()) continue;
     // A headcount is about somebody's own event. A scoped leader seeing every
     // other ministry's replies would be reading a list of names and phone
     // numbers that is none of their business.
-    if (!mayTouchMinistry_(rows[i][4])) continue;
+    if (!mayTouchMinistry_(rsvpCell_(rows[i], headers, 'ministry'))) continue;
 
-    var seenAt = rsvpKey_(rows[i][1], rows[i][2], rows[i][5]);
+    var seenAt = rsvpKey_(
+      rsvpCell_(rows[i], headers, 'eventId'),
+      rsvpCell_(rows[i], headers, 'starts'),
+      rsvpCell_(rows[i], headers, 'name'));
     if (at[seenAt] !== undefined) {
-      out[at[seenAt]] = rsvpRow_(rows[i]);
+      out[at[seenAt]] = rsvpRow_(rows[i], headers);
       continue;
     }
     at[seenAt] = out.length;
-    out.push(rsvpRow_(rows[i]));
+    out.push(rsvpRow_(rows[i], headers));
   }
   return json_({ ok: true, rsvps: out });
 }
 
-function rsvpRow_(row) {
-  return {
-    when: row[0] ? new Date(row[0]).toISOString() : '',
-    eventId: String(row[1]),
-    starts: startKey_(row[2]),
-    event: String(row[3] || ''),
-    ministry: String(row[4] || ''),
-    name: String(row[5] || ''),
-    count: Number(row[6]) || 0,
-    phone: String(row[7] || ''),
-    note: String(row[8] || ''),
-    contact: String(row[9] || '')
+function rsvpRow_(row, headers) {
+  var when = rsvpCell_(row, headers, 'when');
+  var split = rsvpSplit_(row, headers);
+  var out = {
+    when: when ? new Date(when).toISOString() : '',
+    eventId: String(rsvpCell_(row, headers, 'eventId')),
+    starts: startKey_(rsvpCell_(row, headers, 'starts')),
+    event: String(rsvpCell_(row, headers, 'event') || ''),
+    ministry: String(rsvpCell_(row, headers, 'ministry') || ''),
+    name: String(rsvpCell_(row, headers, 'name') || ''),
+    count: Number(rsvpCell_(row, headers, 'count')) || 0,
+    phone: String(rsvpCell_(row, headers, 'phone') || ''),
+    note: String(rsvpCell_(row, headers, 'note') || ''),
+    contact: String(rsvpCell_(row, headers, 'contact') || '')
   };
+  // Only when the answer said. An older response has a total and nothing else,
+  // and must not be reported as having brought no children.
+  if (split) {
+    out.adults = split.adults;
+    out.children = split.children;
+  }
+  return out;
 }
 
 // ---------------------------------------------------------------------------
@@ -2916,7 +3023,8 @@ function sendRsvpDigest_(force) {
   var last = sheet.getLastRow();
   if (last < 2) return 0;
 
-  var rows = sheet.getRange(2, 1, last - 1, 10).getValues();
+  var headers = headers_(sheet);
+  var rows = sheet.getRange(2, 1, last - 1, headers.length).getValues();
   var now = new Date();
 
   var props = PropertiesService.getScriptProperties();
@@ -2929,33 +3037,39 @@ function sendRsvpDigest_(force) {
   // contact -> event key -> { title, starts, ministry, people[], changed }
   var byContact = {};
   for (var i = 0; i < rows.length; i++) {
-    var contact = String(rows[i][9] || '').trim();
+    var contact = String(rsvpCell_(rows[i], headers, 'contact') || '').trim();
     if (!contact) continue;
 
-    var starts = String(rows[i][2] || '');
+    var starts = String(rsvpCell_(rows[i], headers, 'starts') || '');
     // A finished event is not something anybody still needs a headcount for.
     if (starts && new Date(starts) < now) continue;
 
-    var key = String(rows[i][1]) + '|' + starts;
+    var key = String(rsvpCell_(rows[i], headers, 'eventId')) + '|' + starts;
     if (!byContact[contact]) byContact[contact] = {};
     if (!byContact[contact][key]) {
       byContact[contact][key] = {
-        title: String(rows[i][3] || ''),
+        title: String(rsvpCell_(rows[i], headers, 'event') || ''),
         starts: starts,
-        ministry: String(rows[i][4] || ''),
+        ministry: String(rsvpCell_(rows[i], headers, 'ministry') || ''),
         people: [],
         total: 0,
+        adults: 0,
+        children: 0,
+        // Whether every answer here said how it was made up. One that did not
+        // means the split cannot be totalled honestly, see below.
+        allSaid: true,
         changed: false
       };
     }
     var entry = byContact[contact][key];
-    var who = String(rows[i][5] || '');
-    var count = Number(rows[i][6]) || 0;
+    var who = String(rsvpCell_(rows[i], headers, 'name') || '');
+    var count = Number(rsvpCell_(rows[i], headers, 'count')) || 0;
     var person = {
       name: who,
       count: count,
-      phone: String(rows[i][7] || ''),
-      note: String(rows[i][8] || '')
+      split: rsvpSplit_(rows[i], headers),
+      phone: String(rsvpCell_(rows[i], headers, 'phone') || ''),
+      note: String(rsvpCell_(rows[i], headers, 'note') || '')
     };
 
     // A later answer from the same person replaces their earlier one, rather
@@ -2970,14 +3084,24 @@ function sendRsvpDigest_(force) {
         break;
       }
     }
+    var splitOf = function (one) {
+      return one && one.split ? one.split : { adults: 0, children: 0 };
+    };
     if (already === -1) {
       entry.people.push(person);
       entry.total += count;
+      entry.adults += splitOf(person).adults;
+      entry.children += splitOf(person).children;
     } else {
-      entry.total += count - entry.people[already].count;
+      var was = entry.people[already];
+      entry.total += count - was.count;
+      entry.adults += splitOf(person).adults - splitOf(was).adults;
+      entry.children += splitOf(person).children - splitOf(was).children;
       entry.people[already] = person;
     }
-    if (force || (rows[i][0] && new Date(rows[i][0]) > since)) entry.changed = true;
+    if (!person.split) entry.allSaid = false;
+    var at = rsvpCell_(rows[i], headers, 'when');
+    if (force || (at && new Date(at) > since)) entry.changed = true;
   }
 
   for (var name in byContact) {
@@ -3000,12 +3124,20 @@ function sendRsvpDigest_(force) {
       var when = e.starts ? Utilities.formatDate(new Date(e.starts), 'America/New_York', 'EEEE d MMMM') : '';
       lines.push('');
       lines.push(e.title + (when ? '  —  ' + when : ''));
-      lines.push(e.total + ' coming, ' + e.people.length + ' response' + (e.people.length === 1 ? '' : 's'));
+      // The split is only added up when every answer said how it was made up.
+      // Mixing answers that did with answers that did not would print a total
+      // of seven beside "2 adults, 2 children", which reads as a miscount
+      // rather than as missing information.
+      var made = e.allSaid ? splitWords_({ adults: e.adults, children: e.children }) : '';
+      lines.push(e.total + ' coming' + (made ? ' (' + made + ')' : '') + ', ' +
+        e.people.length + ' response' + (e.people.length === 1 ? '' : 's'));
       lines.push('');
       e.people.sort(function (a, b) { return a.name.toLowerCase() < b.name.toLowerCase() ? -1 : 1; });
       for (var pi = 0; pi < e.people.length; pi++) {
         var person = e.people[pi];
-        var bits = ['  ' + person.name + ' — ' + person.count];
+        var saidHow = splitWords_(person.split);
+        var bits = ['  ' + person.name + ' — ' + person.count +
+          (saidHow ? ' (' + saidHow + ')' : '')];
         if (person.phone) bits.push('  ' + person.phone);
         if (person.note) bits.push('  "' + person.note + '"');
         lines.push(bits.join('\n'));

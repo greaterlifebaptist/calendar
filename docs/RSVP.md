@@ -3,6 +3,45 @@
 An event names somebody to respond to. People say they are coming and how
 many, and that person gets a headcount.
 
+## Adults and children
+
+The form asks for both. **Children is not a required box** — left empty it is
+nought, and the label says "(if any)" so nobody wonders whether they have to
+put something there.
+
+**What must add up to at least one is the total, not the adults.** A parent
+sending two children and not staying themselves is an ordinary answer, and
+requiring an adult would have turned it into an argument with a form.
+
+**The total is still the number that rules.** `count` remains, equal to adults
+plus children, and everything that already read it still does: the tally on the
+leaders' page, the number in the morning email, and the "you are down for four"
+on the button. Splitting the total in two would have meant changing all of them
+and invalidating every response already recorded.
+
+### Answers given before the form asked
+
+They have a total and no split, and they are never reported as having brought
+no children — that would be inventing something nobody said. They show as a
+plain total, and the two columns stay empty.
+
+This is also why **a breakdown is only added up when every answer in it said**.
+One older response among three would otherwise print "8 coming (3 adults, 2
+children)", which reads as a miscount rather than as missing information. The
+responses that did say still show their own split on their own line.
+
+### The columns
+
+`adults` and `children` were appended to the end of a tab that already existed,
+which is exactly why nothing in the RSVP path reads a row by counting from the
+left any more. Everything goes through the column name.
+
+### What "children" means
+
+The form does not say, and for catering or for ratios it matters. If you want
+an age on the label — "Children (12 and under)" — say the wording and it goes
+on the form. One word, decided once, rather than six families each guessing.
+
 ## Why the digest sends nothing
 
 Every part of this fails quietly, so this is the order to check it in. The
