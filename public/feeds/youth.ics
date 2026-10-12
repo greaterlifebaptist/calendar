@@ -162,24 +162,6 @@ SEQUENCE:0
 TRANSP:TRANSPARENT
 END:VEVENT
 BEGIN:VEVENT
-UID:luei4ph7q3ogm0fi987mc9o3ls@google.com
-DTSTAMP:20260910T140007Z
-DTSTART;TZID=America/New_York:20261114T110000
-DTEND;TZID=America/New_York:20261114T140000
-SUMMARY:Youth & Children's Ministry Pumpkin Bash
-DESCRIPTION:Pumpkin smashing\, launching\, and more! Come hang out to play 
- games and have a good time! The Children's ministry will be joining us for
-  this event!\n\nContact: Spencer Welch
-LOCATION:Church
-CATEGORIES:EVENT
-X-GLBC-MINISTRY:youth
-X-GLBC-TYPE:event
-CREATED:20260910T021549Z
-LAST-MODIFIED:20260910T140007Z
-SEQUENCE:0
-TRANSP:OPAQUE
-END:VEVENT
-BEGIN:VEVENT
 UID:j1bj9g3h4j7n5que5abmdvpp20@google.com
 DTSTAMP:20260910T163525Z
 DTSTART;VALUE=DATE:20261201
@@ -194,5 +176,23 @@ CREATED:20260910T020637Z
 LAST-MODIFIED:20260910T163525Z
 SEQUENCE:1
 TRANSP:TRANSPARENT
+END:VEVENT
+BEGIN:VEVENT
+UID:luei4ph7q3ogm0fi987mc9o3ls@google.com
+DTSTAMP:20261012T011823Z
+DTSTART;TZID=America/New_York:20261114T140000
+DTEND;TZID=America/New_York:20261114T160000
+SUMMARY:Youth & Children's Ministry Pumpkin Bash
+DESCRIPTION:Pumpkin smashing\, launching\, and more! Come hang out to play 
+ games and have a good time! The Children's ministry will be joining us for
+  this event!\n\nContact: Spencer Welch
+LOCATION:Church
+CATEGORIES:EVENT
+X-GLBC-MINISTRY:youth
+X-GLBC-TYPE:event
+CREATED:20260910T021549Z
+LAST-MODIFIED:20261012T011823Z
+SEQUENCE:1
+TRANSP:OPAQUE
 END:VEVENT
 END:VCALENDAR

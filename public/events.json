@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-11T18:02:11.885Z",
+  "generated": "2026-10-12T09:06:27.396Z",
   "timezone": "America/New_York",
   "feeds": {
     "base": "https://calendars.greaterlifebaptistchurch.com/feeds/",
@@ -122,8 +122,8 @@
       "ministry": "youth",
       "type": "event",
       "title": "Youth & Children's Ministry Pumpkin Bash",
-      "start": "2026-11-14T11:00:00",
-      "end": "2026-11-14T14:00:00",
+      "start": "2026-11-14T14:00:00",
+      "end": "2026-11-14T16:00:00",
       "location": "Church",
       "notes": "Pumpkin smashing, launching, and more! Come hang out to play games and have a good time! The Children's ministry will be joining us for this event!",
       "contact": "Spencer Welch"
