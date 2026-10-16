@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-12T09:06:27.396Z",
+  "generated": "2026-10-16T01:16:00.161Z",
   "timezone": "America/New_York",
   "feeds": {
     "base": "https://calendars.greaterlifebaptistchurch.com/feeds/",
@@ -9,6 +9,11 @@
   },
   "signup": "https://script.google.com/macros/s/AKfycbyNowdqhkq7HxBtKSI3Sxk12e5MBs8N2kmxBPCBsVwlyfGSkwLrMx77FgkBRtPsobEO/exec",
   "ministries": [
+    {
+      "id": "church",
+      "name": "Church-wide",
+      "color": "#1B5E45"
+    },
     {
       "id": "youth",
       "name": "Greater Generation",
@@ -98,6 +103,15 @@
       "contact": "Andrea Hutchins and Michelle Jenson"
     },
     {
+      "uid": "eqk3mdbio3isdeahbfimj7rng0@google.com",
+      "ministry": "church",
+      "type": "event",
+      "title": "Baptism",
+      "start": "2026-10-25T11:00:00",
+      "end": "2026-10-25T12:30:00",
+      "contact": "JC Cross"
+    },
+    {
       "uid": "1n6g9up6k4n57j8066um1odmfd@google.com",
       "ministry": "mens",
       "type": "routine",
@@ -127,6 +141,14 @@
       "location": "Church",
       "notes": "Pumpkin smashing, launching, and more! Come hang out to play games and have a good time! The Children's ministry will be joining us for this event!",
       "contact": "Spencer Welch"
+    },
+    {
+      "uid": "eh80gr4f95rklhup45v3kar4nk@google.com",
+      "ministry": "church",
+      "type": "event",
+      "title": "No Service - Thanksgiving",
+      "start": "2026-11-26T19:00:00",
+      "end": "2026-11-26T20:00:00"
     },
     {
       "uid": "j1bj9g3h4j7n5que5abmdvpp20@google.com",
