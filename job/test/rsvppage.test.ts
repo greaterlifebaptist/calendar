@@ -85,3 +85,22 @@ test('both numbers are remembered, so changing it is changing one thing', () => 
   assert.ok(SCRIPT.includes('last.adults !== undefined ? last.adults : (last.count || 1)'),
     'an answer remembered before the split existed would prefill as nothing');
 });
+
+// ---------------------------------------------------------------------------
+// sharing a calendar to somebody's Google account
+// ---------------------------------------------------------------------------
+
+const ADMIN = readFileSync(new URL('../../site/admin.html', import.meta.url), 'utf8');
+
+test('the add links are shown whether or not this press granted anything', () => {
+  // The commonest dead end on that page: access granted weeks ago to somebody
+  // who never tapped the email. Pressing share again grants nothing new, so
+  // the page used to say "already matches this" and offer no way forward —
+  // when the link was the single thing they needed.
+  assert.ok(ADMIN.includes('const links = (out.shared && out.shared.calendars) || [];'),
+    'the links are filtered down to newly granted calendars again');
+  assert.equal(ADMIN.includes('.filter(c => added.indexOf(c.name) !== -1)'), false,
+    'the links are filtered down to newly granted calendars again');
+  assert.ok(ADMIN.includes('They already have access to'),
+    'there is no branch for somebody who already has access');
+});

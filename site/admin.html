@@ -1746,20 +1746,34 @@ function renderPeople(){
       if (!onGoogle){ after.hidden = true; return; }
 
       let html = "";
+      // Everything they are entitled to, not only what this press granted.
+      //
+      // These used to be filtered down to the newly granted ones, which left
+      // the commonest dead end on this page: somebody granted access weeks ago
+      // who never tapped the email. Pressing share again grants nothing new,
+      // so the list was empty and the page said "already matches this" and
+      // offered no way forward - when the link was the one thing they needed.
+      const links = (out.shared && out.shared.calendars) || [];
+      const copyRow = (c) =>
+        '<span class="u"><input type="text" readonly value="' + esc(c.add) + '">' +
+        '<button type="button">Copy</button></span>';
+
       if (added.length){
         // Nothing lets an owner put a calendar into somebody else's list, so
         // that person has to tap a link either way. Google's email carries it
         // and costs the leader nothing, which is why it is the default here.
         // The link is shown too, for when the email does not arrive or a text
         // is simply how that person is actually reachable.
-        const links = ((out.shared && out.shared.calendars) || [])
-          .filter(c => added.indexOf(c.name) !== -1);
         html += "<b>" + esc(added.join(", ")) + " shared with " + esc(out.email) + "</b>" +
           "Google has emailed them a link to add it, so there is nothing for you to do. " +
           "If it does not turn up, send " + (links.length === 1 ? "this" : "these") + " instead:" +
-          links.map(c =>
-            '<span class="u"><input type="text" readonly value="' + esc(c.add) + '">' +
-            '<button type="button">Copy</button></span>').join("");
+          links.map(copyRow).join("");
+      } else if (onGoogle && !removed.length && links.length){
+        html += "<b>They already have access to " + esc(links.map(c => c.name).join(", ")) + "</b>" +
+          "Nothing new to grant, so Google sends nothing. Having access and having a calendar " +
+          "in your own list are two different things, and only they can do the second — so if " +
+          "it is not showing up, send " + (links.length === 1 ? "this" : "one of these") + ":" +
+          links.map(copyRow).join("");
       } else if (onGoogle && removed.length){
         html += "<b>Removed from their Google account</b>" +
           esc(removed.join(", ")) + " has gone from their calendar already. Nothing for them to do.";
