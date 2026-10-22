@@ -1754,6 +1754,13 @@ function renderPeople(){
       // so the list was empty and the page said "already matches this" and
       // offered no way forward - when the link was the one thing they needed.
       const links = (out.shared && out.shared.calendars) || [];
+      // Learned the hard way. The link opens Google Calendar on the web and
+      // adds the calendar to whichever account that browser is signed in to.
+      // Tapped on a phone it often hands off to the Calendar app, which does
+      // not handle it, and nothing happens - which reads as a broken link.
+      const linkNote = "<span class=\"hint\">Open it in a browser already signed in to " +
+        "that Google account. On a phone it may need opening in the browser rather than " +
+        "the Calendar app.</span>";
       const copyRow = (c) =>
         '<span class="u"><input type="text" readonly value="' + esc(c.add) + '">' +
         '<button type="button">Copy</button></span>';
@@ -1767,13 +1774,13 @@ function renderPeople(){
         html += "<b>" + esc(added.join(", ")) + " shared with " + esc(out.email) + "</b>" +
           "Google has emailed them a link to add it, so there is nothing for you to do. " +
           "If it does not turn up, send " + (links.length === 1 ? "this" : "these") + " instead:" +
-          links.map(copyRow).join("");
+          links.map(copyRow).join("") + linkNote;
       } else if (onGoogle && !removed.length && links.length){
         html += "<b>They already have access to " + esc(links.map(c => c.name).join(", ")) + "</b>" +
           "Nothing new to grant, so Google sends nothing. Having access and having a calendar " +
           "in your own list are two different things, and only they can do the second — so if " +
           "it is not showing up, send " + (links.length === 1 ? "this" : "one of these") + ":" +
-          links.map(copyRow).join("");
+          links.map(copyRow).join("") + linkNote;
       } else if (onGoogle && removed.length){
         html += "<b>Removed from their Google account</b>" +
           esc(removed.join(", ")) + " has gone from their calendar already. Nothing for them to do.";
