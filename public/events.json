@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-22T23:17:56.665Z",
+  "generated": "2026-11-01T07:29:31.582Z",
   "timezone": "America/New_York",
   "feeds": {
     "base": "https://calendars.greaterlifebaptistchurch.com/feeds/",
@@ -31,81 +31,6 @@
     }
   ],
   "events": [
-    {
-      "uid": "1n6g9up6k4n57j8066um1odmfd@google.com",
-      "ministry": "mens",
-      "type": "routine",
-      "title": "Man Church Service",
-      "start": "2026-10-04T17:00:00",
-      "end": "2026-10-04T18:00:00",
-      "location": "Greater Life Baptist Church, 305 Old Grey Rock Rd, Midland, GA 31820, USA",
-      "notes": "Join us for Men's Fellowship"
-    },
-    {
-      "uid": "5hi215vvkdrmtu2fji31u6mkpj@google.com",
-      "ministry": "womens",
-      "type": "routine",
-      "title": "Soul Sisters Service",
-      "start": "2026-10-04T17:00:00",
-      "end": "2026-10-04T18:00:00",
-      "location": "Greater Life Baptist Church, 305 Old Grey Rock Rd, Midland, GA 31820, USA",
-      "notes": "Join us for Women's Fellowship"
-    },
-    {
-      "uid": "b5gc2h6kuls0m3m18glr2e51os@google.com",
-      "ministry": "church",
-      "type": "event",
-      "title": "Low Country Boil",
-      "start": "2026-10-11T12:30:00",
-      "end": "2026-10-11T13:30:00",
-      "location": "Fellowship Hall",
-      "notes": "Please RSVP to reserve your plates. All donations go directly to the building fund!",
-      "contact": "JC Cross",
-      "link": "https://forms.cloud.microsoft/pages/responsepage.aspx?id=DQSIkWdsW0yxEjajBLZtrQAAAAAAAAAAAAN__hY3zQFUQjdaQlpIUlBQRjZMMU5CQVo0TEFESldPWi4u&origin=QRCode&route=shorturl",
-      "linkText": "Details"
-    },
-    {
-      "uid": "0dskclaglatncavuladmsqlao4@google.com",
-      "ministry": "youth",
-      "type": "event",
-      "title": "Judgement Journey Trip",
-      "start": "2026-10-17T17:00:00",
-      "end": "2026-10-17T23:00:00",
-      "location": "Faith Baptist Church, 552 Hammett Rd, LaGrange, GA 30241",
-      "notes": "Youth will meet at the church and ride to Lagrange, then eat Waffle House before returning to the church for pickup. Send money for food.",
-      "contact": "Spencer Welch",
-      "cardTitle": "Youth Judgement Journey Trip"
-    },
-    {
-      "uid": "6jogsu8cm2qa65q032vj8bnef0@google.com",
-      "ministry": "youth",
-      "type": "deadline",
-      "title": "Gun Raffle Deadline",
-      "start": "2026-10-18",
-      "allDay": true,
-      "notes": "All gun raffle tickets due - Live Drawing after church!",
-      "contact": "Spencer Welch"
-    },
-    {
-      "uid": "amjh6epibv8964dqiqdgtnchj8@google.com",
-      "ministry": "children",
-      "type": "event",
-      "title": "Club T215 Ice Cream with Preacher",
-      "start": "2026-10-22T17:30:00",
-      "end": "2026-10-22T18:30:00",
-      "location": "Dairy Queen, Whittlesey Rd Columbus",
-      "notes": "We will meet at Dairy Queen on Whittlesey in Columbus at 5:30.",
-      "contact": "Andrea Hutchins and Michelle Jenson"
-    },
-    {
-      "uid": "eqk3mdbio3isdeahbfimj7rng0@google.com",
-      "ministry": "church",
-      "type": "event",
-      "title": "Baptism",
-      "start": "2026-10-25T11:00:00",
-      "end": "2026-10-25T12:30:00",
-      "contact": "JC Cross"
-    },
     {
       "uid": "1n6g9up6k4n57j8066um1odmfd@google.com",
       "ministry": "mens",
