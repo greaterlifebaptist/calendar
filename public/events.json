@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-01T15:01:16.190Z",
+  "generated": "2026-11-08T00:30:29.476Z",
   "timezone": "America/New_York",
   "feeds": {
     "base": "https://calendars.greaterlifebaptistchurch.com/feeds/",
@@ -500,6 +500,26 @@
       "title": "Soul Sisters Service",
       "start": "2028-04-02T17:00:00",
       "end": "2028-04-02T18:00:00",
+      "location": "Greater Life Baptist Church, 305 Old Grey Rock Rd, Midland, GA 31820, USA",
+      "notes": "Join us for Women's Fellowship"
+    },
+    {
+      "uid": "1n6g9up6k4n57j8066um1odmfd@google.com",
+      "ministry": "mens",
+      "type": "routine",
+      "title": "Man Church Service",
+      "start": "2028-05-07T17:00:00",
+      "end": "2028-05-07T18:00:00",
+      "location": "Greater Life Baptist Church, 305 Old Grey Rock Rd, Midland, GA 31820, USA",
+      "notes": "Join us for Men's Fellowship"
+    },
+    {
+      "uid": "5hi215vvkdrmtu2fji31u6mkpj@google.com",
+      "ministry": "womens",
+      "type": "routine",
+      "title": "Soul Sisters Service",
+      "start": "2028-05-07T17:00:00",
+      "end": "2028-05-07T18:00:00",
       "location": "Greater Life Baptist Church, 305 Old Grey Rock Rd, Midland, GA 31820, USA",
       "notes": "Join us for Women's Fellowship"
     }
