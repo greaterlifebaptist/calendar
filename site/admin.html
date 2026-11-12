@@ -1484,7 +1484,11 @@ function slideRow(slide){
     // Checked here as well as on the server, so somebody with a six megabyte
     // photograph hears about it now rather than after the upload.
     if (picked.size > 1.5 * 1024 * 1024){
-      say(said, "That is " + (picked.size / 1048576).toFixed(1) + "MB. Please use one under 1.5MB.", "err");
+      // Naming the way out, not just the limit. A file this big is almost
+      // always a PNG, and the same picture as a JPG or WebP is usually a
+      // fraction of the size with nothing visible lost on a screen.
+      say(said, "That is " + (picked.size / 1048576).toFixed(1) + "MB, and the limit is 1.5MB. " +
+        "Saving it as a JPG or WebP instead of a PNG usually brings it well under.", "err");
       file.value = "";
       return;
     }
