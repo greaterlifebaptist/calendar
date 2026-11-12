@@ -28,23 +28,6 @@ RRULE:FREQ=YEARLY;BYMONTH=11;BYDAY=1SU
 END:STANDARD
 END:VTIMEZONE
 BEGIN:VEVENT
-UID:95klc3nq7enq3hvhelgqe5632o@google.com
-DTSTAMP:20260910T015551Z
-DTSTART;TZID=America/New_York:20261205T180000
-DTEND;TZID=America/New_York:20261205T213000
-SUMMARY:Babysitting for Shopping or Date Night
-DESCRIPTION:Youth Fundraiser - Babysitting service while parents go Christm
- as shopping or on a date night!\n\nContact: Spencer Welch
-LOCATION:Fellowship Hall
-CATEGORIES:EVENT
-X-GLBC-MINISTRY:youth
-X-GLBC-TYPE:event
-CREATED:20260910T015551Z
-LAST-MODIFIED:20260910T015551Z
-SEQUENCE:0
-TRANSP:OPAQUE
-END:VEVENT
-BEGIN:VEVENT
 UID:3ec5eu4e2tcbvb2nq9oijo2rsc@google.com
 DTSTAMP:20260910T015802Z
 DTSTART;TZID=America/New_York:20261218T183000
@@ -159,6 +142,41 @@ X-GLBC-TYPE:event
 CREATED:20260910T021549Z
 LAST-MODIFIED:20261012T011823Z
 SEQUENCE:1
+TRANSP:OPAQUE
+END:VEVENT
+BEGIN:VEVENT
+UID:95klc3nq7enq3hvhelgqe5632o@google.com
+DTSTAMP:20261112T191743Z
+DTSTART;TZID=America/New_York:20261205T180000
+DTEND;TZID=America/New_York:20261205T213000
+SUMMARY:Babysitting for Shopping or Date Night
+DESCRIPTION:Youth Fundraiser - Babysitting service while parents go Christm
+ as shopping or on a date night! Text "Babysit" to 706-887-1126 to sign up 
+ today!\n\nContact: Spencer Welch
+LOCATION:Fellowship Hall
+CATEGORIES:EVENT
+X-GLBC-MINISTRY:youth
+X-GLBC-TYPE:event
+CREATED:20260910T015551Z
+LAST-MODIFIED:20261112T191743Z
+SEQUENCE:0
+TRANSP:OPAQUE
+END:VEVENT
+BEGIN:VEVENT
+UID:p9u95ge7te4bbtj1aupqceli1o@google.com
+DTSTAMP:20261112T191821Z
+DTSTART;TZID=America/New_York:20261205T080000
+DTEND;TZID=America/New_York:20261205T160000
+SUMMARY:Youth Yard Work Fundraiser
+DESCRIPTION:Youth Fundraiser - The boys will be going around to do yard wor
+ k as a fundraiser. Need limbs picked up? Leaves raked? Pinestraw put out? 
+  Text "Yard" to 706-887-1126 to sign up today!\n\nContact: Spencer Welch
+CATEGORIES:EVENT
+X-GLBC-MINISTRY:youth
+X-GLBC-TYPE:event
+CREATED:20261112T191645Z
+LAST-MODIFIED:20261112T191821Z
+SEQUENCE:0
 TRANSP:OPAQUE
 END:VEVENT
 END:VCALENDAR
