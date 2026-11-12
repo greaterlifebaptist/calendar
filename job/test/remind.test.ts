@@ -108,16 +108,45 @@ test('past events are never reminded about', () => {
 // the guards, which are the point of this file
 // ---------------------------------------------------------------------------
 
-test('nothing goes out except at the send hour', () => {
+test('nothing goes out before the send hour, or late at night', () => {
   const start = new Date(NINE_AM.getTime() + 7 * 86400000).toISOString();
   const e = ev({ start: { dateTime: start }, end: { dateTime: start } });
-  for (const hour of [6, 8, 10, 18, 23]) {
+  for (const hour of [0, 6, 8, 22, 23]) {
     const now = new Date(NINE_AM);
     now.setHours(now.getHours() + (hour - 9));
     const p = plan([e], { now });
     assert.equal(p.due.length, 0, 'fired at ' + hour + ':00');
     assert.ok(p.skipped);
   }
+});
+
+test('a run later the same day still carries the morning reminders', () => {
+  // The window used to be exactly one hour wide, and GitHub's scheduled runs
+  // are best-effort: delayed under load, sometimes dropped. Miss the nine
+  // o'clock run and the whole day was silently lost, with nothing to retry
+  // it. That is how a seven day notice and a thirty day notice both failed to
+  // go out while the job looked perfectly healthy.
+  const start = new Date(NINE_AM.getTime() + 7 * 86400000).toISOString();
+  const e = ev({ start: { dateTime: start }, end: { dateTime: start } });
+
+  for (const hour of [9, 10, 14, 21]) {
+    const now = new Date(NINE_AM);
+    now.setHours(now.getHours() + (hour - 9));
+    const p = plan([e], { now });
+    assert.equal(p.due.length, 1, 'nothing sent at ' + hour + ':00');
+  }
+});
+
+test('catching up cannot reach beyond today', () => {
+  // The grace only lets a later run send what was already due today. The rung
+  // still has to be the right number of days out, so a day missed entirely
+  // stays missed rather than arriving a day late and wrong.
+  const start = new Date(NINE_AM.getTime() + 7 * 86400000).toISOString();
+  const e = ev({ start: { dateTime: start }, end: { dateTime: start } });
+
+  // Noon the following day: the event is now six days out, not seven.
+  const tomorrow = new Date(NINE_AM.getTime() + 86400000 + 3 * 3600000);
+  assert.equal(plan([e], { now: tomorrow }).due.length, 0);
 });
 
 test('the same rung never fires twice', () => {

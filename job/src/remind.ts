@@ -222,20 +222,42 @@ function firstUpcomingOfSeries(instances: CalEvent[], now: Date): Set<string> {
   return new Set([...earliest.values()].map((e) => e.id));
 }
 
+/** How many hours after the send hour a missed run may still go out. */
+const SEND_WINDOW_HOURS = 12;
+
+/** The same grace for the weekly digest, kept shorter so it stays an evening. */
+const DIGEST_WINDOW_HOURS = 3;
+
 export function planReminders(input: PlanInput): ReminderPlan {
   const { cfg, ministries, instances, masters, state, now } = input;
   const tz = cfg.timezone;
   const schedule = cfg.reminderSchedule;
   const hour = zonedParts(now, tz).H;
 
-  // Once a day, not once an hour.
-  if (hour !== schedule.sendHour && !input.forceHour && !FORCE_SEND_HOUR()) {
+  // Once a day, not once an hour — but not only in one hour either.
+  //
+  // This used to be `hour !== sendHour`, a window exactly sixty minutes wide.
+  // GitHub's scheduled runs are best-effort by design: delayed under load, and
+  // sometimes dropped outright. Miss the nine o'clock run and the whole day's
+  // reminders were silently lost, because by the next run the hour no longer
+  // matched and nothing retried. That is how the seven day notice for the
+  // Pumpkin Bash and the thirty day notice for the Arise deposit both failed
+  // to go out while the job itself looked perfectly healthy.
+  //
+  // Any run later the same day will now carry them. The rung still has to be
+  // the right number of days out, so this can only ever send today's
+  // reminders, and the dedupe key stops one going twice. The evening cut-off
+  // is the other half: late is better than never, but nothing here should
+  // ever buzz thirty phones near midnight.
+  const sinceDue = hour - schedule.sendHour;
+  if ((sinceDue < 0 || sinceDue > SEND_WINDOW_HOURS) && !input.forceHour && !FORCE_SEND_HOUR()) {
     // Seeding is reported honestly even here, so the state file gets created
     // on an ordinary quiet run rather than waiting for one that has something
     // to send. Otherwise the first deliberate test is swallowed by the seed.
     return {
       due: [],
-      skipped: `not the send hour (${schedule.sendHour}:00 local)`,
+      skipped: `outside the send window (${schedule.sendHour}:00–` +
+        `${schedule.sendHour + SEND_WINDOW_HOURS}:00 local)`,
       seeding: !state,
     };
   }
@@ -303,7 +325,10 @@ export function planDigest(input: PlanInput): PlannedReminder[] {
   const { weekday, hour } = cfg.reminderSchedule.digest;
   const p = zonedParts(now, tz);
   const dow = new Date(Date.UTC(p.y, p.m - 1, p.d)).getUTCDay();
-  if ((dow !== weekday || p.H !== hour) && !FORCE_SEND_HOUR()) return [];
+  const sinceDue = p.H - hour;
+  if ((dow !== weekday || sinceDue < 0 || sinceDue > DIGEST_WINDOW_HOURS) && !FORCE_SEND_HOUR()) {
+    return [];
+  }
 
   const out: PlannedReminder[] = [];
   const weekKey = isoDate(now, tz);
