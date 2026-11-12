@@ -1428,7 +1428,9 @@ function slideRow(slide){
         '<button type="button" class="s-clear" hidden>Remove picture</button>' +
         '<span class="status s-up"></span>' +
       '</span></label>' +
-    '<input type="hidden" class="s-image">' +
+    '<label><span class="lab">…or paste a picture link <span class="hint">— if the ' +
+      'upload above is refusing, or the picture is already on the web.</span></span>' +
+      '<input type="url" class="s-image" placeholder="https://..."></label>' +
     '<label><span class="lab">Show until <span class="hint">— optional. Blank means it stays ' +
       'until somebody takes it down; a date means it comes off the wall after that ' +
       'day.</span></span>' +
@@ -1452,7 +1454,20 @@ function slideRow(slide){
     file.hidden = !!url;
     if (url) thumb.src = url;
   };
+  // A link that does not load leaves the field alone rather than showing a
+  // broken thumbnail: the address may simply have a typo part way through
+  // being typed.
+  thumb.addEventListener("error", () => { thumb.hidden = true; });
   showPicture(slide.image || "");
+
+  // Pasted rather than uploaded. The upload needs a working GitHub token and
+  // tokens expire; a link needs nothing at all, so this is the way through
+  // when the upload is refusing and something has to be on the wall today.
+  box.querySelector(".s-image").addEventListener("change", (ev) => {
+    const typed = ev.target.value.trim();
+    showPicture(typed);
+    if (!typed) file.value = "";
+  });
 
   clear.addEventListener("click", () => {
     // Off this slide only. The file itself stays where it was uploaded, which
