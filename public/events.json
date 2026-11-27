@@ -1,5 +1,5 @@
 {
-  "generated": "2026-11-24T21:07:25.084Z",
+  "generated": "2026-11-27T02:47:58.608Z",
   "timezone": "America/New_York",
   "feeds": {
     "base": "https://calendars.greaterlifebaptistchurch.com/feeds/",
@@ -9,11 +9,6 @@
   },
   "signup": "https://script.google.com/macros/s/AKfycbyNowdqhkq7HxBtKSI3Sxk12e5MBs8N2kmxBPCBsVwlyfGSkwLrMx77FgkBRtPsobEO/exec",
   "ministries": [
-    {
-      "id": "church",
-      "name": "Church-wide",
-      "color": "#1B5E45"
-    },
     {
       "id": "youth",
       "name": "Greater Generation",
